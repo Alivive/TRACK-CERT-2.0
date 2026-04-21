@@ -412,129 +412,150 @@ function generateInternPDFById(id){
   const intern=interns.find(i=>i.id===id);if(!intern)return;
   const ic=getIC(id);const totalHours=getTH(ic);
   const catCnt={};ic.forEach(c=>catCnt[c.cat]=(catCnt[c.cat]||0)+1);
-  const preview=document.getElementById('reportPreviewArea');
-  preview.innerHTML=`<div style="background:var(--black);border:1px solid var(--border);border-radius:6px;padding:28px;font-family:var(--font-body)">
-    <div style="border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px">
-      <div style="font-family:var(--font-display);font-size:26px;letter-spacing:3px">FINSENSE<span style="color:var(--red)">AFRICA</span></div>
-      <div style="font-size:9px;color:var(--gray);letter-spacing:3px;font-family:var(--font-mono)">INTERN CERTIFICATION REPORT</div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
-      <div><div style="font-size:9px;color:var(--gray);letter-spacing:2px;font-family:var(--font-mono);margin-bottom:6px">INTERN</div>
-      <div style="font-family:var(--font-display);font-size:20px;letter-spacing:1px">${getName(intern)}</div>
-      <div style="font-size:11px;color:var(--red-light);font-family:var(--font-mono);letter-spacing:2px">${intern.dept} TRACK</div></div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <div style="background:var(--black2);border:1px solid var(--border2);border-radius:4px;padding:10px 14px;text-align:center">
-          <div style="font-size:9px;color:var(--gray);font-family:var(--font-mono);letter-spacing:1px">CERTS</div>
-          <div style="font-family:var(--font-display);font-size:26px">${ic.length}</div></div>
-        <div style="background:var(--black2);border:1px solid var(--border2);border-radius:4px;padding:10px 14px;text-align:center">
-          <div style="font-size:9px;color:var(--gray);font-family:var(--font-mono);letter-spacing:1px">HOURS</div>
-          <div style="font-family:var(--font-display);font-size:26px">${totalHours}</div></div>
-      </div>
-    </div>
-    <div style="margin-bottom:18px">
-      <div style="font-size:9px;color:var(--gray);letter-spacing:2px;font-family:var(--font-mono);margin-bottom:10px">BY CATEGORY</div>
-      ${Object.keys(CATS).map(k=>{const cnt=catCnt[k]||0;const hrs=getTH(ic.filter(c=>c.cat===k));return cnt?`<div style="margin-bottom:4px;display:flex;justify-content:space-between;font-size:12px"><span><span style="font-family:var(--font-mono);color:var(--red-light);margin-right:7px">${k}</span>${CATS[k].name}</span><span style="font-family:var(--font-mono)">${cnt} cert${cnt>1?'s':''} · ${hrs}h</span></div>`:''}).join('')}
-    </div>
-    <div><div style="font-size:9px;color:var(--gray);letter-spacing:2px;font-family:var(--font-mono);margin-bottom:10px">CERTIFICATION DETAILS</div>
-    ${ic.map(c=>`<div style="padding:9px 0;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:13px;font-weight:500;color:var(--white)">${c.name}</div><div style="font-size:11px;color:var(--gray);font-family:var(--font-mono)">${c.provider} · ${c.date}</div></div>
-      <div style="text-align:right"><span class="badge ${CAT_BADGE[c.cat]}" style="margin-bottom:2px">${c.cat}</span><div style="font-family:var(--font-mono);font-size:12px;color:var(--white2)">${c.hours}h</div></div>
-    </div>`).join('')}
-    </div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border2);font-size:9px;color:var(--gray);font-family:var(--font-mono);display:flex;justify-content:space-between">
-      <span>FINSENSE AFRICA · INTERN PROGRAMME</span>
-      <span>GENERATED: ${new Date().toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'2-digit'}).toUpperCase()}</span>
-    </div>
-  </div>`;
 
-  // Build a white-background version for PDF
-const pdfContent = `
-  <div style="background:#fff;padding:28px;font-family:Arial,sans-serif;color:#000">
-    <h2>FinSense Africa Intern Certification Report</h2>
-    <p><strong>Intern:</strong> ${getName(intern)}</p>
-    <p><strong>Department:</strong> ${intern.dept} TRACK</p>
-    <p><strong>Total Certifications:</strong> ${ic.length}</p>
-    <p><strong>Total Hours:</strong> ${totalHours}</p>
-    <h3>By Category</h3>
-    ${Object.keys(CATS).map(k=>{
-      const cnt=catCnt[k]||0;
-      const hrs=getTH(ic.filter(c=>c.cat===k));
-      return cnt?`<p>${CATS[k].name}: ${cnt} cert${cnt>1?'s':''} · ${hrs}h</p>`:'';
-    }).join('')}
-    <h3>Certification Details</h3>
-    ${ic.map(c=>`<div><strong>${c.name}</strong><br>${c.provider} · ${c.date} · ${c.hours}h</div>`).join('')}
-    <p style="margin-top:20px;font-size:10px;color:#666">
-      Generated: ${new Date().toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'2-digit'})}
-    </p>
-  </div>
-`;
-
-// Export automatically
-html2pdf().set({
-  margin: 0.5,
-  filename: `Intern_Report_${getName(intern)}.pdf`,
-  image: { type: 'jpeg', quality: 0.98 },
-  html2canvas: { scale: 2 },
-  jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-}).from(pdfContent).save();
-  showNotif('Report generated and downloaded as PDF!');
-  showPage('reports');
-}
- 
-function generateSummaryPDF(){
-  const title=document.getElementById('summaryReportTitle').value||'Certification Summary Report';
-
-  // Dark preview card
+  // Dark preview (dashboard)
   const preview=document.getElementById('reportPreviewArea');
   preview.innerHTML = `
-  <div style="background:var(--black);border:1px solid var(--border);border-radius:6px;padding:28px;font-family:var(--font-body)">
-    <div style="border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px">
-      <div style="font-family:var(--font-display);font-size:26px;letter-spacing:3px">
-        FINSENSE<span style="color:var(--red)">AFRICA</span>
+    <div style="background:var(--black);border:1px solid var(--border);border-radius:6px;padding:28px;font-family:var(--font-body)">
+      <div style="border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px">
+        <div style="font-family:var(--font-display);font-size:26px;letter-spacing:3px">FINSENSE<span style="color:var(--red)">AFRICA</span></div>
+        <div style="font-size:9px;color:var(--gray);letter-spacing:3px;font-family:var(--font-mono)">INTERN CERTIFICATION REPORT</div>
       </div>
-      <div style="font-size:9px;color:var(--gray);letter-spacing:3px;font-family:var(--font-mono)">
-        ${title.toUpperCase()}
-      </div>
+      <!-- rest of your dark preview HTML -->
     </div>
-    <!-- rest of your dark summary preview HTML here -->
-  </div>
-`;
+  `;
+
   // White-background PDF content
   const pdfContent = `
     <div style="background:#fff;padding:28px;font-family:Arial,sans-serif;color:#000">
-      <h2>${title}</h2>
+      <h2 style="color:#000">FinSense Africa Intern Certification Report</h2>
+      <p><strong>Intern:</strong> ${getName(intern)}</p>
+      <p><strong>Department:</strong> 
+        <span style="background:#d00;color:#fff;padding:2px 6px;border-radius:4px">${intern.dept} TRACK</span>
+      </p>
+      <p><strong>Total Certifications:</strong> ${ic.length}</p>
+      <p><strong>Total Hours:</strong> ${totalHours}</p>
+
+      <h3 style="color:#d00;margin-top:20px">By Category</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#f0f0f0;color:#000">
+          <th style="border:1px solid #ccc;padding:6px">Category</th>
+          <th style="border:1px solid #ccc;padding:6px">Certs</th>
+          <th style="border:1px solid #ccc;padding:6px">Hours</th>
+        </tr></thead>
+        <tbody>
+          ${Object.keys(CATS).map(k=>{
+            const cnt=catCnt[k]||0;
+            const hrs=getTH(ic.filter(c=>c.cat===k));
+            return cnt?`<tr style="background:${cnt%2===0?'#fff':'#f9f9f9'}">
+              <td style="border:1px solid #ccc;padding:6px">${CATS[k].name}</td>
+              <td style="border:1px solid #ccc;padding:6px">${cnt}</td>
+              <td style="border:1px solid #ccc;padding:6px">${hrs}h</td>
+            </tr>`:'';
+          }).join('')}
+        </tbody>
+      </table>
+
+      <h3 style="color:#d00;margin-top:20px">Certification Details</h3>
+      ${ic.map(c=>`<div style="margin-bottom:8px">
+        <strong>${c.name}</strong><br>
+        ${c.provider} · ${c.date} · ${c.hours}h
+      </div>`).join('')}
+
+      <p style="margin-top:20px;font-size:10px;color:#666">
+        Generated: ${new Date().toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'2-digit'})}
+      </p>
+    </div>
+  `;
+
+  const element = document.createElement('div');
+  element.innerHTML = pdfContent;
+
+  html2pdf().set({
+    margin: 0.5,
+    filename: `Intern_Report_${getName(intern)}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }).from(element).save();
+
+  showNotif('Intern report generated and downloaded as PDF!');
+  showPage('reports');
+}
+
+function generateSummaryPDF(){
+  const title=document.getElementById('summaryReportTitle').value||'Certification Summary Report';
+
+  // Dark preview (dashboard)
+  const preview=document.getElementById('reportPreviewArea');
+  preview.innerHTML = `
+    <div style="background:var(--black);border:1px solid var(--border);border-radius:6px;padding:28px;font-family:var(--font-body)">
+      <div style="border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px">
+        <div style="font-family:var(--font-display);font-size:26px;letter-spacing:3px">FINSENSE<span style="color:var(--red)">AFRICA</span></div>
+        <div style="font-size:9px;color:var(--gray);letter-spacing:3px;font-family:var(--font-mono)">${title.toUpperCase()}</div>
+      </div>
+      <!-- your dark summary preview content here -->
+    </div>
+  `;
+
+  // White-background PDF content
+  const pdfContent = `
+    <div style="background:#fff;padding:28px;font-family:Arial,sans-serif;color:#000">
+      <h2 style="color:#000">${title}</h2>
       <p><strong>Total Interns:</strong> ${interns.length}</p>
       <p><strong>Total Certifications:</strong> ${certs.length}</p>
       <p><strong>Total Hours:</strong> ${getTH(certs)}h</p>
       <p><strong>Tracks:</strong> 7</p>
 
-      <h3>Category Summary</h3>
+      <h3 style="color:#d00;margin-top:20px">Category Summary</h3>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr><th>Category</th><th>Certs</th><th>Hours</th><th>Interns</th></tr></thead>
+        <thead>
+          <tr style="background:#f0f0f0;color:#000">
+            <th style="border:1px solid #ccc;padding:6px">Category</th>
+            <th style="border:1px solid #ccc;padding:6px">Certs</th>
+            <th style="border:1px solid #ccc;padding:6px">Hours</th>
+            <th style="border:1px solid #ccc;padding:6px">Interns</th>
+          </tr>
+        </thead>
         <tbody>
           ${Object.keys(CATS).map(k=>{
             const cnt=certs.filter(c=>c.cat===k).length;
             const h=getTH(certs.filter(c=>c.cat===k));
             const ai=[...new Set(certs.filter(c=>c.cat===k).map(c=>c.internId))].length;
-            return `<tr><td>${CATS[k].name}</td><td>${cnt}</td><td>${h}h</td><td>${ai}</td></tr>`;
+            return `<tr style="background:${cnt%2===0?'#fff':'#f9f9f9'}">
+              <td style="border:1px solid #ccc;padding:6px">${CATS[k].name}</td>
+              <td style="border:1px solid #ccc;padding:6px">${cnt}</td>
+              <td style="border:1px solid #ccc;padding:6px">${h}h</td>
+              <td style="border:1px solid #ccc;padding:6px">${ai}</td>
+            </tr>`;
           }).join('')}
         </tbody>
       </table>
 
-      <h3>All Interns</h3>
+      <h3 style="color:#d00;margin-top:20px">All Interns</h3>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr><th>Intern</th><th>Dept</th>${Object.keys(CATS).map(k=>`<th>${k}</th>`).join('')}<th>Total</th><th>Hours</th></tr></thead>
+        <thead>
+          <tr style="background:#f0f0f0;color:#000">
+            <th style="border:1px solid #ccc;padding:6px">Intern</th>
+            <th style="border:1px solid #ccc;padding:6px">Dept</th>
+            ${Object.keys(CATS).map(k=>`<th style="border:1px solid #ccc;padding:6px">${k}</th>`).join('')}
+            <th style="border:1px solid #ccc;padding:6px">Total</th>
+            <th style="border:1px solid #ccc;padding:6px">Hours</th>
+          </tr>
+        </thead>
         <tbody>
           ${interns.map(i=>{
             const ic=getIC(i.id);
             const catCnt={};
             ic.forEach(c=>catCnt[c.cat]=(catCnt[c.cat]||0)+1);
-            return `<tr>
-              <td>${getName(i)}</td>
-              <td>${i.dept}</td>
-              ${Object.keys(CATS).map(k=>`<td>${catCnt[k]||'-'}</td>`).join('')}
-              <td>${ic.length}</td>
-              <td>${getTH(ic)}h</td>
+            return `<tr style="background:${ic.length%2===0?'#fff':'#f9f9f9'}">
+              <td style="border:1px solid #ccc;padding:6px">${getName(i)}</td>
+              <td style="border:1px solid #ccc;padding:6px">
+                <span style="background:#d00;color:#fff;padding:2px 6px;border-radius:4px">${i.dept}</span>
+              </td>
+              ${Object.keys(CATS).map(k=>`<td style="border:1px solid #ccc;padding:6px;text-align:center">${catCnt[k]||'-'}</td>`).join('')}
+              <td style="border:1px solid #ccc;padding:6px;text-align:center">${ic.length}</td>
+              <td style="border:1px solid #ccc;padding:6px;text-align:center">${getTH(ic)}h</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -546,11 +567,9 @@ function generateSummaryPDF(){
     </div>
   `;
 
-  // Convert string to DOM element
   const element = document.createElement('div');
   element.innerHTML = pdfContent;
 
-  // Export PDF
   html2pdf().set({
     margin: 0.5,
     filename: `Summary_Report.pdf`,
@@ -562,6 +581,7 @@ function generateSummaryPDF(){
   showNotif('Summary report generated and downloaded as PDF!');
   showPage('reports');
 }
+
 
 
 
