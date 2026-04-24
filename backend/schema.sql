@@ -4,6 +4,7 @@
 -- 1. Create Interns Table
 CREATE TABLE IF NOT EXISTS interns (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  auth_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,

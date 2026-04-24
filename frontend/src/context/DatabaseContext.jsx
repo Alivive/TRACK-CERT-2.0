@@ -5,42 +5,61 @@ import { useAuth } from './AuthContext';
 const DatabaseContext = createContext({});
 
 export const DatabaseProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [interns, setInterns] = useState([]);
   const [certifications, setCertifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refreshData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     
-    // Fetch both in parallel
-    const [ { data: iData }, { data: cData } ] = await Promise.all([
-      supabase.from('interns').select('*').order('first_name'),
-      supabase.from('certifications').select('*').order('date', { ascending: false })
-    ]);
+    // Fetch logic based on role
+    if (profile.role === 'admin') {
+      const [ { data: iData }, { data: cData } ] = await Promise.all([
+        supabase.from('interns').select('*').order('first_name'),
+        supabase.from('certifications').select('*').order('date', { ascending: false })
+      ]);
+      if (iData) setInterns(iData);
+      if (cData) setCertifications(cData);
+    } else {
+      // Standard interns only need their own certifications
+      const { data: cData } = await supabase.from('certifications')
+        .select('*')
+        .order('date', { ascending: false }); // RLS handles the filtering securely
+        
+      if (cData) setCertifications(cData);
+      // We don't need to load the interns list for standard users
+      setInterns([]);
+    }
     
-    if (iData) setInterns(iData);
-    if (cData) setCertifications(cData);
     setLoading(false);
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       refreshData();
       
-      // Set up real-time listener for instant UI updates
-      const channel = supabase.channel('db-changes')
-        .on('postgres_changes', { event: '*', table: 'interns' }, () => refreshData())
-        .on('postgres_changes', { event: '*', table: 'certifications' }, () => refreshData())
-        .subscribe();
+      // Set up real-time listener based on role
+      let channel;
+      if (profile.role === 'admin') {
+        channel = supabase.channel('db-changes-admin')
+          .on('postgres_changes', { event: '*', table: 'interns' }, () => refreshData())
+          .on('postgres_changes', { event: '*', table: 'certifications' }, () => refreshData())
+          .subscribe();
+      } else if (profile.intern_id) {
+        // Interns only listen to their own certs
+        channel = supabase.channel('db-changes-intern')
+          .on('postgres_changes', { event: '*', table: 'certifications', filter: `intern_id=eq.${profile.intern_id}` }, () => refreshData())
+          .subscribe();
+      }
 
-      return () => supabase.removeChannel(channel);
+      return () => { if (channel) supabase.removeChannel(channel); };
     } else {
       setInterns([]);
       setCertifications([]);
       setLoading(false);
     }
-  }, [user, refreshData]);
+  }, [user, profile, refreshData]);
 
   const addIntern = async (intern) => {
     return await supabase.from('interns').insert([intern]).select();

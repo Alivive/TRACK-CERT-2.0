@@ -7,11 +7,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[SUPABASE] Missing Environment Variables. Check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'certrack-v2-auth'
-  }
-});
+// Ensure a true singleton across Vite HMR reloads to prevent GoTrue lock contention
+const globalForSupabase = globalThis;
+
+// Delete any potentially deadlocked instance during Vite HMR
+delete globalForSupabase.supabase;
+
+if (!globalForSupabase.supabase) {
+  globalForSupabase.supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      // Change storageKey to completely bypass any corrupted browser locks
+      storageKey: 'certrack-v3-auth'
+    }
+  });
+}
+
+export const supabase = globalForSupabase.supabase;

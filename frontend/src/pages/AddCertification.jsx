@@ -11,7 +11,7 @@ const AddCertification = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    intern_id: isAdmin ? '' : (profile?.id || ''),
+    intern_id: isAdmin ? '' : (profile?.intern_id || ''),
     name: '',
     provider: '',
     category: 'AI',
@@ -20,8 +20,8 @@ const AddCertification = () => {
   });
 
   useEffect(() => {
-    if (!isAdmin && profile?.id) {
-      setFormData(prev => ({ ...prev, intern_id: profile.id }));
+    if (!isAdmin && profile?.intern_id) {
+      setFormData(prev => ({ ...prev, intern_id: profile.intern_id }));
     }
   }, [profile, isAdmin]);
 

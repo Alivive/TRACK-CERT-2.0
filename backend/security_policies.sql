@@ -19,9 +19,14 @@ CREATE POLICY "Admins manage interns" ON interns ALL USING (
 
 -- 3. CERTIFICATIONS
 CREATE POLICY "Certs viewable by auth" ON certifications FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Auth users insert certs" ON certifications FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Auth users insert certs" ON certifications FOR INSERT WITH CHECK (
+  auth.role() = 'authenticated' AND (
+    intern_id IN (SELECT id FROM interns WHERE auth_id = auth.uid()) OR
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+);
 CREATE POLICY "Users/Admins delete certs" ON certifications FOR DELETE USING (
-  auth.uid() = intern_id OR 
+  intern_id IN (SELECT id FROM interns WHERE auth_id = auth.uid()) OR 
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 

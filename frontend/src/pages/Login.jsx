@@ -12,6 +12,9 @@ const Login = () => {
   
   // Dynamic access codes from DB
   const [systemCodes, setSystemCodes] = useState({ admin_code: '', intern_code: '' });
+  
+  // Dynamic system stats
+  const [sysStats, setSysStats] = useState({ interns: 0, certs: 0, tracks: 0, hours: 0 });
 
   const [formData, setFormData] = useState({
     email: '',
@@ -27,7 +30,16 @@ const Login = () => {
         setSystemCodes(data[0]);
       }
     };
+    
+    const fetchStats = async () => {
+      const { data } = await supabase.rpc('get_system_stats');
+      if (data) {
+        setSysStats(data);
+      }
+    };
+
     fetchCodes();
+    fetchStats();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -172,27 +184,27 @@ const Login = () => {
         <div className="auth-right-graphic">
           <div className="auth-grid">
             <div className="auth-grid-card red-top">
-              <div className="auth-grid-num">12</div>
+              <div className="auth-grid-num">{sysStats.interns}</div>
               <div className="auth-grid-lbl">INTERNS</div>
             </div>
             <div className="auth-grid-card red-top">
-              <div className="auth-grid-num">67</div>
+              <div className="auth-grid-num">{sysStats.certs}</div>
               <div className="auth-grid-lbl">CERTS</div>
             </div>
             <div className="auth-grid-card red-top">
-              <div className="auth-grid-num">7</div>
+              <div className="auth-grid-num">{sysStats.tracks}</div>
               <div className="auth-grid-lbl">TRACKS</div>
             </div>
             <div className="auth-grid-card">
-              <div className="auth-grid-num">1.2K</div>
+              <div className="auth-grid-num">{sysStats.hours >= 1000 ? (sysStats.hours / 1000).toFixed(1) + 'K' : sysStats.hours}</div>
               <div className="auth-grid-lbl">HOURS</div>
             </div>
             <div className="auth-grid-card">
-              <div className="auth-grid-num">5.6</div>
+              <div className="auth-grid-num">{sysStats.interns > 0 ? (sysStats.certs / sysStats.interns).toFixed(1) : '0'}</div>
               <div className="auth-grid-lbl">AVG CERTS</div>
             </div>
             <div className="auth-grid-card">
-              <div className="auth-grid-num">103</div>
+              <div className="auth-grid-num">{sysStats.interns > 0 ? Math.round(sysStats.hours / sysStats.interns) : '0'}</div>
               <div className="auth-grid-lbl">AVG HRS</div>
             </div>
           </div>
