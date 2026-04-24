@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+</head>
+<body>
+<!-- AUTHENTIFICATION SCREEN -->
+<div id="authScreen">
+  <div class="auth-left">
+    <div class="auth-logo-mark">FIN<span>SENSE</span></div>
+    <div class="auth-logo-sub">AFRICA · INTERN CERT-TRACK SYSTEM</div>
+    <div class="auth-welcome">SIGN IN</div>
+    <div class="auth-desc">Access the intern certification tracking platform. Choose your role to continue.</div>
+
+    <div class="role-selector">
+      <div class="role-btn selected" id="roleAdmin" onclick="selectRole('admin')">
+        <div class="role-icon admin">⚙</div>
+        <div>
+          <span class="role-label">Administrator</span>
+          <span class="role-sub">Full platform access · Manage all data</span>
+        </div>
+      </div>
+      <div class="role-btn" id="roleIntern" onclick="selectRole('intern')">
+        <div class="role-icon intern">◎</div>
+        <div>
+          <span class="role-label">Intern</span>
+          <span class="role-sub">View certifications · Submit new certs</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminFields">
+      <label class="form-label-auth">Username</label>
+      <input class="form-input-auth" type="text" id="authUser" placeholder="admin" value="admin">
+      <label class="form-label-auth">Password</label>
+      <input class="form-input-auth" type="password" id="authPass" placeholder="••••••••" value="" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <div id="internFields" style="display:none">
+      <label class="form-label-auth">Select your Username</label>
+      <select class="form-input-auth" id="internSelect" style="margin-bottom:14px"></select>
+      <label class="form-label-auth">Access Code</label>
+      <input class="form-input-auth" type="password" id="internCode" placeholder="intern2025" value="" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <div class="auth-err" id="authErr"></div>
+    <button class="btn-signin" onclick="doLogin()">SIGN IN →</button>
+    
+    <!-- <div class="auth-hint">
+      <span>Admin:</span> admin / ADMIN2026 <br>
+      <span>Intern:</span> all interns / INTERNS2026
+    </div> -->
+
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-right-graphic">
+      <div class="auth-grid">
+        <div class="auth-grid-card red-top"><div class="auth-grid-num">10</div><div class="auth-grid-lbl">Interns</div></div>
+        <div class="auth-grid-card red-top"><div class="auth-grid-num">100+</div><div class="auth-grid-lbl">Certs</div></div>
+        <div class="auth-grid-card red-top"><div class="auth-grid-num">7</div><div class="auth-grid-lbl">Tracks</div></div>
+        <div class="auth-grid-card"><div class="auth-grid-num">300+</div><div class="auth-grid-lbl">Hours</div></div>
+        <div class="auth-grid-card"><div class="auth-grid-num">25</div><div class="auth-grid-lbl">Avg Certs</div></div>
+        <div class="auth-grid-card"><div class="auth-grid-num">200</div><div class="auth-grid-lbl">Avg Hrs</div></div>
+      </div>
+      <div class="auth-tagline">TRACK · CERTIFY · GROW</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN - AUTHENTIFICATION LEVEL-->
+<div id="appScreen">
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark"> CERT-TRACK </div>  
+      <div class="logo-mark">FIN<span>SENSE</span></div>
+      <div class="logo-sub">AFRICA · INTERN SYSTEM</div>
+    </div>
+    <nav class="nav" id="sideNav"></nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="sideUserAvatar">U</div>
+        <div class="user-info">
+          <div class="user-name" id="sideUserName">User</div>
+          <div class="user-role-badge" id="sideUserRole">ROLE</div>
+        </div>
+      </div>
+      <button class="btn-signout" onclick="signOut()">SIGN OUT</button>
+    </div>
+  </aside>
+
+<!--DASHBOARD-->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">DASHBOARD</div>
+      <div class="topbar-actions">
+        <div class="search-bar"><span style="color:var(--gray2);font-size:12px">⌕</span><input type="text" placeholder="Search..." id="globalSearch"></div>
+        <button class="btn btn-primary" id="topAddBtn" onclick="showPage('add_cert')" style="display:none">+ ADD CERT</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div id="page-dashboard" class="page active">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total Interns</div><div class="stat-value">10</div><div class="stat-delta up">↑ 10 this intake</div></div>
+          <div class="stat-card"><div class="stat-label">Total Certs</div><div class="stat-value" id="dashTotalCerts">67</div><div class="stat-delta up">100+ this month</div></div>
+          <div class="stat-card"><div class="stat-label">Total Hours</div><div class="stat-value" id="dashTotalHours">1,240+</div><div class="stat-delta">Across all tracks</div></div>
+          <div class="stat-card"><div class="stat-label">Avg per Intern</div><div class="stat-value" id="dashAvg">10+</div><div class="stat-delta">Certifications</div></div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><span class="card-title">RECENT CERTIFICATIONS</span><button class="btn btn-ghost" style="font-size:10px;padding:4px 9px" onclick="showPage('interns')">VIEW ALL</button></div>
+            <div class="card-body" style="padding:0"><table><thead><tr><th>INTERN</th><th>CERTIFICATION</th><th>CATEGORY</th><th>HRS</th><th>DATE</th></tr></thead><tbody id="recentCertsTable"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">BY CATEGORY</span></div>
+            <div class="card-body" id="dashCategoryBars"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">TOP INTERNS</span><span class="section-label">BY CERTS NOs</span></div>
+            <div class="card-body" style="padding:0"><table><thead><tr><th>INTERN</th><th>CERTS</th><th>HRS</th><th>TOP TRACK</th></tr></thead><tbody id="topInternsTable"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">HOURS BY TRACK</span></div>
+            <div class="card-body" id="hoursTrackBars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MY PROFILE (intern view) -->
+      <div id="page-my_profile" class="page">
+        <div class="section-header"><span class="section-title">MY PROFILE</span></div>
+        <div class="intern-profile" id="myProfileContent"></div>
+      </div>
+
+      <!-- INTERN PROFILES (admin view) -->
+      <div id="page-interns" class="page">
+        <div class="section-header"><span class="section-title">INTERN PROFILES</span><button class="btn btn-primary" onclick="openAddInternModal()">+ NEW INTERN</button></div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-body" style="padding:0">
+            <div style="overflow-x:auto"><table>
+              <thead><tr><th>INTERN</th><th>COHORT YEAR</th></th><th>TOTAL CERTS</th><th>HRS</th><th>AI</th><th>FE</th><th>BE</th><th>CYBER</th><th>CLOUD</th><th>SOFT</th><th>API</th></tr></thead>
+              <tbody id="internsFullTable"></tbody>
+            </table></div>
+          </div>
+        </div>
+        <div id="internDetailView" style="display:none">
+          <div style="margin-bottom:14px"><button class="btn btn-ghost" onclick="hideInternDetail()" style="font-size:12px">← BACK</button></div>
+          <div class="intern-profile">
+            <div>
+              <div class="profile-sidebar-card">
+                <div class="profile-avatar-lg" id="detailAvatar">JS</div>
+                <div class="profile-name" id="detailName">Name</div>
+                <div class="profile-dept" id="detailDept">Category</div>
+                <div class="profile-stats">
+                  <div><div class="profile-stat-label">Certs</div><div class="profile-stat-val" id="detailTotalCerts">0</div></div>
+                  <div><div class="profile-stat-label">Hours</div><div class="profile-stat-val" id="detailTotalHours">0h</div></div>
+                </div>
+              </div>
+
+              <div style="margin-top:14px">
+                <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:8px" onclick="generateInternPDF()"> ⬇ PDF REPORT</button>
+                <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="showAddCertForIntern()">+ ADD CERT</button>
+              </div>
+            </div>
+            <div><div class="card"><div class="card-header"><span class="card-title">CERTIFICATIONS</span></div><div class="card-body"><div class="cert-grid" id="detailCertList"></div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORIES SECTION-->
+      <div id="page-categories" class="page">
+        <div class="section-header"><span class="section-title">CATEGORY OVERVIEW</span></div>
+        <div class="cat-overview-grid" id="catOverviewGrid"></div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">CERTIFICATIONS BY CATEGORY</span>
+            <select id="catFilter" class="form-select" style="width:auto;padding:4px 8px;font-size:11px" onchange="renderCatTable()">
+              <option value="all">All</option>
+              <option value="AI">AI</option>
+              <option value="FE">Front End</option>
+              <option value="BE">Back End</option>
+              <option value="API">API</option>
+              <option value="CYBER">Cybersecurity</option>
+              <option value="CLOUD">Cloud</option>
+              <option value="SOFT">Soft Skills</option>
+            </select>
+          </div>
+          <div class="card-body" style="padding:0"><table><thead><tr><th>INTERN</th><th>CERTIFICATION</th><th>CATEGORY</th><th>PROVIDER</th><th>HRS</th><th>DATE</th></tr></thead><tbody id="catDetailTable"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ADDING  CERTIFICATIONS WORKINGS AREA-->
+      <div id="page-add_cert" class="page">
+        <div class="section-header"><span class="section-title">ADD CERTIFICATION</span></div>
+        <div style="max-width:640px">
+          <div class="form-section">
+            <div class="form-section-title">INTERN DETAILS</div>
+            <div class="form-grid">
+              <div class="form-group" id="internSelectWrap">
+                <label class="form-label">Intern</label>
+                <select class="form-select" id="certInternSel"><option value="">— Select —</option></select>
+              </div>
+              <div class="form-group" id="newInternWrap">
+                <label class="form-label">Or New Intern Name</label>
+                <input class="form-input" type="text" id="certNewIntern" placeholder="If not listed...">
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">CERTIFICATION DETAILS</div>
+            <div class="form-grid">
+              <div class="form-group full"><label class="form-label">Certification Name</label><input class="form-input" type="text" id="certName" placeholder="e.g. Google Cloud Professional"></div>
+              <div class="form-group"><label class="form-label">Category</label>
+                <select class="form-select" id="certCategory">
+                  <option value="">— Select —</option>
+                  <option value="AI">Artificial Intelligence</option>
+                  <option value="FE">Front End Web Dev</option>
+                  <option value="BE">Back End Web Dev</option>
+                  <option value="API">API Functionalities</option>
+                  <option value="CYBER">Cybersecurity</option>
+                  <option value="CLOUD">Cloud Computing</option>
+                  <option value="SOFT">Soft Skills</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">Provider</label><input class="form-input" type="text" id="certProvider" placeholder="Coursera, AWS..."></div>
+              <div class="form-group"><label class="form-label">Hours Spent</label><input class="form-input" type="number" id="certHours" placeholder="40" min="1"></div>
+              <div class="form-group"><label class="form-label">Date Earned</label><input class="form-input" type="date" id="certDate"></div>
+              <div class="form-group full"><label class="form-label">Notes / URL / Lesson</label><textarea class="form-textarea" id="certNotes" placeholder="Certificate link, notes..."></textarea></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-primary" onclick="submitCert()" style="padding:9px 24px">SUBMIT</button>
+            <button class="btn btn-ghost" onclick="clearCertForm()">CLEAR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMPORTING OF DATA ITEMS (admin only right and purpose) -->
+      <div id="page-import" class="page">
+        <div class="section-header"><span class="section-title">IMPORT DATA</span></div>
+        <div style="max-width:640px">
+          <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size:28px;margin-bottom:10px;opacity:0.5">⊞</div>
+            <div class="upload-title">Drop Excel or CSV file here</div>
+            <div class="upload-sub">Supports .xlsx, .xls, .csv — Click to browse</div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.json" style="display:none" onchange="handleFileUpload(event)">
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="card-header"><span class="card-title">EXPECTED FORMAT</span></div>
+            <div class="card-body">
+              <p style="font-size:12px;color:var(--gray);margin-bottom:10px">Your spreadsheet columns:</p>
+              <table style="font-size:12px">
+                <thead><tr><th>COLUMN</th><th>TYPE</th><th>EXAMPLE</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:var(--font-mono);color:var(--red-light)">intern_name</td><td>Text</td><td>Jane Smith</td></tr>
+                  <tr><td style="font-family:var(--font-mono);color:var(--red-light)">cert_name</td><td>Text</td><td>React Cert</td></tr>
+                  <tr><td style="font-family:var(--font-mono);color:var(--red-light)">category</td><td>AI/FE/BE/API/CYBER/CLOUD/SOFT</td><td>FE</td></tr>
+                  <tr><td style="font-family:var(--font-mono);color:var(--red-light)">provider</td><td>Text</td><td>Coursera</td></tr>
+                  <tr><td style="font-family:var(--font-mono);color:var(--red-light)">hours</td><td>Number</td><td>25</td></tr>
+                  <tr><td style="font-family:var(--font-mono);color:var(--red-light)">date_earned</td><td>YYYY-MM-DD</td><td>2025-01-15</td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:14px;display:flex;gap:8px">
+                <button class="btn btn-outline" onclick="downloadTemplate()">⬇ TEMPLATE DOWNLOAD</button>
+                <button class="btn btn-ghost" onclick="showNotif('Sample data already loaded!')">LOAD SAMPLE</button>
+              </div>
+            </div>
+          </div>
+          <div id="importPreview" style="display:none;margin-top:14px">
+            <div class="card">
+              <div class="card-header"><span class="card-title">IMPORT PREVIEW</span><span id="importCount" class="section-label"></span></div>
+              <div class="card-body" style="padding:0"><table><thead><tr><th>INTERN</th><th>CERT</th><th>CAT</th><th>HRS</th><th>DATE</th></tr></thead><tbody id="importPreviewTable"></tbody></table></div>
+              <div style="padding:14px 18px;border-top:1px solid var(--border2);display:flex;gap:8px">
+                <button class="btn btn-primary" onclick="confirmImport()">CONFIRM IMPORT</button>
+                <button class="btn btn-ghost" onclick="cancelImport()">CANCEL</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+      <!-- REPORTS SECTION DESIGNING-->
+<div id="page-reports" class="page">
+  <div class="section-header"><span class="section-title">REPORTS & PDF</span></div>
+  <div class="grid-2" style="max-width:860px">
+    
+    <!-- Individual Intern Reports section -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">INDIVIDUAL REPORTS</span></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gray);margin-bottom:14px">
+          Detailed PDF for each intern highlighting certs, hours and  categories.
+        </p>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Select an Intern</label>
+          <select class="form-select" id="reportInternSel"></select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="generateInternPDFFromReport()">
+          ⬇ INTERN PDF DOWNLOAD
+        </button>
+      </div>
+    </div>
+    
+    <!-- Summary Reports Section -->
+    <div class="card" id="summaryReportCard">
+      <div class="card-header"><span class="card-title">SUMMARY REPORT</span></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gray);margin-bottom:14px">
+          Proper route giving you a clear look at all interns at a go:
+        </p>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Report Title</label>
+          <input class="form-input" type="text" id="summaryReportTitle" placeholder="Q1 2025 Certification Summary">
+        </div>
+        <button class="btn btn-outline" style="width:100%;justify-content:center" onclick="generateSummaryPDF()">
+          ⬇ SUMMARY PDF
+        </button>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- Reports Production Preview Section-->
+  <div class="card" style="max-width:860px;margin-top:18px">
+    <div class="card-header"><span class="card-title">REPORT PREVIEW</span></div>
+    <div class="card-body" id="reportPreviewArea">
+      <div style="text-align:center;padding:36px 0;color:var(--gray)">
+        <div style="font-size:22px;margin-bottom:8px">⊟</div>
+        <div style="font-size:13px">Generate a report above to preview</div>
+      </div>
+    </div>
+  </div>
+</div>
+     
+
+            <!-- ADMINISTRATION SECTION PANEL -->
+      <div id="page-admin" class="page">
+        <div class="section-header"><span class="section-title">ADMIN PANEL</span><span class="section-label">PLATFORM MANAGEMENT</span></div>
+        <div class="grid-2" style="max-width:860px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">MANAGE INTERNS</span></div>
+            <div class="card-body" style="padding:0"><table><thead><tr><th>INTERN</th><th>COHORT</th><th>ACTIONS</th></tr></thead><tbody id="adminInternsTable"></tbody></table></div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border2)"><button class="btn btn-primary" style="font-size:11px" onclick="openAddInternModal()">+ ADD INTERN</button></div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-header"><span class="card-title">PLATFORM SETTINGS</span></div>
+              <div class="card-body">
+                <div class="form-group" style="margin-bottom:10px"><label class="form-label">Programme Name</label><input class="form-input" type="text" id="settingProgName" value="FinSense Africa Intern Programme"></div>
+                <div class="form-group" style="margin-bottom:10px"><label class="form-label">Current Period</label><input class="form-input" type="text" id="settingPeriod" value="2026 Intake"></div>
+                <div class="form-group" style="margin-bottom:14px">
+                  <label class="form-label">Change Admin Password</label>
+                  <input class="form-input" type="password" id="newAdminPass" placeholder="New password...">
+                </div>
+                <button class="btn btn-primary" onclick="saveSettings()" style="font-size:11px">SAVE SETTINGS</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">MANAGE INTERN ACCOUNTS</span></div>
+              <div class="card-body">
+                <p style="font-size:12px;color:var(--gray);margin-bottom:12px">All interns share the access code <span style="font-family:var(--font-mono);color:var(--red-light)">INTERNS2026</span>. Reset it below.</p>
+                <div class="form-group" style="margin-bottom:12px"><label class="form-label">New Intern Access Code</label><input class="form-input" type="text" id="newInternCode" placeholder="New code..."></div>
+                <button class="btn btn-ghost" style="font-size:11px" onclick="saveInternCode()">UPDATE CODE</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODALS SECTION ....system actions in general-->
+<div class="modal-overlay" id="addInternModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">ADD INTERN</span><div class="modal-close" onclick="closeModal('addInternModal')">✕</div></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">First Name</label><input class="form-input" type="text" id="newInternFirst" placeholder="Jane"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" type="text" id="newInternLast" placeholder="Smith"></div>
+        <div class="form-group full"><label class="form-label">COHORT</label>
+          <select class="form-select" id="newInternDept">
+            <option value="2026">2026</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="newInternEmail" placeholder="jane@finsense.africa"></div>
+        <div class="form-group"><label class="form-label">Start Date</label><input class="form-input" type="date" id="newInternStart"></div>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="addIntern()">ADD INTERN</button>
+        <button class="btn btn-ghost" onclick="closeModal('addInternModal')">CANCEL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editCertModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">EDIT CERTIFICATION</span><div class="modal-close" onclick="closeModal('editCertModal')">✕</div></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label class="form-label">Name</label><input class="form-input" type="text" id="editCertName"></div>
+        <div class="form-group"><label class="form-label">CATEGORY</label>
+          <select class="form-select" id="editCertCat">
+            <option value="AI">ARTIFICIAL INTELLIGENCE</option>
+            <option value="FE">FRONT END WEB DEV</option>
+            <option value="BE">BACK END WEB DEV</option>
+            <option value="API">API FUNCTIONALITIES</option>
+            <option value="CYBER">CYBERSECURITY</option>
+            <option value="SOFT">SOFT SKILLS</option>
+            <option value="CLOUD">CLOUD COMPUTING</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Hours</label><input class="form-input" type="number" id="editCertHours"></div>
+        <div class="form-group"><label class="form-label">Provider</label><input class="form-input" type="text" id="editCertProvider"></div>
+        <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="editCertDate"></div>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="saveEditCert()">SAVE</button>
+        <button class="btn btn-ghost" onclick="closeModal('editCertModal')">CANCEL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+ <script src="script.js"></script>
+</body>
+
+</html>
