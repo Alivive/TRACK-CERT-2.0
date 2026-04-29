@@ -62,10 +62,15 @@ const Login = () => {
           throw new Error(`Invalid ${role} access code.`);
         }
 
-        const { error: signUpError } = await signUp(formData.email, formData.password, formData.fullName, role);
+        const { data, error: signUpError } = await signUp(formData.email, formData.password, formData.fullName, role);
         if (signUpError) throw signUpError;
-        alert('Account created! Please log in.');
-        setIsSignUp(false);
+        
+        if (!data.session) {
+          alert('Account created! Please check your email to verify your account before logging in.');
+          setIsSignUp(false);
+        }
+        // If session exists, AuthContext.js listener will automatically 
+        // pick it up and App.jsx will redirect to dashboard. No alert needed.
       } else {
         const { error: signInError } = await signIn(formData.email, formData.password);
         if (signInError) throw signInError;
@@ -126,6 +131,7 @@ const Login = () => {
                 className="form-input-auth" 
                 placeholder="John Doe" 
                 required 
+                autoComplete="name"
                 value={formData.fullName} 
                 onChange={(e) => setFormData({...formData, fullName: e.target.value})} 
               />
@@ -138,6 +144,7 @@ const Login = () => {
             className="form-input-auth" 
             placeholder="name@company.com" 
             required 
+            autoComplete="email"
             value={formData.email} 
             onChange={(e) => setFormData({...formData, email: e.target.value})} 
           />
@@ -148,6 +155,7 @@ const Login = () => {
             className="form-input-auth" 
             placeholder="••••••••" 
             required 
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
             value={formData.password} 
             onChange={(e) => setFormData({...formData, password: e.target.value})} 
           />

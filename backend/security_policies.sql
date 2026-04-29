@@ -9,10 +9,12 @@ ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
 
 -- 1. PROFILES
 CREATE POLICY "Profiles viewable by all" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- 2. INTERNS
 CREATE POLICY "Interns viewable by auth" ON interns FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Users insert own intern record" ON interns FOR INSERT WITH CHECK (auth.uid() = auth_id);
 CREATE POLICY "Admins manage interns" ON interns ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );

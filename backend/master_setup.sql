@@ -76,10 +76,12 @@ ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 
 -- A. PROFILES
 CREATE POLICY "Profiles viewable by all" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Users insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- B. INTERNS
 CREATE POLICY "Interns viewable by auth" ON public.interns FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Users insert own intern record" ON public.interns FOR INSERT WITH CHECK (auth.uid() = auth_id);
 CREATE POLICY "Admins manage interns" ON public.interns FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );

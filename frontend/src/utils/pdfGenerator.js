@@ -134,7 +134,7 @@ export const generateSummaryReport = (interns, certifications) => {
           </thead>
           <tbody>
             ${interns.map((i, idx) => {
-              const ic = certifications.filter(c => c.internId === i.id);
+              const ic = certifications.filter(c => c.intern_id === i.id);
               const catCnt = {};
               ic.forEach(c => catCnt[c.cat] = (catCnt[c.cat] || 0) + 1);
               return `

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { DatabaseProvider } from './context/DatabaseContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -14,7 +16,10 @@ const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
 
-  if (loading) {
+  // Show the premium loader during:
+  // (a) initial auth session check, OR
+  // (b) user authenticated but profile still being fetched from DB
+  if (loading || (user && !profile)) {
     return (
       <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0A', color: '#fff' }}>
         <div className="svg-frame">
@@ -66,10 +71,6 @@ const AppContent = () => {
     </Layout>
   );
 };
-
-import { DatabaseProvider } from './context/DatabaseContext';
-
-import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   return (

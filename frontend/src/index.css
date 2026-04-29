@@ -384,8 +384,110 @@ tr:last-child td{border-bottom:none}
 }
 .sidebar-overlay.open { display: block; }
 
+/* ADMIN PANEL ENHANCEMENTS */
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--black3);
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+}
+
+.admin-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+  color: var(--gray);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-tab:hover {
+  color: var(--white);
+  background: rgba(255,255,255,0.03);
+}
+
+.admin-tab.active {
+  background: var(--black4);
+  color: var(--red-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.admin {
+  background: var(--red-glow);
+  color: var(--red-light);
+  border: 1px solid var(--border);
+}
+
+.role-badge.intern {
+  background: rgba(52,152,219,0.1);
+  color: #5DADE2;
+  border: 1px solid rgba(52,152,219,0.2);
+}
+
+.success-banner {
+  background: rgba(39, 174, 96, 0.1);
+  color: #2ECC71;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  border: 1px solid rgba(46,204,113,0.2);
+  animation: slideDown 0.3s ease;
+}
+
+.animate-in {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.loader {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--red-light);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* PREMIUM SCROLLBARS */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--black1); }
+::-webkit-scrollbar-track { background: var(--black); }
 ::-webkit-scrollbar-thumb { background: var(--black4); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gray2); }

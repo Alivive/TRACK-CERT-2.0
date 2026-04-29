@@ -10,17 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Ensure a true singleton across Vite HMR reloads to prevent GoTrue lock contention
 const globalForSupabase = globalThis;
 
-// Delete any potentially deadlocked instance during Vite HMR
-delete globalForSupabase.supabase;
-
 if (!globalForSupabase.supabase) {
   globalForSupabase.supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      // Change storageKey to completely bypass any corrupted browser locks
-      storageKey: 'certrack-v3-auth'
+      storageKey: 'certrack-v4-auth'
     }
   });
 }

@@ -6,16 +6,22 @@ import { Users, Award, Clock, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
-  const { interns, certifications, loading } = useDatabase();
+  // Defensive destructuring: default to empty values if DB is still "waking up"
+  const { 
+    interns = [], 
+    internDict = {}, 
+    certifications = [], 
+    loading 
+  } = useDatabase();
 
-  const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
+  const getTH = React.useCallback((cl) => cl.reduce((s, c) => s + (c.hours || 0), 0), []);
   
-  const stats = [
+  const stats = React.useMemo(() => [
     { label: 'TOTAL INTERNS', value: interns.length, delta: '+ 3 this intake', icon: <Users size={20} color="var(--red-light)" /> },
     { label: 'TOTAL CERTS', value: certifications.length, delta: '+ 100+ this month', icon: <Award size={20} color="var(--red-light)" /> },
     { label: 'TOTAL HOURS', value: getTH(certifications), delta: 'Across all tracks', icon: <Clock size={20} color="var(--red-light)" /> },
     { label: 'AVG PER INTERN', value: (certifications.length / Math.max(interns.length, 1)).toFixed(1), delta: 'Certifications', icon: <TrendingUp size={20} color="var(--red-light)" /> }
-  ];
+  ], [interns.length, certifications, getTH]);
 
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Live Data...</div>;
 
@@ -65,7 +71,7 @@ const Dashboard = () => {
               </thead>
               <tbody>
                 {certifications.slice(0, 5).map(c => {
-                  const intern = interns.find(i => i.id === c.intern_id);
+                  const intern = internDict[c.intern_id];
                   return (
                     <tr key={c.id}>
                       <td>

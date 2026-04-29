@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { CATS } from '../utils/mockData';
@@ -8,9 +8,16 @@ import { generateInternReport } from '../utils/pdfGenerator';
 const InternProfiles = () => {
   const { profile: authProfile } = useAuth();
   const isAdmin = authProfile?.role === 'admin';
-  const { interns, certifications, loading, deleteCertification, addIntern } = useDatabase();
+  const { 
+    interns = [], 
+    internDict = {}, 
+    certifications = [], 
+    loading, 
+    deleteCertification, 
+    addIntern 
+  } = useDatabase();
   
-  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? null : authProfile?.id);
+  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? null : authProfile?.intern_id);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newIntern, setNewIntern] = useState({ 
     first_name: '', 
@@ -19,21 +26,51 @@ const InternProfiles = () => {
     start_date: new Date().toISOString().split('T')[0] 
   });
 
-  const getIC = (id) => certifications.filter(c => c.intern_id === id);
+  // O(1) memoized lookup: group certs by intern_id once, not on every render
+  const certsByIntern = useMemo(() => {
+    return certifications.reduce((map, c) => {
+      if (!map[c.intern_id]) map[c.intern_id] = [];
+      map[c.intern_id].push(c);
+      return map;
+    }, {});
+  }, [certifications]);
+
+  const getIC = (id) => certsByIntern[id] || [];
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
   const getInit = (first, last) => ((first?.[0] || '?') + (last?.[0] || '')).toUpperCase();
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleAddIntern = async (e) => {
     e.preventDefault();
-    const { error } = await addIntern(newIntern);
-    if (!error) {
-      setShowAddModal(false);
-      setNewIntern({ 
-        first_name: '', 
-        last_name: '', 
-        email: '', 
-        start_date: new Date().toISOString().split('T')[0] 
-      });
+    console.log('[DEBUG] Starting Intern Save...');
+    setIsSaving(true);
+    
+    // Safety Timeout: 10 seconds
+    const timeout = setTimeout(() => {
+      if (isSaving) {
+        setIsSaving(false);
+        alert('The database is taking too long to respond. It might be sleeping. Please refresh and try again.');
+      }
+    }, 10000);
+
+    try {
+      const { data, error } = await addIntern(newIntern);
+      clearTimeout(timeout);
+      console.log('[DEBUG] DB Response:', { data, error });
+      
+      if (error) {
+        alert('Database Error: ' + error.message);
+      } else {
+        setShowAddModal(false);
+        window.location.reload();
+      }
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error('[DEBUG] Save Crash:', err);
+      alert('System Error: ' + err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -225,7 +262,9 @@ const InternProfiles = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                   <button type="button" className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowAddModal(false)}>CANCEL</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }}>SAVE INTERN</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }} disabled={isSaving}>
+                    {isSaving ? 'SAVING...' : 'SAVE INTERN'}
+                  </button>
                 </div>
               </form>
             </div>

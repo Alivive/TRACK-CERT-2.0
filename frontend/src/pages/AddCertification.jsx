@@ -38,7 +38,7 @@ const AddCertification = () => {
     if (!error) {
       setSuccess(true);
       setFormData({
-        intern_id: '',
+        intern_id: isAdmin ? '' : (profile?.intern_id || ''),
         name: '',
         provider: '',
         category: 'AI',

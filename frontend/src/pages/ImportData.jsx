@@ -3,7 +3,7 @@ import { useDatabase } from '../utils/useDatabase';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 
 const ImportData = () => {
-  const { addIntern, addCertification, refresh } = useDatabase();
+  const { addIntern, addCertification, refreshData } = useDatabase();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +38,7 @@ const ImportData = () => {
       });
 
       setSuccess(true);
-      await refresh();
+      await refreshData();
       setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
       setError(err.message);

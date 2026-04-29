@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { CATS, CAT_BADGE } from '../utils/mockData';
@@ -7,7 +7,7 @@ import { Trash2 } from 'lucide-react';
 const Categories = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const { interns, certifications, loading, deleteCertification } = useDatabase();
+  const { internDict, certifications, loading, deleteCertification } = useDatabase();
   const [filter, setFilter] = useState('all');
 
   const handleDeleteCert = async (certId) => {
@@ -19,9 +19,9 @@ const Categories = () => {
   const getInit = (first, last) => ((first?.[0] || '?') + (last?.[0] || '')).toUpperCase();
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
 
-  const filteredCerts = filter === 'all' 
-    ? certifications 
-    : certifications.filter(c => c.category === filter);
+  const filteredCerts = useMemo(() => (
+    filter === 'all' ? certifications : certifications.filter(c => c.category === filter)
+  ), [filter, certifications]);
 
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Track Data...</div>;
 
@@ -61,8 +61,8 @@ const Categories = () => {
             </thead>
             <tbody>
               {filteredCerts.map(c => {
-                const intern = interns.find(i => i.id === c.intern_id);
-                const canDelete = isAdmin || profile?.id === c.intern_id;
+                const intern = internDict[c.intern_id];
+                const canDelete = isAdmin || profile?.intern_id === c.intern_id;
                 return (
                   <tr key={c.id}>
                     <td>
