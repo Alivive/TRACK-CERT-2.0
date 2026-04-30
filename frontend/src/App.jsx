@@ -11,6 +11,8 @@ import AddCertification from './pages/AddCertification';
 import ImportData from './pages/ImportData';
 import Reports from './pages/Reports';
 import AdminPanel from './pages/AdminPanel';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 
 const AppContent = () => {
   const { user, profile, loading } = useAuth();
@@ -83,6 +85,7 @@ const AppContent = () => {
   return (
     <Layout activePage={activePage} onPageChange={setActivePage}>
       {renderPage()}
+      <PWAInstallPrompt />
     </Layout>
   );
 };
@@ -92,6 +95,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <DatabaseProvider>
+          <PWAUpdatePrompt />
           <AppContent />
         </DatabaseProvider>
       </AuthProvider>

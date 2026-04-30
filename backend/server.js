@@ -3,8 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,7 +17,13 @@ const supabase = createClient(
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173', // Local development
+    'http://localhost:3000', // Local development
+    /\.vercel\.app$/, // Any Vercel deployment
+    /\.onrender\.com$/ // Any Render deployment
+  ].filter(Boolean),
   credentials: true
 }));
 app.use(express.json());

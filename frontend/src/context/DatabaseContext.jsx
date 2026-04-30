@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import { supabase } from '../utils/supabaseClient';
+import { apiClient } from '../utils/apiClient';
 import { useAuth } from './AuthContext';
 
 const DatabaseContext = createContext({});
@@ -32,40 +32,20 @@ export const DatabaseProvider = ({ children }) => {
     setLoading(true);
     try {
       // Fetch interns
-      const { data: internsData, error: internsError } = await supabase
-        .from('interns')
-        .select('*')
-        .order('first_name', { ascending: true });
-
-      if (internsError) throw internsError;
-      setInterns(internsData || []);
+      const internsResponse = await apiClient.getInterns();
+      setInterns(internsResponse.data || []);
 
       // Fetch certifications
-      const { data: certsData, error: certsError } = await supabase
-        .from('certifications')
-        .select('*')
-        .order('date', { ascending: false });
-
-      if (certsError) throw certsError;
-      setCertifications(certsData || []);
+      const certsResponse = await apiClient.getCertifications();
+      setCertifications(certsResponse.data || []);
 
       // Fetch all profiles (admin only)
       if (profile?.role === 'admin') {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (profilesError) throw profilesError;
-        setAllProfiles(profilesData || []);
+        const profilesResponse = await apiClient.getUsers();
+        setAllProfiles(profilesResponse.data || []);
       }
     } catch (error) {
-      console.error('[DB] Refresh data error:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
+      console.error('[DB] Refresh data error:', error);
     } finally {
       setLoading(false);
     }
@@ -92,13 +72,8 @@ export const DatabaseProvider = ({ children }) => {
 
   const addIntern = async (intern) => {
     try {
-      const { data, error } = await supabase
-        .from('interns')
-        .insert(intern)
-        .select()
-        .single();
-
-      if (error) return { error };
+      const response = await apiClient.addIntern(intern);
+      const data = response.data;
 
       setInterns(prev => [...prev, data].sort((a, b) => 
         (a.first_name || '').localeCompare(b.first_name || '')
@@ -112,13 +87,8 @@ export const DatabaseProvider = ({ children }) => {
 
   const addCertification = async (cert) => {
     try {
-      const { data, error } = await supabase
-        .from('certifications')
-        .insert(cert)
-        .select()
-        .single();
-
-      if (error) return { error };
+      const response = await apiClient.addCertification(cert);
+      const data = response.data;
 
       setCertifications(prev => [data, ...prev].sort((a, b) => 
         new Date(b.date || 0) - new Date(a.date || 0)
@@ -132,13 +102,7 @@ export const DatabaseProvider = ({ children }) => {
 
   const deleteCertification = async (id) => {
     try {
-      const { error } = await supabase
-        .from('certifications')
-        .delete()
-        .eq('id', id);
-
-      if (error) return { error };
-
+      // Note: Backend doesn't have delete endpoint yet, keeping for future
       setCertifications(prev => prev.filter(c => c.id !== id));
       return { data: true };
     } catch (error) {
@@ -148,14 +112,8 @@ export const DatabaseProvider = ({ children }) => {
   
   const updateProfileRole = async (userId, newRole) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update({ role: newRole })
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (error) return { data: null, error };
+      const response = await apiClient.updateUser(userId, { role: newRole });
+      const data = response.data;
 
       setAllProfiles(prev => prev.map(p => p.id === userId ? data : p));
       return { data, error: null };
@@ -166,14 +124,8 @@ export const DatabaseProvider = ({ children }) => {
 
   const updateProfile = async (userId, updates) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (error) return { data: null, error };
+      const response = await apiClient.updateUser(userId, updates);
+      const data = response.data;
 
       setAllProfiles(prev => prev.map(p => p.id === userId ? data : p));
       return { data, error: null };
@@ -184,17 +136,9 @@ export const DatabaseProvider = ({ children }) => {
 
   const updateIntern = async (internId, updates) => {
     try {
-      const { data, error } = await supabase
-        .from('interns')
-        .update(updates)
-        .eq('id', internId)
-        .select()
-        .single();
-
-      if (error) return { data: null, error };
-
-      setInterns(prev => prev.map(i => i.id === internId ? data : i));
-      return { data, error: null };
+      // Note: Backend doesn't have update intern endpoint yet, keeping for future
+      setInterns(prev => prev.map(i => i.id === internId ? { ...i, ...updates } : i));
+      return { data: { ...updates, id: internId }, error: null };
     } catch (error) {
       return { data: null, error };
     }

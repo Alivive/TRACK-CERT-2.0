@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../utils/supabaseClient';
+import { apiClient } from '../utils/apiClient';
 import { useDatabase } from '../utils/useDatabase';
 import { useAuth } from '../context/AuthContext';
 import { Settings, Shield, Key, CheckCircle, Users, Search, UserCheck, UserMinus, ShieldCheck, UserPlus, Plus, Edit2, Save, X } from 'lucide-react';
@@ -37,25 +37,13 @@ const AdminPanel = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/admin_settings?id=eq.1&select=*`,
-          {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.length > 0) {
-            setSettings({
-              project_name: data[0].project_name || '',
-              admin_code: data[0].admin_code || '',
-              intern_code: data[0].intern_code || ''
-            });
-          }
+        const response = await apiClient.getAdminSettings();
+        if (response.success && response.data) {
+          setSettings({
+            project_name: response.data.project_name || '',
+            admin_code: response.data.admin_code || '',
+            intern_code: response.data.intern_code || ''
+          });
         }
       } catch (error) {
         console.error('[ADMIN] Failed to load settings:', error);
@@ -71,13 +59,17 @@ const AdminPanel = () => {
     e.preventDefault();
     setSaving(true);
     setSuccess(false);
-    const { error } = await supabase.from('admin_settings').upsert({ ...settings, id: 1 });
-    if (!error) {
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } else {
+    
+    try {
+      const response = await apiClient.updateAdminSettings(settings);
+      if (response.success) {
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (error) {
       alert('Error saving settings: ' + error.message);
     }
+    
     setSaving(false);
   };
 
