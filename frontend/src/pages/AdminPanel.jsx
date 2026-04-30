@@ -35,9 +35,36 @@ const AdminPanel = () => {
   const [internError, setInternError] = useState('');
 
   useEffect(() => {
-    console.warn('[ADMIN] Backend not configured - using mock data');
-    // TODO: Replace with your backend API calls
-    setLoading(false);
+    const loadSettings = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/admin_settings?id=eq.1&select=*`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setSettings({
+              project_name: data[0].project_name || '',
+              admin_code: data[0].admin_code || '',
+              intern_code: data[0].intern_code || ''
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[ADMIN] Failed to load settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadSettings();
   }, []);
 
   const handleSave = async (e) => {

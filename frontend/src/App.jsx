@@ -16,11 +16,20 @@ const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
 
+  // Debug logging
+  console.log('[APP] State:', { 
+    user: user ? 'exists' : 'null', 
+    profile: profile ? 'exists' : 'null', 
+    loading 
+  });
+
   // Show loader only during the initial auth check (loading) or while
   // the user is confirmed but profile hasn't resolved yet.
   // fetchProfile sets a preliminary profile immediately from JWT metadata,
   // so (user && !profile) should only be true for a very brief moment.
   const isLoading = loading || (user && !profile);
+
+  console.log('[APP] isLoading:', isLoading);
 
   // Show the premium loader during:
   // (a) initial auth session check, OR

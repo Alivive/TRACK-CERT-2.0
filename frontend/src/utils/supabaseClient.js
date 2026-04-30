@@ -7,6 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[SUPABASE] Missing environment variables. Check .env.local file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create single instance
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
 
-console.log('[SUPABASE] Connected to:', supabaseUrl)
+console.log('[SUPABASE] ✅ Client initialized')
