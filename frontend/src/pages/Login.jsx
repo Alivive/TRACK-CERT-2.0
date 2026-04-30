@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-// Supabase removed - implement your own backend
+import { supabase } from '../utils/supabaseClient';
 import { User, Shield } from 'lucide-react';
 
 const Login = () => {
@@ -14,7 +14,7 @@ const Login = () => {
   const [systemCodes, setSystemCodes] = useState({ admin_code: '', intern_code: '' });
   
   // Dynamic system stats
-  const [sysStats, setSysStats] = useState({ interns: 0, certs: 0, tracks: 0, hours: 0 });
+  const [sysStats, setSysStats] = useState({ interns: 0, certs: 0, tracks: 7, hours: 0 });
 
   const [formData, setFormData] = useState({
     email: '',
@@ -24,10 +24,41 @@ const Login = () => {
   });
 
   useEffect(() => {
-    console.warn('[LOGIN] Backend not configured - using mock data');
-    // TODO: Replace with your backend API calls
-    setSystemCodes({ admin_code: '', intern_code: '' });
-    setSysStats({ interns: 0, certs: 0, tracks: 0, hours: 0 });
+    const loadSystemData = async () => {
+      try {
+        // Load access codes
+        const { data: settings } = await supabase
+          .from('admin_settings')
+          .select('admin_code, intern_code')
+          .single();
+
+        if (settings) {
+          setSystemCodes(settings);
+        }
+
+        // Load stats
+        const { data: internsData } = await supabase
+          .from('interns')
+          .select('id', { count: 'exact' });
+
+        const { data: certsData } = await supabase
+          .from('certifications')
+          .select('hours', { count: 'exact' });
+
+        const totalHours = certsData?.reduce((sum, cert) => sum + (cert.hours || 0), 0) || 0;
+
+        setSysStats({
+          interns: internsData?.length || 0,
+          certs: certsData?.length || 0,
+          tracks: 7, // Fixed: AI, FE, BE, API, CYBER, CLOUD, SOFT
+          hours: totalHours
+        });
+      } catch (error) {
+        console.error('[LOGIN] Failed to load system data:', error);
+      }
+    };
+
+    loadSystemData();
   }, []);
 
   const handleSubmit = async (e) => {

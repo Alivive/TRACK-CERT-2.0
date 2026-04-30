@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
-// Supabase removed - implement your own database solution
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { supabase } from '../utils/supabaseClient';
 import { useAuth } from './AuthContext';
 
 const DatabaseContext = createContext({});
@@ -19,10 +19,52 @@ export const DatabaseProvider = ({ children }) => {
     }, {});
   }, [interns]);
 
+  // Load data when user logs in
+  useEffect(() => {
+    if (user) {
+      refreshData();
+    }
+  }, [user]);
+
   const refreshData = useCallback(async () => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    setLoading(false);
-  }, []);
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Fetch interns
+      const { data: internsData, error: internsError } = await supabase
+        .from('interns')
+        .select('*')
+        .order('first_name', { ascending: true });
+
+      if (internsError) throw internsError;
+      setInterns(internsData || []);
+
+      // Fetch certifications
+      const { data: certsData, error: certsError } = await supabase
+        .from('certifications')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (certsError) throw certsError;
+      setCertifications(certsData || []);
+
+      // Fetch all profiles (admin only)
+      if (profile?.role === 'admin') {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (profilesError) throw profilesError;
+        setAllProfiles(profilesData || []);
+      }
+    } catch (error) {
+      console.error('[DB] Refresh data error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, profile]);
 
   const injectData = useCallback((table, newData) => {
     if (!newData) return;
@@ -44,33 +86,113 @@ export const DatabaseProvider = ({ children }) => {
   }, []);
 
   const addIntern = async (intern) => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    return { error: new Error('Database not configured') };
+    try {
+      const { data, error } = await supabase
+        .from('interns')
+        .insert(intern)
+        .select()
+        .single();
+
+      if (error) return { error };
+
+      setInterns(prev => [...prev, data].sort((a, b) => 
+        (a.first_name || '').localeCompare(b.first_name || '')
+      ));
+
+      return { data };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const addCertification = async (cert) => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    return { error: new Error('Database not configured') };
+    try {
+      const { data, error } = await supabase
+        .from('certifications')
+        .insert(cert)
+        .select()
+        .single();
+
+      if (error) return { error };
+
+      setCertifications(prev => [data, ...prev].sort((a, b) => 
+        new Date(b.date || 0) - new Date(a.date || 0)
+      ));
+
+      return { data };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const deleteCertification = async (id) => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    return { error: new Error('Database not configured') };
+    try {
+      const { error } = await supabase
+        .from('certifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) return { error };
+
+      setCertifications(prev => prev.filter(c => c.id !== id));
+      return { data: true };
+    } catch (error) {
+      return { error };
+    }
   };
   
   const updateProfileRole = async (userId, newRole) => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    return { data: null, error: new Error('Database not configured') };
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) return { data: null, error };
+
+      setAllProfiles(prev => prev.map(p => p.id === userId ? data : p));
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
   };
 
   const updateProfile = async (userId, updates) => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    return { data: null, error: new Error('Database not configured') };
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) return { data: null, error };
+
+      setAllProfiles(prev => prev.map(p => p.id === userId ? data : p));
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
   };
 
   const updateIntern = async (internId, updates) => {
-    console.warn('[DB] Using mock database - implement your own backend');
-    return { data: null, error: new Error('Database not configured') };
+    try {
+      const { data, error } = await supabase
+        .from('interns')
+        .update(updates)
+        .eq('id', internId)
+        .select()
+        .single();
+
+      if (error) return { data: null, error };
+
+      setInterns(prev => prev.map(i => i.id === internId ? data : i));
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
   };
 
   return (
