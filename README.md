@@ -1,7 +1,7 @@
 # CerTrack 2.0 🛡️
-### Advanced Internship Certification & Tracking System
+### Internship Certification & Tracking System
 
-Welcome to **CerTrack 2.0**, a professional-grade platform designed to streamline the management of intern certifications, training hours, and reporting. Built with speed, security, and aesthetics in mind.
+Welcome to *CerTrack 2.0*, a professional-grade platform designed to streamline the management of intern certifications, training hours, and reporting. Built with speed, security, and aesthetics in mind.
 
 ---
 
@@ -23,39 +23,15 @@ Welcome to **CerTrack 2.0**, a professional-grade platform designed to streamlin
 
 ---
 
-## ⚙️ Setup & Installation
-
-### 1. Environment Configuration
-Create a `.env` file in the `frontend/` directory:
-```env
-VITE_SUPABASE_URL=your_project_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
-```
-
-### 2. Database Initialization
-Run the SQL scripts located in the `/backend` directory in your Supabase SQL Editor:
-1. `schema.sql` (Tables)
-2. `security_policies.sql` (RLS Rules)
-3. `database_triggers.sql` (Automation)
-
-### 3. Running Locally
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
 ## 📂 Project Structure
-```text
+
 ├── backend/            # SQL Blueprint (Schema, Security, Triggers)
 ├── frontend/           # React Source Code
 │   ├── src/            # Application Logic & UI
 │   ├── public/         # Static Assets
 │   └── .env            # Connection Credentials
 └── README.md           # Master Documentation
-```
+
 
 ---
 

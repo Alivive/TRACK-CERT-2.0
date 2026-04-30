@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DatabaseProvider } from './context/DatabaseContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -16,10 +16,16 @@ const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
 
+  // Show loader only during the initial auth check (loading) or while
+  // the user is confirmed but profile hasn't resolved yet.
+  // fetchProfile sets a preliminary profile immediately from JWT metadata,
+  // so (user && !profile) should only be true for a very brief moment.
+  const isLoading = loading || (user && !profile);
+
   // Show the premium loader during:
   // (a) initial auth session check, OR
   // (b) user authenticated but profile still being fetched from DB
-  if (loading || (user && !profile)) {
+  if (isLoading) {
     return (
       <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0A', color: '#fff' }}>
         <div className="svg-frame">

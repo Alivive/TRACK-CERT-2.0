@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { Download } from 'lucide-react';
@@ -9,12 +9,12 @@ const Reports = () => {
   const isAdmin = profile?.role === 'admin';
   const { interns, certifications, loading } = useDatabase();
   const [reportTitle, setReportTitle] = useState('Quarterly Certification Summary');
-  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? '' : (profile?.id || ''));
+  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? '' : (profile?.intern_id || ''));
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSummaryGenerating, setIsSummaryGenerating] = useState(false);
 
   const handleDownloadPDF = async () => {
-    const targetId = isAdmin ? selectedInternId : profile?.id;
+    const targetId = isAdmin ? selectedInternId : profile?.intern_id;
     if (!targetId) return alert('Please select an intern.');
     
     setIsGenerating(true);

@@ -1,11 +1,11 @@
-import React from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { CATS, CAT_BADGE } from '../utils/mockData';
 import { Users, Award, Clock, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   // Defensive destructuring: default to empty values if DB is still "waking up"
   const { 
     interns = [], 
@@ -14,9 +14,9 @@ const Dashboard = () => {
     loading 
   } = useDatabase();
 
-  const getTH = React.useCallback((cl) => cl.reduce((s, c) => s + (c.hours || 0), 0), []);
+  const getTH = useCallback((cl) => cl.reduce((s, c) => s + (c.hours || 0), 0), []);
   
-  const stats = React.useMemo(() => [
+  const stats = useMemo(() => [
     { label: 'TOTAL INTERNS', value: interns.length, delta: '+ 3 this intake', icon: <Users size={20} color="var(--red-light)" /> },
     { label: 'TOTAL CERTS', value: certifications.length, delta: '+ 100+ this month', icon: <Award size={20} color="var(--red-light)" /> },
     { label: 'TOTAL HOURS', value: getTH(certifications), delta: 'Across all tracks', icon: <Clock size={20} color="var(--red-light)" /> },

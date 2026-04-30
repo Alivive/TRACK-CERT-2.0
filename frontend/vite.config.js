@@ -6,5 +6,12 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     force: true
+  },
+  server: {
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173
+    }
   }
 })

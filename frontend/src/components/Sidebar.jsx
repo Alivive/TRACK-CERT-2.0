@@ -1,10 +1,10 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, LayoutDashboard, Users, User, Layers, PlusCircle, Upload, FileText, Settings, LogOut } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, User, Layers, PlusCircle, Upload, FileText, Settings } from 'lucide-react';
 
 const Sidebar = ({ activePage, onPageChange, isOpen }) => {
-  const { user, profile, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const isAdmin = profile?.role === 'admin';
 
@@ -68,7 +68,7 @@ const Sidebar = ({ activePage, onPageChange, isOpen }) => {
         <div className="user-chip">
           <div className="user-avatar">{(profile?.full_name || 'U')[0].toUpperCase()}</div>
           <div className="user-info">
-            <div className="user-name">{profile?.full_name || 'User'}</div>
+            <div className="user-name">{profile?.full_name || profile?.email || 'User'}</div>
             <div className="user-role-badge">{(profile?.role || 'intern').toUpperCase()}</div>
           </div>
         </div>

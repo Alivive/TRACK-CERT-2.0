@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { CATS } from '../utils/mockData';
@@ -11,7 +11,7 @@ const AddCertification = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    intern_id: isAdmin ? '' : (profile?.intern_id || ''),
+    intern_id: '',
     name: '',
     provider: '',
     category: 'AI',
@@ -19,26 +19,26 @@ const AddCertification = () => {
     date: new Date().toISOString().split('T')[0]
   });
 
-  useEffect(() => {
-    if (!isAdmin && profile?.intern_id) {
-      setFormData(prev => ({ ...prev, intern_id: profile.intern_id }));
-    }
-  }, [profile, isAdmin]);
+  // Derive intern_id at submit time so we always have the latest profile value
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
 
+    // For interns, always resolve intern_id from profile at submit time
+    const resolvedInternId = isAdmin ? formData.intern_id : (profile?.intern_id || '');
+
     const { error } = await addCertification({
       ...formData,
+      intern_id: resolvedInternId,
       hours: parseInt(formData.hours)
     });
 
     if (!error) {
       setSuccess(true);
       setFormData({
-        intern_id: isAdmin ? '' : (profile?.intern_id || ''),
+        intern_id: '',
         name: '',
         provider: '',
         category: 'AI',

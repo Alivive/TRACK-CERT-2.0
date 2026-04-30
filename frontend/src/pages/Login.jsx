@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../utils/supabaseClient';
-import { Mail, Lock, User, Shield, Key, AlertCircle } from 'lucide-react';
+// Supabase removed - implement your own backend
+import { User, Shield } from 'lucide-react';
 
 const Login = () => {
   const { signIn, signUp } = useAuth();
@@ -24,22 +24,10 @@ const Login = () => {
   });
 
   useEffect(() => {
-    const fetchCodes = async () => {
-      const { data } = await supabase.from('admin_settings').select('admin_code, intern_code').limit(1);
-      if (data && data.length > 0) {
-        setSystemCodes(data[0]);
-      }
-    };
-    
-    const fetchStats = async () => {
-      const { data } = await supabase.rpc('get_system_stats');
-      if (data) {
-        setSysStats(data);
-      }
-    };
-
-    fetchCodes();
-    fetchStats();
+    console.warn('[LOGIN] Backend not configured - using mock data');
+    // TODO: Replace with your backend API calls
+    setSystemCodes({ admin_code: '', intern_code: '' });
+    setSysStats({ interns: 0, certs: 0, tracks: 0, hours: 0 });
   }, []);
 
   const handleSubmit = async (e) => {

@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { supabase } from '../utils/supabaseClient';
 import { CATS } from '../utils/mockData';
-import { ArrowLeft, Download, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 import { generateInternReport } from '../utils/pdfGenerator';
 
 const InternProfiles = () => {
@@ -10,15 +11,17 @@ const InternProfiles = () => {
   const isAdmin = authProfile?.role === 'admin';
   const { 
     interns = [], 
-    internDict = {}, 
     certifications = [], 
     loading, 
     deleteCertification, 
-    addIntern 
+    addIntern,
+    updateIntern
   } = useDatabase();
   
   const [selectedInternId, setSelectedInternId] = useState(isAdmin ? null : authProfile?.intern_id);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingInternId, setEditingInternId] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [newIntern, setNewIntern] = useState({ 
     first_name: '', 
     last_name: '', 
@@ -40,6 +43,39 @@ const InternProfiles = () => {
   const getInit = (first, last) => ((first?.[0] || '?') + (last?.[0] || '')).toUpperCase();
 
   const [isSaving, setIsSaving] = useState(false);
+
+  const startEditIntern = (intern) => {
+    setEditingInternId(intern.id);
+    setEditForm({
+      first_name: intern.first_name,
+      last_name: intern.last_name,
+      email: intern.email,
+      start_date: intern.start_date
+    });
+  };
+
+  const cancelEditIntern = () => {
+    setEditingInternId(null);
+    setEditForm({});
+  };
+
+  const saveEditIntern = async (internId) => {
+    setIsSaving(true);
+    try {
+      const { error } = await updateIntern(internId, editForm);
+
+      if (error) {
+        alert('Failed to update intern: ' + error.message);
+      } else {
+        setEditingInternId(null);
+        setEditForm({});
+      }
+    } catch (err) {
+      alert('Error updating intern: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAddIntern = async (e) => {
     e.preventDefault();
@@ -63,7 +99,12 @@ const InternProfiles = () => {
         alert('Database Error: ' + error.message);
       } else {
         setShowAddModal(false);
-        window.location.reload();
+        setNewIntern({ 
+          first_name: '', 
+          last_name: '', 
+          email: '', 
+          start_date: new Date().toISOString().split('T')[0] 
+        });
       }
     } catch (err) {
       clearTimeout(timeout);
@@ -216,17 +257,88 @@ const InternProfiles = () => {
                 {interns.map(i => (
                   <tr key={i.id}>
                     <td>
-                      <div className="intern-name-cell">
-                        <div className="avatar">{getInit(i.first_name, i.last_name)}</div>
-                        <div className="intern-name">{i.first_name} {i.last_name}</div>
-                      </div>
+                      {editingInternId === i.id ? (
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ fontSize: '13px', padding: '6px 10px', width: '100%' }}
+                          value={editForm.first_name}
+                          onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                          placeholder="First name"
+                        />
+                      ) : (
+                        <div className="intern-name-cell">
+                          <div className="avatar">{getInit(i.first_name, i.last_name)}</div>
+                          <div className="intern-name">{i.first_name} {i.last_name}</div>
+                        </div>
+                      )}
                     </td>
-                    <td>{i.email}</td>
+                    <td>
+                      {editingInternId === i.id ? (
+                        <input
+                          type="email"
+                          className="form-input"
+                          style={{ fontSize: '13px', padding: '6px 10px', width: '100%' }}
+                          value={editForm.email}
+                          onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                          placeholder="Email"
+                        />
+                      ) : (
+                        i.email
+                      )}
+                    </td>
                     <td>{getIC(i.id).length}</td>
                     <td>{getTH(getIC(i.id))}h</td>
-                    <td>{i.start_date}</td>
                     <td>
-                      <button className="btn btn-ghost" onClick={() => setSelectedInternId(i.id)}>VIEW PROFILE</button>
+                      {editingInternId === i.id ? (
+                        <input
+                          type="date"
+                          className="form-input"
+                          style={{ fontSize: '13px', padding: '6px 10px', width: '100%' }}
+                          value={editForm.start_date}
+                          onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                        />
+                      ) : (
+                        i.start_date
+                      )}
+                    </td>
+                    <td>
+                      {editingInternId === i.id ? (
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: '11px', color: 'var(--green)', padding: '4px 8px' }}
+                            onClick={() => saveEditIntern(i.id)}
+                            disabled={isSaving}
+                          >
+                            <Save size={12} /> SAVE
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: '11px', color: 'var(--gray)', padding: '4px 8px' }}
+                            onClick={cancelEditIntern}
+                            disabled={isSaving}
+                          >
+                            <X size={12} /> CANCEL
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: '11px', color: 'var(--blue)' }}
+                            onClick={() => startEditIntern(i)}
+                          >
+                            <Edit2 size={12} /> EDIT
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => setSelectedInternId(i.id)}
+                          >
+                            VIEW PROFILE
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
