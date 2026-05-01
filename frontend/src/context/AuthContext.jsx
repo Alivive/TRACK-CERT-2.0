@@ -12,13 +12,12 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('[AUTH] Fetching profile for user:', userId);
       
-      // Use direct fetch instead of Supabase client
+      // Use backend API instead of direct Supabase
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`,
+        `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
         {
           headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Content-Type': 'application/json'
           }
         }
       );
@@ -30,14 +29,18 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      console.log('[AUTH] Fetch data:', data);
+      console.log('[AUTH] Backend response:', data);
 
-      if (!data || data.length === 0) {
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+
+      if (!data.data) {
         throw new Error('Profile not found');
       }
 
-      console.log('[AUTH] Profile fetched successfully:', data[0].full_name);
-      setProfile(data[0]);
+      console.log('[AUTH] Profile fetched successfully:', data.data.full_name);
+      setProfile(data.data);
       setLoading(false);
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
@@ -149,23 +152,32 @@ export const AuthProvider = ({ children }) => {
 
       // Only create profile if user was created (not if email confirmation required)
       if (authData.user) {
-        // Create user profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email,
-            full_name: fullName,
-            role,
-          })
-          .select()
-          .single();
+        // Create user profile via backend API
+        try {
+          const profileResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              id: authData.user.id,
+              email,
+              full_name: fullName,
+              role,
+            })
+          });
 
-        if (profileError) {
+          const profileResult = await profileResponse.json();
+          
+          if (profileResult.success) {
+            setProfile(profileResult.data);
+          } else {
+            console.error('[AUTH] Profile creation error:', profileResult.error);
+            // Don't return error - profile can be created later
+          }
+        } catch (profileError) {
           console.error('[AUTH] Profile creation error:', profileError);
           // Don't return error - profile can be created later
-        } else {
-          setProfile(profileData);
         }
 
         // If session exists, set user

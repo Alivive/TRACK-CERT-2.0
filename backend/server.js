@@ -154,6 +154,33 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
+// Create new user profile
+app.post('/api/users', async (req, res) => {
+  try {
+    const { id, email, full_name, role } = req.body;
+    
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        id,
+        email,
+        full_name,
+        role
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Update user profile
 app.put('/api/users/:id', async (req, res) => {
   try {
