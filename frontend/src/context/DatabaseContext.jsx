@@ -29,7 +29,7 @@ export const DatabaseProvider = ({ children }) => {
   const refreshData = useCallback(async () => {
     if (!user) return;
     
-    setLoading(true);
+    // Load data in background without blocking UI
     try {
       // Fetch interns
       const internsResponse = await apiClient.getInterns();
@@ -46,8 +46,6 @@ export const DatabaseProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('[DB] Refresh data error:', error);
-    } finally {
-      setLoading(false);
     }
   }, [user, profile]);
 

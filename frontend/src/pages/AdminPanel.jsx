@@ -146,12 +146,7 @@ const AdminPanel = () => {
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return (
-    <div style={{ color: 'var(--white)', padding: '40px', textAlign: 'center' }}>
-      <div className="loader" style={{ margin: '0 auto 20px' }}></div>
-      <div style={{ letterSpacing: '2px', fontSize: '12px' }}>INITIALIZING COMMAND CENTER...</div>
-    </div>
-  );
+  // Remove loading screen - show content immediately
 
   return (
     <div id="page-admin" className="page active">
