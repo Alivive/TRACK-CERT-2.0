@@ -13,9 +13,9 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'logo.png', 'icons/*.png'],
       manifest: {
-        name: 'CerTrack Africa - Certification Tracking System',
+        name: 'CerTrack  - Statistics defining change',
         short_name: 'CerTrack',
-        description: 'Professional certification tracking and management system for African interns',
+        description: 'Professional certification tracking and management system for  interns',
         theme_color: '#c0392b',
         background_color: '#0a0a0a',
         display: 'standalone',

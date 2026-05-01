@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { apiClient } from '../utils/apiClient';
+import { offlineManager } from '../utils/offlineManager';
 import { useAuth } from './AuthContext';
 
 const DatabaseContext = createContext({});
@@ -31,21 +32,59 @@ export const DatabaseProvider = ({ children }) => {
     
     // Load data in background without blocking UI
     try {
-      // Fetch interns
-      const internsResponse = await apiClient.getInterns();
-      setInterns(internsResponse.data || []);
+      if (navigator.onLine) {
+        // Online: Fetch from API and cache
+        const internsResponse = await apiClient.getInterns();
+        if (internsResponse.success) {
+          setInterns(internsResponse.data || []);
+          await offlineManager.cacheForOffline('interns', internsResponse.data);
+        }
 
-      // Fetch certifications
-      const certsResponse = await apiClient.getCertifications();
-      setCertifications(certsResponse.data || []);
+        const certsResponse = await apiClient.getCertifications();
+        if (certsResponse.success) {
+          setCertifications(certsResponse.data || []);
+          await offlineManager.cacheForOffline('certifications', certsResponse.data);
+        }
 
-      // Fetch all profiles (admin only)
-      if (profile?.role === 'admin') {
-        const profilesResponse = await apiClient.getUsers();
-        setAllProfiles(profilesResponse.data || []);
+        // Fetch all profiles (admin only)
+        if (profile?.role === 'admin') {
+          const profilesResponse = await apiClient.getUsers();
+          if (profilesResponse.success) {
+            setAllProfiles(profilesResponse.data || []);
+            await offlineManager.cacheForOffline('users', profilesResponse.data);
+          }
+        }
+      } else {
+        // Offline: Load from cache
+        const cachedInterns = await offlineManager.getCachedData('interns');
+        if (cachedInterns) setInterns(cachedInterns);
+
+        const allCerts = await offlineManager.getAllCertifications();
+        setCertifications(allCerts);
+
+        if (profile?.role === 'admin') {
+          const cachedUsers = await offlineManager.getCachedData('users');
+          if (cachedUsers) setAllProfiles(cachedUsers);
+        }
       }
     } catch (error) {
       console.error('[DB] Refresh data error:', error);
+      
+      // Fallback to cached data on error
+      try {
+        const cachedInterns = await offlineManager.getCachedData('interns');
+        if (cachedInterns) setInterns(cachedInterns);
+
+        const allCerts = await offlineManager.getAllCertifications();
+        setCertifications(allCerts);
+
+        if (profile?.role === 'admin') {
+          const cachedUsers = await offlineManager.getCachedData('users');
+          if (cachedUsers) setAllProfiles(cachedUsers);
+        }
+      } catch (cacheError) {
+        console.error('[DB] Failed to load cached data:', cacheError);
+      }
     }
   }, [user, profile]);
 
@@ -85,14 +124,38 @@ export const DatabaseProvider = ({ children }) => {
 
   const addCertification = async (cert) => {
     try {
-      const response = await apiClient.addCertification(cert);
-      const data = response.data;
-
-      setCertifications(prev => [data, ...prev].sort((a, b) => 
-        new Date(b.date || 0) - new Date(a.date || 0)
-      ));
-
-      return { data };
+      if (navigator.onLine) {
+        // Online: Add via API
+        const response = await apiClient.addCertification(cert);
+        if (response.success) {
+          const data = response.data;
+          setCertifications(prev => [data, ...prev].sort((a, b) => 
+            new Date(b.date || 0) - new Date(a.date || 0)
+          ));
+          return { data };
+        }
+        return { error: response.error };
+      } else {
+        // Offline: Store locally and queue for sync
+        const result = await offlineManager.addCertificationOffline(cert);
+        if (result.success) {
+          // Add to local state with offline flag
+          const offlineCert = {
+            ...cert,
+            id: result.id,
+            offline: true,
+            pending: true,
+            timestamp: Date.now()
+          };
+          
+          setCertifications(prev => [offlineCert, ...prev].sort((a, b) => 
+            new Date(b.date || b.timestamp || 0) - new Date(a.date || a.timestamp || 0)
+          ));
+          
+          return { data: offlineCert };
+        }
+        return { error: result.error };
+      }
     } catch (error) {
       return { error };
     }

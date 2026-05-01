@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import AdminPanel from './pages/AdminPanel';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
+import OfflineStatus from './components/OfflineStatus';
 
 const AppContent = () => {
   const { user, profile, loading } = useAuth();
@@ -96,6 +97,7 @@ function App() {
       <AuthProvider>
         <DatabaseProvider>
           <PWAUpdatePrompt />
+          <OfflineStatus />
           <AppContent />
         </DatabaseProvider>
       </AuthProvider>

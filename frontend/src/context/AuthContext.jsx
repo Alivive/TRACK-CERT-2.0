@@ -107,16 +107,35 @@ export const AuthProvider = ({ children }) => {
   }, [fetchProfile]);
 
   const signOut = useCallback(async () => {
+    console.log('[AUTH] Starting sign out process...');
     setLoading(true);
+    
     try {
+      // Clear Supabase session
       await supabase.auth.signOut();
+      
+      // Clear all local storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear state immediately
       setUser(null);
       setProfile(null);
-      window.location.href = '/';
+      
+      console.log('[AUTH] Sign out successful, redirecting...');
+      
+      // Force page reload to clear any cached state
+      window.location.reload();
+      
     } catch (error) {
       console.error('[AUTH] Sign out error:', error);
-    } finally {
-      setLoading(false);
+      
+      // Force clear even if Supabase fails
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      setProfile(null);
+      window.location.reload();
     }
   }, []);
 
