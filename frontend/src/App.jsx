@@ -18,6 +18,35 @@ const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
 
+  // Show original fancy loader ONLY for initial auth check
+  if (loading && user === null) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0A', color: '#fff' }}>
+        <div className="svg-frame">
+          <svg style={{"--i": 0, "--j": 0}} viewBox="0 0 344 344">
+            <circle id="out2" cx="172" cy="172" r="160" strokeWidth="4" />
+          </svg>
+          <svg style={{"--i": 1, "--j": 1}} viewBox="0 0 344 344">
+            <circle id="out3" cx="172" cy="172" r="140" strokeWidth="3" />
+          </svg>
+          <svg style={{"--i": 2, "--j": 2}} viewBox="0 0 344 344">
+            <circle id="inner1" cx="172" cy="172" r="100" strokeWidth="2" strokeDasharray="10 10" />
+          </svg>
+          <svg style={{"--i": 3, "--j": 3}} viewBox="0 0 344 344">
+            <circle id="inner3" cx="172" cy="172" r="80" strokeWidth="2" strokeDasharray="5 5" />
+          </svg>
+          <svg style={{"--i": 4, "--j": 4}} viewBox="0 0 344 344">
+            <circle id="center1" cx="172" cy="172" r="20" />
+          </svg>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '40px' }}>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: '32px', letterSpacing: '3px', marginBottom: '10px' }}>Cer<span style={{ color: 'var(--red-light)' }}>Track</span></div>
+          <div style={{ fontSize: '10px', color: '#888', letterSpacing: '4px', textTransform: 'uppercase' }}>System Initializing</div>
+        </div>
+      </div>
+    );
+  }
+
   // No loading screens - instant app experience
   if (!user) {
     return <Login />;
