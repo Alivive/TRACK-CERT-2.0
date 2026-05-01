@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wifi, WifiOff, CloudOff, Cloud, Sync, CheckCircle } from 'lucide-react';
+import { Wifi, WifiOff, CloudOff, Cloud, RotateCw, CheckCircle } from 'lucide-react';
 import { offlineManager } from '../utils/offlineManager';
 
 const OfflineStatus = () => {
@@ -13,7 +13,10 @@ const OfflineStatus = () => {
     const unsubscribe = offlineManager.addListener((event, online) => {
       setIsOnline(online);
       
-      if (event === 'sync-complete') {
+      if (event === 'sync-start') {
+        setSyncInProgress(true);
+        setShowSyncSuccess(false);
+      } else if (event === 'sync-complete') {
         setSyncInProgress(false);
         setShowSyncSuccess(true);
         setPendingCount(0);
@@ -21,13 +24,24 @@ const OfflineStatus = () => {
       }
     });
 
-    // Check sync status periodically
-    const checkStatus = () => {
+    // Check sync status and pending count periodically
+    const checkStatus = async () => {
       const status = offlineManager.getSyncStatus();
       setSyncInProgress(status.syncInProgress);
+      
+      // Get pending actions count
+      try {
+        const pendingActions = await offlineManager.offlineStorage?.getPendingActions() || [];
+        setPendingCount(pendingActions.length);
+      } catch (error) {
+        // Ignore error, keep current count
+      }
     };
 
-    const interval = setInterval(checkStatus, 1000);
+    // Initial check
+    checkStatus();
+    
+    const interval = setInterval(checkStatus, 2000);
 
     return () => {
       unsubscribe();
@@ -52,7 +66,7 @@ const OfflineStatus = () => {
     
     if (syncInProgress) {
       return {
-        icon: <Sync size={16} className="animate-spin" />,
+        icon: <RotateCw size={16} className="animate-spin" />,
         text: 'Syncing data...',
         color: '#3498db',
         bg: 'rgba(52, 152, 219, 0.1)'

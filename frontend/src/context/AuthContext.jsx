@@ -12,37 +12,50 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('[AUTH] Fetching profile for user:', userId);
       
-      // Use backend API instead of direct Supabase
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('[AUTH] Backend response status:', response.status);
+      // First, try to load cached profile immediately
+      const { offlineManager } = await import('../utils/offlineManager');
+      const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
       
-      const data = await response.json();
-      console.log('[AUTH] Backend response:', data);
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      if (cachedProfile) {
+        console.log('[AUTH] Loading cached profile first:', cachedProfile.full_name);
+        setProfile(cachedProfile);
+        setLoading(false);
       }
+      
+      // Then fetch fresh data from backend if online
+      if (navigator.onLine) {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
 
-      if (!data.data) {
-        throw new Error('Profile not found');
+        console.log('[AUTH] Backend response status:', response.status);
+        
+        const data = await response.json();
+        console.log('[AUTH] Backend response:', data);
+
+        if (response.ok && data.success && data.data) {
+          console.log('[AUTH] Profile fetched successfully:', data.data.full_name);
+          setProfile(data.data);
+          // Cache the fresh profile
+          await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
+        } else if (!cachedProfile) {
+          throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
       }
-
-      console.log('[AUTH] Profile fetched successfully:', data.data.full_name);
-      setProfile(data.data);
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
-      // Don't sign out on profile fetch error - just continue without profile
-      setProfile(null);
+      // Only set profile to null if we don't have cached data
+      const { offlineManager } = await import('../utils/offlineManager');
+      const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
+      if (!cachedProfile) {
+        setProfile(null);
+      }
     } finally {
-      // ALWAYS set loading to false
       setLoading(false);
     }
   }, []);

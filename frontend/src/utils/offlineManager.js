@@ -7,6 +7,7 @@ class OfflineManager {
     this.isOnline = navigator.onLine;
     this.syncInProgress = false;
     this.listeners = new Set();
+    this.offlineStorage = offlineStorage; // Expose for external access
     this.init();
   }
 
@@ -25,15 +26,23 @@ class OfflineManager {
       this.notifyListeners('offline');
     });
 
-    // Sync on page load if online
+    // Sync on page load if online and there are pending actions
     if (this.isOnline) {
-      setTimeout(() => this.syncPendingActions(), 1000);
+      setTimeout(async () => {
+        const pendingActions = await offlineStorage.getPendingActions();
+        if (pendingActions.length > 0) {
+          this.syncPendingActions();
+        }
+      }, 1000);
     }
 
-    // Periodic sync every 30 seconds when online
-    setInterval(() => {
+    // Periodic sync every 30 seconds when online (only if there are pending actions)
+    setInterval(async () => {
       if (this.isOnline && !this.syncInProgress) {
-        this.syncPendingActions();
+        const pendingActions = await offlineStorage.getPendingActions();
+        if (pendingActions.length > 0) {
+          this.syncPendingActions();
+        }
       }
     }, 30000);
   }
@@ -126,6 +135,7 @@ class OfflineManager {
 
     this.syncInProgress = true;
     console.log('[OFFLINE] Starting sync of pending actions...');
+    this.notifyListeners('sync-start');
 
     try {
       const pendingActions = await offlineStorage.getPendingActions();
