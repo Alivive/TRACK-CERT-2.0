@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DatabaseProvider } from './context/DatabaseContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -17,9 +17,25 @@ import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
+  const [showLoader, setShowLoader] = useState(true);
 
-  // Show original fancy loader ONLY for initial auth check
-  if (loading && user === null) {
+  // Auto-hide loader after 3 seconds max to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoader(false);
+    }, 3000);
+    
+    // Hide loader when auth resolves
+    if (!loading) {
+      setShowLoader(false);
+      clearTimeout(timer);
+    }
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Show original fancy loader ONLY for initial auth check (max 3 seconds)
+  if (showLoader && loading) {
     return (
       <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0A', color: '#fff' }}>
         <div className="svg-frame">

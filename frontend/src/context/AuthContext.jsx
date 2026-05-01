@@ -22,12 +22,8 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      console.log('[AUTH] Fetch response status:', response.status);
+      console.log('[AUTH] Backend response status:', response.status);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
       console.log('[AUTH] Backend response:', data);
 
@@ -41,15 +37,12 @@ export const AuthProvider = ({ children }) => {
 
       console.log('[AUTH] Profile fetched successfully:', data.data.full_name);
       setProfile(data.data);
-      setLoading(false);
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
-      // Sign out on any error
-      await supabase.auth.signOut();
-      localStorage.clear();
-      sessionStorage.clear();
-      setUser(null);
+      // Don't sign out on profile fetch error - just continue without profile
       setProfile(null);
+    } finally {
+      // ALWAYS set loading to false
       setLoading(false);
     }
   }, []);
