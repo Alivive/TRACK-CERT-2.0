@@ -159,13 +159,35 @@ app.post('/api/users', async (req, res) => {
   try {
     const { id, email, full_name, role } = req.body;
     
+    let intern_id = null;
+    
+    // If creating an intern user, create intern record first
+    if (role === 'intern') {
+      const [firstName, ...lastNameParts] = full_name.split(' ');
+      const lastName = lastNameParts.join(' ') || '';
+      
+      const { data: internData, error: internError } = await supabase
+        .from('interns')
+        .insert({
+          first_name: firstName,
+          last_name: lastName,
+          email: email
+        })
+        .select()
+        .single();
+      
+      if (internError) throw internError;
+      intern_id = internData.id;
+    }
+    
     const { data, error } = await supabase
       .from('users')
       .insert({
         id,
         email,
         full_name,
-        role
+        role,
+        intern_id
       })
       .select()
       .single();
