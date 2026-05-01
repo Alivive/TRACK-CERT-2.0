@@ -35,7 +35,7 @@ const PWAInstallPrompt = () => {
     if (iOS && !isStandaloneMode) {
       const dismissed = localStorage.getItem('pwa-install-dismissed');
       if (!dismissed) {
-        setTimeout(() => setShowPrompt(true), 3000); // Show after 3 seconds
+        setShowPrompt(true); // Show immediately
       }
     }
 
