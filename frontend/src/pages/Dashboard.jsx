@@ -4,7 +4,7 @@ import { useDatabase } from '../utils/useDatabase';
 import { CATS, CAT_BADGE } from '../utils/mockData';
 import { Users, Award, Clock, TrendingUp } from 'lucide-react';
 
-const Dashboard = () => {
+const Dashboard = ({ onPageChange }) => {
   const { profile } = useAuth();
   // Defensive destructuring: default to empty values if DB is still "waking up"
   const { 
@@ -57,7 +57,13 @@ const Dashboard = () => {
         <div className="card">
           <div className="card-header">
             <span className="card-title">RECENT CERTIFICATIONS</span>
-            <button className="btn btn-ghost" style={{ fontSize: '10px', padding: '4px 9px' }}>VIEW ALL</button>
+            <button 
+              className="btn btn-ghost" 
+              style={{ fontSize: '10px', padding: '4px 9px' }}
+              onClick={() => onPageChange?.('interns')}
+            >
+              VIEW ALL
+            </button>
           </div>
           <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
             <table style={{ minWidth: '500px' }}>

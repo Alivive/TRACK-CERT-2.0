@@ -71,7 +71,7 @@ const AppContent = () => {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard onPageChange={setActivePage} />;
       case 'interns': return <InternProfiles />;
       case 'my_profile': return <InternProfiles />;
       case 'categories': return <Categories />;
@@ -79,7 +79,7 @@ const AppContent = () => {
       case 'import': return <ImportData />;
       case 'reports': return <Reports />;
       case 'admin': return <AdminPanel />;
-      default: return <Dashboard />;
+      default: return <Dashboard onPageChange={setActivePage} />;
     }
   };
 
