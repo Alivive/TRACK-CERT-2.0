@@ -27,12 +27,14 @@ const Reports = () => {
       const mappedIntern = {
         first: intern?.first_name || 'Intern',
         last: intern?.last_name || '',
-        email: intern?.email || ''
+        email: intern?.email || '',
+        intern_id: targetId
       };
       const mappedCerts = ic.map(c => ({ ...c, cat: c.category }));
       await generateInternReport(mappedIntern, mappedCerts, getCategoryObject());
     } catch (error) {
       console.error('PDF Generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGenerating(false);
     }

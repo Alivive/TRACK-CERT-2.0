@@ -1,7 +1,22 @@
 import html2pdf from 'html2pdf.js';
+import { booksClient } from './booksClient';
 
-export const generateInternReport = (intern, certifications, categories = {}) => {
+export const generateInternReport = async (intern, certifications, categories = {}) => {
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
+  
+  // Fetch book assignments for this intern
+  let bookAssignments = [];
+  try {
+    const result = await booksClient.getAssignments(intern.intern_id || intern.id);
+    if (result.success) {
+      bookAssignments = result.data || [];
+    }
+  } catch (error) {
+    console.warn('[PDF] Could not load book assignments:', error);
+  }
+  
+  const completedBooks = bookAssignments.filter(b => b.status === 'completed').length;
+  const inProgressBooks = bookAssignments.filter(b => b.status === 'in-progress').length;
   
   // Use provided categories or fallback to empty object
   const CATS = categories;
@@ -29,7 +44,7 @@ export const generateInternReport = (intern, certifications, categories = {}) =>
             <p style="margin: 10px 0 5px 0; font-size: 14px; color: #555;">Email: ${intern.email}</p>
             <p style="margin: 0; font-size: 14px; color: #555;">Role: intern</p>
           </div>
-          <div style="display: flex; gap: 40px; text-align: center;">
+          <div style="display: flex; gap: 30px; text-align: center;">
             <div>
               <div style="font-size: 24px; font-weight: 700;">${certifications.length}</div>
               <div style="font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px;">Total Certs</div>
@@ -38,10 +53,52 @@ export const generateInternReport = (intern, certifications, categories = {}) =>
               <div style="font-size: 24px; font-weight: 700;">${getTH(certifications)}h</div>
               <div style="font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px;">Total Hours</div>
             </div>
+            <div>
+              <div style="font-size: 24px; font-weight: 700;">${completedBooks}</div>
+              <div style="font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px;">Books Read</div>
+            </div>
           </div>
         </div>
 
-        <!-- Categories -->
+        <!-- Reading Progress -->
+        ${bookAssignments.length > 0 ? `
+        <div style="margin-bottom: 40px;">
+          <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px;">📚 Reading Progress</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 20px; font-weight: 700; color: #2ecc71;">${completedBooks}</div>
+              <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px;">Completed</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 20px; font-weight: 700; color: #f39c12;">${inProgressBooks}</div>
+              <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px;">In Progress</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 20px; font-weight: 700; color: #888;">${bookAssignments.length}</div>
+              <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px;">Total Assigned</div>
+            </div>
+          </div>
+          <div style="margin-top: 15px;">
+            ${bookAssignments.map(book => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                <div>
+                  <div style="font-size: 14px; font-weight: 600;">${book.book_title}</div>
+                  <div style="font-size: 12px; color: #888;">${book.book_author} • ${book.book_category}</div>
+                </div>
+                <div style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; ${
+                  book.status === 'completed' ? 'background: #d4edda; color: #155724;' :
+                  book.status === 'in-progress' ? 'background: #fff3cd; color: #856404;' :
+                  'background: #f8f9fa; color: #888;'
+                }">
+                  ${book.status.toUpperCase().replace('-', ' ')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- Certifications by Category -->
         ${Object.keys(CATS).map(key => {
           const catCerts = certifications.filter(c => c.cat === key);
           const catHours = getTH(catCerts);

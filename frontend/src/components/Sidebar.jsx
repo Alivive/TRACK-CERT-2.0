@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, LayoutDashboard, User, Layers, PlusCircle, Upload, FileText, Settings } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, User, Layers, PlusCircle, Upload, FileText, Settings, BookOpen } from 'lucide-react';
 
 const Sidebar = ({ activePage, onPageChange, isOpen }) => {
   const { profile, signOut } = useAuth();
@@ -15,6 +15,7 @@ const Sidebar = ({ activePage, onPageChange, isOpen }) => {
     { id: 'add_cert', label: 'Add Certification', icon: <PlusCircle size={16} />, section: 'DATA' },
     { id: 'import', label: 'Import Data', icon: <Upload size={16} />, section: 'DATA' },
     { id: 'reports', label: 'Reports & PDF', icon: <FileText size={16} />, section: 'DATA' },
+    { id: 'reading', label: 'Reading List', icon: <BookOpen size={16} />, section: 'LEARNING' },
     { id: 'admin', label: 'Admin Panel', icon: <Settings size={16} />, section: 'ADMIN', adminOnly: true },
   ];
 

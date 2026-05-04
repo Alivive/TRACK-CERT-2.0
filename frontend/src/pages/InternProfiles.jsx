@@ -175,12 +175,14 @@ const InternProfiles = () => {
       const mappedIntern = {
         first: intern.first_name,
         last: intern.last_name,
-        email: intern.email
+        email: intern.email,
+        intern_id: intern.id
       };
       const mappedCerts = ic.map(c => ({ ...c, cat: c.category }));
       await generateInternReport(mappedIntern, mappedCerts);
     } catch (error) {
       console.error('PDF Generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
     }
   };
 
