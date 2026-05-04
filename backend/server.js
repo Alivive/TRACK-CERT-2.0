@@ -159,6 +159,8 @@ app.post('/api/users', async (req, res) => {
   try {
     const { id, email, full_name, role } = req.body;
     
+    console.log('[API] Creating user profile:', { id, email, full_name, role });
+    
     let intern_id = null;
     
     // If creating an intern user, create intern record first
@@ -166,18 +168,26 @@ app.post('/api/users', async (req, res) => {
       const [firstName, ...lastNameParts] = full_name.split(' ');
       const lastName = lastNameParts.join(' ') || '';
       
+      console.log('[API] Creating intern record:', { firstName, lastName, email });
+      
       const { data: internData, error: internError } = await supabase
         .from('interns')
         .insert({
           first_name: firstName,
           last_name: lastName,
-          email: email
+          email: email,
+          start_date: new Date().toISOString().split('T')[0]
         })
         .select()
         .single();
       
-      if (internError) throw internError;
+      if (internError) {
+        console.error('[API] Failed to create intern record:', internError);
+        throw internError;
+      }
+      
       intern_id = internData.id;
+      console.log('[API] Intern record created with ID:', intern_id);
     }
     
     const { data, error } = await supabase
@@ -192,8 +202,12 @@ app.post('/api/users', async (req, res) => {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('[API] Failed to create user profile:', error);
+      throw error;
+    }
     
+    console.log('[API] User profile created successfully:', data);
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({

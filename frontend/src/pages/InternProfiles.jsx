@@ -18,7 +18,27 @@ const InternProfiles = () => {
     updateIntern
   } = useDatabase();
   
-  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? null : authProfile?.intern_id);
+  // SECURITY FIX: For non-admin users, ensure they have an intern_id
+  // If not, show error message instead of wrong data
+  const userInternId = authProfile?.intern_id;
+  
+  if (!isAdmin && !userInternId) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
+        <h2 style={{ marginBottom: '10px' }}>Profile Setup Incomplete</h2>
+        <p style={{ color: 'var(--gray)', marginBottom: '20px' }}>
+          Your account is not linked to an intern profile. Please contact the administrator.
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--gray2)', fontFamily: 'var(--font-mono)' }}>
+          User ID: {authProfile?.id}<br/>
+          Email: {authProfile?.email}
+        </p>
+      </div>
+    );
+  }
+  
+  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? null : userInternId);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingInternId, setEditingInternId] = useState(null);
   const [editForm, setEditForm] = useState({});
