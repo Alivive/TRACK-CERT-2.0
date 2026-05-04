@@ -81,11 +81,12 @@ export const generateInternReport = async (intern, certifications, categories = 
           <div style="margin-top: 15px;">
             ${bookAssignments.map(book => `
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
-                <div>
+                <div style="flex: 1;">
                   <div style="font-size: 14px; font-weight: 600;">${book.book_title}</div>
-                  <div style="font-size: 12px; color: #888;">${book.book_author} • ${book.book_category}</div>
+                  <div style="font-size: 12px; color: #888;">${book.book_author}${book.book_pages ? ` • ${book.book_pages} pages` : ''}</div>
+                  ${book.notes ? `<div style="font-size: 11px; color: #666; margin-top: 4px; font-style: italic;">"${book.notes}"</div>` : ''}
                 </div>
-                <div style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; ${
+                <div style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; white-space: nowrap; margin-left: 10px; ${
                   book.status === 'completed' ? 'background: #d4edda; color: #155724;' :
                   book.status === 'in-progress' ? 'background: #fff3cd; color: #856404;' :
                   'background: #f8f9fa; color: #888;'
