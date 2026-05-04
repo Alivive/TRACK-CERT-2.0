@@ -23,12 +23,104 @@ const Categories = () => {
     filter === 'all' ? certifications : certifications.filter(c => c.category === filter)
   ), [filter, certifications]);
 
+  // Calculate stats per category
+  const categoryStats = useMemo(() => {
+    return Object.keys(CATS).map(key => {
+      const catCerts = certifications.filter(c => c.category === key);
+      const hours = getTH(catCerts);
+      const activeInterns = new Set(catCerts.map(c => c.intern_id)).size;
+      return {
+        key,
+        name: CATS[key].name,
+        icon: CATS[key].icon,
+        count: catCerts.length,
+        hours,
+        activeInterns,
+        badge: CAT_BADGE[key]
+      };
+    });
+  }, [certifications]);
+
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Track Data...</div>;
 
   return (
     <div id="page-categories" className="page active">
       <div className="section-header">
-        <span className="section-title">CATEGORIES</span>
+        <span className="section-title">CATEGORY OVERVIEW</span>
+      </div>
+
+      {/* Category Cards Grid */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+        gap: '20px', 
+        marginBottom: '30px' 
+      }}>
+        {categoryStats.map(cat => (
+          <div 
+            key={cat.key}
+            className="card"
+            style={{ 
+              cursor: 'pointer',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              border: filter === cat.key ? '2px solid var(--red-light)' : '1px solid var(--border)'
+            }}
+            onClick={() => setFilter(cat.key)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div className="card-body">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <span className={`badge ${cat.badge}`} style={{ fontSize: '18px', padding: '8px' }}>
+                  {cat.icon}
+                </span>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--white)' }}>
+                    {cat.name}
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--white)', marginTop: '4px' }}>
+                    {cat.count}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ 
+                height: '4px', 
+                background: 'var(--black4)', 
+                borderRadius: '2px',
+                marginBottom: '12px'
+              }}>
+                <div 
+                  className={cat.badge}
+                  style={{ 
+                    height: '100%', 
+                    width: `${(cat.count / Math.max(certifications.length, 1)) * 100}%`,
+                    borderRadius: '2px'
+                  }}
+                ></div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: 'var(--gray2)' }}>Hours</span>
+                <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.hours}h</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
+                <span style={{ color: 'var(--gray2)' }}>Active interns</span>
+                <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.activeInterns}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="section-header">
+        <span className="section-title">CERTIFICATIONS BY CATEGORY</span>
         <select className="form-input" style={{ width: '200px' }} value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="all">All Categories</option>
           {Object.keys(CATS).map(key => (
