@@ -9,7 +9,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg}'],
+        // Clear old cache on new deployment
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true
       },
       includeAssets: ['favicon.ico', 'logo.jpg', 'icons/*.png'],
       manifest: {
@@ -36,6 +40,10 @@ export default defineConfig({
       }
     })
   ],
+  // Inject build timestamp automatically
+  define: {
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(Date.now().toString())
+  },
   optimizeDeps: {
     force: true
   },

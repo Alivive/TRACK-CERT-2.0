@@ -14,11 +14,27 @@ import AdminPanel from './pages/AdminPanel';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import OfflineStatus from './components/OfflineStatus';
+import { checkAndClearOldCache } from './utils/cacheVersion';
+import CacheUpdateNotification from './components/CacheUpdateNotification';
 
 const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
   const [showLoader, setShowLoader] = useState(true);
+
+  // AUTOMATIC CACHE CLEARING: Check version and clear old cache on app load
+  useEffect(() => {
+    const initializeApp = async () => {
+      const cacheCleared = await checkAndClearOldCache();
+      if (cacheCleared) {
+        console.log('[APP] Old cache cleared due to version update');
+        // Set flag to show notification
+        sessionStorage.setItem('cache_just_cleared', 'true');
+      }
+    };
+    
+    initializeApp();
+  }, []);
 
   // Auto-hide loader after 3 seconds max to prevent infinite loading
   useEffect(() => {
@@ -98,6 +114,7 @@ function App() {
         <DatabaseProvider>
           <PWAUpdatePrompt />
           <OfflineStatus />
+          <CacheUpdateNotification />
           <AppContent />
         </DatabaseProvider>
       </AuthProvider>
