@@ -110,10 +110,12 @@ const Categories = () => {
                 <span style={{ color: 'var(--gray2)' }}>Hours</span>
                 <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.hours}h</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
-                <span style={{ color: 'var(--gray2)' }}>Active interns</span>
-                <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.activeInterns}</span>
-              </div>
+              {isAdmin && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
+                  <span style={{ color: 'var(--gray2)' }}>Active interns</span>
+                  <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.activeInterns}</span>
+                </div>
+              )}
             </div>
           </div>
         ))}
