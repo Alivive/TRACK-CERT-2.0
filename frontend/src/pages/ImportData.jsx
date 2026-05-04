@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { useCategories } from '../context/CategoriesContext';
 import { Upload, CheckCircle, AlertCircle, Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -8,10 +9,14 @@ const ImportData = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns, addCertification, refreshData } = useDatabase();
+  const { categories, getCategoryObject } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
+  
+  // Get dynamic categories
+  const CATS = getCategoryObject();
 
   const parseFile = async (file) => {
     const fileExtension = file.name.split('.').pop().toLowerCase();
@@ -97,16 +102,12 @@ const ImportData = () => {
             }
           }
 
-          // Map category names to keys
-          const categoryMap = {
-            'Artificial Intelligence': 'AI',
-            'Front End Web Dev': 'FE',
-            'Back End Web Dev': 'BE',
-            'API Functionalities': 'API',
-            'Cybersecurity': 'CYBER',
-            'Cloud Computing': 'CLOUD',
-            'Soft Skills': 'SOFT'
-          };
+          // Map category names to keys dynamically
+          const categoryMap = {};
+          categories.forEach(cat => {
+            categoryMap[cat.name] = cat.id;
+            categoryMap[cat.id] = cat.id; // Also allow direct ID usage
+          });
 
           const categoryKey = categoryMap[row['Category']] || row['Category'];
 
