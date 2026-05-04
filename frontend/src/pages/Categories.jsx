@@ -63,18 +63,27 @@ const Categories = () => {
   const getInit = (first, last) => ((first?.[0] || '?') + (last?.[0] || '')).toUpperCase();
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
 
-  const filteredCerts = useMemo(() => (
-    filter === 'all' ? certifications : certifications.filter(c => c.category === filter)
-  ), [filter, certifications]);
+  // Filter certifications based on role - interns see only their own
+  const displayCertifications = useMemo(() => {
+    if (isAdmin) {
+      return certifications;
+    }
+    // For interns, show only their own certifications
+    return certifications.filter(c => c.intern_id === profile?.intern_id);
+  }, [certifications, isAdmin, profile?.intern_id]);
 
-  // Calculate stats per category
+  const filteredCerts = useMemo(() => (
+    filter === 'all' ? displayCertifications : displayCertifications.filter(c => c.category === filter)
+  ), [filter, displayCertifications]);
+
+  // Calculate stats per category using displayCertifications
   const categoryStats = useMemo(() => {
     const filteredCategories = groupFilter === 'all' 
       ? Object.keys(CATS) 
       : categoryGroups[groupFilter];
     
     return filteredCategories.map(key => {
-      const catCerts = certifications.filter(c => c.category === key);
+      const catCerts = displayCertifications.filter(c => c.category === key);
       const hours = getTH(catCerts);
       const activeInterns = new Set(catCerts.map(c => c.intern_id)).size;
       return {
@@ -87,14 +96,14 @@ const Categories = () => {
         badge: CAT_BADGE[key]
       };
     });
-  }, [certifications, groupFilter]);
+  }, [displayCertifications, groupFilter]);
 
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Track Data...</div>;
 
   return (
     <div id="page-categories" className="page active">
       <div className="section-header">
-        <span className="section-title">CATEGORY OVERVIEW</span>
+        <span className="section-title">{isAdmin ? 'CATEGORY OVERVIEW' : 'MY CATEGORY OVERVIEW'}</span>
       </div>
 
       {/* Admin Category Management Section */}
@@ -305,7 +314,7 @@ const Categories = () => {
       </div>
 
       <div className="section-header">
-        <span className="section-title">CERTIFICATIONS BY CATEGORY</span>
+        <span className="section-title">{isAdmin ? 'CERTIFICATIONS BY CATEGORY' : 'MY CERTIFICATIONS BY CATEGORY'}</span>
         <select className="form-input" style={{ width: '200px' }} value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="all">All Categories</option>
           {Object.keys(CATS).map(key => (
