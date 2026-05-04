@@ -7,6 +7,7 @@ const OfflineStatus = () => {
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [showOfflineMessage, setShowOfflineMessage] = useState(true);
 
   useEffect(() => {
     // Listen for online/offline changes
@@ -21,6 +22,12 @@ const OfflineStatus = () => {
         setShowSyncSuccess(true);
         setPendingCount(0);
         setTimeout(() => setShowSyncSuccess(false), 3000);
+      } else if (event === 'offline') {
+        // Show offline message and auto-hide after 2 minutes
+        setShowOfflineMessage(true);
+        setTimeout(() => setShowOfflineMessage(false), 120000); // 2 minutes
+      } else if (event === 'online') {
+        setShowOfflineMessage(true);
       }
     });
 
@@ -43,6 +50,11 @@ const OfflineStatus = () => {
     
     const interval = setInterval(checkStatus, 2000);
 
+    // Auto-hide offline message after 2 minutes on initial load if offline
+    if (!navigator.onLine) {
+      setTimeout(() => setShowOfflineMessage(false), 120000);
+    }
+
     return () => {
       unsubscribe();
       clearInterval(interval);
@@ -51,6 +63,11 @@ const OfflineStatus = () => {
 
   // Don't show anything if online and no sync activity
   if (isOnline && !syncInProgress && !showSyncSuccess && pendingCount === 0) {
+    return null;
+  }
+
+  // Don't show offline message after 2 minutes
+  if (!isOnline && !syncInProgress && !showOfflineMessage) {
     return null;
   }
 
