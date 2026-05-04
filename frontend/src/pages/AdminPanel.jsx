@@ -4,8 +4,6 @@ import { useDatabase } from '../utils/useDatabase';
 import { useAuth } from '../context/AuthContext';
 import { Settings, Shield, Key, CheckCircle, Users, Search, UserCheck, UserMinus, ShieldCheck, UserPlus, Plus, Edit2, Save, X } from 'lucide-react';
 
-// TODO: Replace supabase calls with your backend API
-
 const AdminPanel = () => {
   const { allProfiles, updateProfileRole, addIntern, interns, updateProfile } = useDatabase();
   const { refreshProfile } = useAuth();
@@ -23,7 +21,7 @@ const AdminPanel = () => {
     project_name: ''
   });
 
-  // Add Intern form state
+  // Adding  Intern form section setups
   const [internForm, setInternForm] = useState({
     first_name: '',
     last_name: '',
@@ -105,7 +103,6 @@ const AdminPanel = () => {
       setTimeout(() => setSuccess(false), 3000);
       setEditingId(null);
       setEditForm({});
-      // Refresh the current user's profile if they edited their own profile
       await refreshProfile();
     }
     setSaving(false);
@@ -117,7 +114,7 @@ const AdminPanel = () => {
     setInternError('');
     setInternSuccess(false);
 
-    // Check for duplicate email
+    // Check for duplicate email within the system
     const duplicate = interns.find(i => i.email.toLowerCase() === internForm.email.toLowerCase());
     if (duplicate) {
       setInternError(`An intern with email "${internForm.email}" already exists.`);
@@ -146,7 +143,7 @@ const AdminPanel = () => {
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Remove loading screen - show content immediately
+  // Removal of irritating extensional loading screen - showing content rather faster
 
   return (
     <div id="page-admin" className="page active">
@@ -174,7 +171,7 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      {/* ── CONFIGURATION TAB ── */}
+      {/* ── CONFIGURATION TAB ESTABLISHMENT── */}
       {activeTab === 'config' && (
         <div className="card animate-in" style={{ maxWidth: '600px' }}>
           <div className="card-header">
@@ -236,7 +233,7 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* ── USER MANAGEMENT TAB ── */}
+      {/* ── USER MANAGEMENT TAB ESTABLISHMENT── */}
       {activeTab === 'users' && (
         <div className="card animate-in">
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -384,7 +381,7 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* ── ADD INTERN TAB ── */}
+      {/* ── ADDING AN INTERN  INTO THE SYSTEM  TAB SETUP── */}
       {activeTab === 'add_intern' && (
         <div className="card animate-in" style={{ maxWidth: '600px' }}>
           <div className="card-header">

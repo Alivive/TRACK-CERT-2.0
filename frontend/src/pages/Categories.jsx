@@ -336,7 +336,7 @@ const Categories = () => {
           <table style={{ minWidth: '600px' }}>
             <thead>
               <tr>
-                <th>INTERN</th>
+                {isAdmin && <th>NAME</th>}
                 <th>CERTIFICATION</th>
                 <th>CATEGORY</th>
                 <th>PROVIDER</th>
@@ -351,12 +351,14 @@ const Categories = () => {
                 const canDelete = isAdmin || profile?.intern_id === c.intern_id;
                 return (
                   <tr key={c.id}>
-                    <td>
-                      <div className="intern-name-cell">
-                        <div className="avatar">{intern ? getInit(intern.first_name, intern.last_name) : '??'}</div>
-                        <div className="intern-name">{intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown'}</div>
-                      </div>
-                    </td>
+                    {isAdmin && (
+                      <td>
+                        <div className="intern-name-cell">
+                          <div className="avatar">{intern ? getInit(intern.first_name, intern.last_name) : '??'}</div>
+                          <div className="intern-name">{intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown'}</div>
+                        </div>
+                      </td>
+                    )}
                     <td style={{ fontSize: '12px' }}>{c.name}</td>
                     <td><span className={`badge ${CAT_BADGE[c.category]}`}>{CATS[c.category]?.name || c.category}</span></td>
                     <td style={{ fontSize: '12px', color: 'var(--gray)' }}>{c.provider}</td>
@@ -379,7 +381,7 @@ const Categories = () => {
                 );
               })}
               {filteredCerts.length === 0 && (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--gray)' }}>No certifications found in this category.</td></tr>
+                <tr><td colSpan={isAdmin ? "7" : "6"} style={{ textAlign: 'center', padding: '30px', color: 'var(--gray)' }}>No certifications found in this category.</td></tr>
               )}
             </tbody>
           </table>

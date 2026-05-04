@@ -15,14 +15,14 @@ const ImportData = () => {
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
   
-  // Get dynamic categories
+
   const CATS = getCategoryObject();
 
   const parseFile = async (file) => {
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
     if (fileExtension === 'csv') {
-      // Parse CSV
+     
       const text = await file.text();
       const lines = text.split('\n').filter(line => line.trim());
       const headers = lines[0].split(',').map(h => h.trim());
@@ -66,7 +66,7 @@ const ImportData = () => {
           let intern;
           
           if (isAdmin) {
-            // Admin must specify intern name
+            // Admin must specify the intern name for specificity purposes within the system
             const internName = row['Intern Name'] || row['Employee Name'];
             if (!internName) {
               errors.push(`Row skipped: Missing intern name`);
@@ -84,7 +84,7 @@ const ImportData = () => {
               continue;
             }
           } else {
-            // Intern: automatically use their own profile
+            // Intern: obviously use their own profile
             intern = interns.find(i => i.id === profile?.intern_id);
             
             if (!intern) {
@@ -93,7 +93,7 @@ const ImportData = () => {
               continue;
             }
             
-            // Optional: Verify intern name if provided
+            // Optional: Verification of the  intern name if provided
             const internName = row['Intern Name'] || row['Employee Name'];
             if (internName && `${intern.first_name} ${intern.last_name}`.toLowerCase() !== internName.toLowerCase()) {
               errors.push(`Row skipped: You can only upload certifications for yourself (${intern.first_name} ${intern.last_name})`);

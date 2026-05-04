@@ -267,7 +267,7 @@ const InternProfiles = () => {
             <table style={{ minWidth: '900px' }}>
               <thead>
                 <tr>
-                  <th>INTERN</th>
+                  <th>NAME</th>
                   <th>EMAIL</th>
                   <th>CERTS</th>
                   <th>HOURS</th>

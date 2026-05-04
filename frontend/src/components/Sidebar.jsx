@@ -69,7 +69,9 @@ const Sidebar = ({ activePage, onPageChange, isOpen }) => {
           <div className="user-avatar">{(profile?.full_name || 'U')[0].toUpperCase()}</div>
           <div className="user-info">
             <div className="user-name">{profile?.full_name || profile?.email || 'User'}</div>
-            <div className="user-role-badge">{(profile?.role || 'intern').toUpperCase()}</div>
+            {profile?.role === 'admin' && (
+              <div className="user-role-badge">ADMIN</div>
+            )}
           </div>
         </div>
         <button className="btn-signout" onClick={signOut}>SIGN OUT</button>

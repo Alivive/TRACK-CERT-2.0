@@ -94,7 +94,7 @@ const Dashboard = ({ onPageChange }) => {
             <table style={{ minWidth: '500px' }}>
               <thead>
                 <tr>
-                  <th>INTERN</th>
+                  {isAdmin && <th>NAME</th>}
                   <th>CERTIFICATION</th>
                   <th>CATEGORY</th>
                   <th>HOURS</th>
@@ -105,12 +105,14 @@ const Dashboard = ({ onPageChange }) => {
                   const intern = internDict[c.intern_id];
                   return (
                     <tr key={c.id}>
-                      <td>
-                        <div className="intern-name-cell">
-                          <div className="avatar">{(intern?.first_name?.[0] || '?') + (intern?.last_name?.[0] || '')}</div>
-                          <div className="intern-name">{intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown'}</div>
-                        </div>
-                      </td>
+                      {isAdmin && (
+                        <td>
+                          <div className="intern-name-cell">
+                            <div className="avatar">{(intern?.first_name?.[0] || '?') + (intern?.last_name?.[0] || '')}</div>
+                            <div className="intern-name">{intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown'}</div>
+                          </div>
+                        </td>
+                      )}
                       <td style={{ fontSize: '12px' }}>{c.name}</td>
                       <td><span className={`badge ${CAT_BADGE[c.category]}`}>{CATS[c.category]?.name || c.category}</span></td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{c.hours}h</td>
@@ -118,7 +120,7 @@ const Dashboard = ({ onPageChange }) => {
                   );
                 })}
                 {displayCertifications.length === 0 && (
-                  <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>No live certifications found.</td></tr>
+                  <tr><td colSpan={isAdmin ? "4" : "3"} style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>No live certifications found.</td></tr>
                 )}
               </tbody>
             </table>
