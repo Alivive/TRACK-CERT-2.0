@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { Upload, CheckCircle, AlertCircle, Download, FileText } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const ImportData = () => {
   const { profile } = useAuth();
@@ -12,18 +13,32 @@ const ImportData = () => {
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
 
-  const parseCSV = (text) => {
-    const lines = text.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim());
+  const parseFile = async (file) => {
+    const fileExtension = file.name.split('.').pop().toLowerCase();
     
-    return lines.slice(1).map(line => {
-      const values = line.split(',').map(v => v.trim());
-      const row = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
+    if (fileExtension === 'csv') {
+      // Parse CSV
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.trim());
+      
+      return lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        return row;
       });
-      return row;
-    });
+    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      // Parse Excel
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      return XLSX.utils.sheet_to_json(firstSheet);
+    } else {
+      throw new Error('Unsupported file format. Please use CSV or Excel (.xlsx, .xls)');
+    }
   };
 
   const handleFileUpload = async (e) => {
@@ -35,8 +50,7 @@ const ImportData = () => {
     setResults(null);
     
     try {
-      const text = await file.text();
-      const rows = parseCSV(text);
+      const rows = await parseFile(file);
       
       let successCount = 0;
       let failCount = 0;
@@ -128,10 +142,13 @@ const ImportData = () => {
               href="/CerTrack-Bulk-Upload-Template.csv" 
               download
               className="btn btn-outline"
-              style={{ width: '100%', justifyContent: 'center' }}
+              style={{ width: '100%', justifyContent: 'center', marginBottom: '10px' }}
             >
-              <Download size={14} /> DOWNLOAD TEMPLATE
+              <Download size={14} /> DOWNLOAD CSV TEMPLATE
             </a>
+            <div style={{ fontSize: '11px', color: 'var(--gray2)', textAlign: 'center' }}>
+              CSV format works with Excel, Google Sheets, and all spreadsheet apps
+            </div>
           </div>
         </div>
 
@@ -202,7 +219,7 @@ const ImportData = () => {
             id="fileInput" 
             style={{ display: 'none' }} 
             onChange={handleFileUpload}
-            accept=".csv"
+            accept=".csv,.xlsx,.xls"
           />
           <button 
             className="btn btn-primary" 
@@ -210,12 +227,16 @@ const ImportData = () => {
             onClick={() => document.getElementById('fileInput').click()}
             disabled={loading}
           >
-            {loading ? 'PROCESSING FILE...' : 'CHOOSE CSV FILE'}
+            {loading ? 'PROCESSING FILE...' : 'CHOOSE FILE'}
           </button>
           
           <div style={{ marginTop: '30px', borderTop: '1px solid var(--border2)', paddingTop: '20px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--gray2)', marginBottom: '10px' }}>SUPPORTED FORMAT</div>
-            <span className="badge badge-ai">.CSV</span>
+            <div style={{ fontSize: '12px', color: 'var(--gray2)', marginBottom: '10px' }}>SUPPORTED FORMATS</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              <span className="badge badge-ai">.CSV</span>
+              <span className="badge badge-fe">.XLSX</span>
+              <span className="badge badge-be">.XLS</span>
+            </div>
           </div>
         </div>
       </div>
