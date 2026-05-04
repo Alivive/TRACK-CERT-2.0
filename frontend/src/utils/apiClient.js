@@ -114,6 +114,23 @@ class ApiClient {
   async addCertification(certData) {
     return this.post('/api/certifications', certData);
   }
+
+  // Categories
+  async getCategories() {
+    return this.get('/api/categories');
+  }
+
+  async addCategory(category) {
+    return this.post('/api/categories', category);
+  }
+
+  async updateCategory(id, updates) {
+    return this.put(`/api/categories/${id}`, updates);
+  }
+
+  async deleteCategory(id) {
+    return this.delete(`/api/categories/${id}`);
+  }
 }
 
 // Create and export singleton instance

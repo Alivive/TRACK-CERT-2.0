@@ -287,7 +287,7 @@ app.post('/api/interns', async (req, res) => {
   }
 });
 
-// Get certifications
+// Get all certifications
 app.get('/api/certifications', async (req, res) => {
   try {
     const { intern_id } = req.query;
@@ -309,6 +309,111 @@ app.get('/api/certifications', async (req, res) => {
     }
     
     const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get all categories
+app.get('/api/categories', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    
+    if (error) throw error;
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Add new category (admin only)
+app.post('/api/categories', async (req, res) => {
+  try {
+    const { id, name, icon, fill_class, badge_class } = req.body;
+    
+    // Get max display_order
+    const { data: maxOrder } = await supabase
+      .from('categories')
+      .select('display_order')
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .single();
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        id: id.toUpperCase(),
+        name,
+        icon: icon || '◎',
+        fill_class: fill_class || '',
+        badge_class: badge_class || 'badge-gray',
+        display_order: (maxOrder?.display_order || 0) + 1,
+        is_active: true
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Update category (admin only)
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Delete category (admin only - soft delete)
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ is_active: false })
+      .eq('id', id)
+      .select()
+      .single();
     
     if (error) throw error;
     
