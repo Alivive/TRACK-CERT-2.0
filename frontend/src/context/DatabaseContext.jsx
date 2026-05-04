@@ -30,6 +30,9 @@ export const DatabaseProvider = ({ children }) => {
   const refreshData = useCallback(async () => {
     if (!user) return;
     
+    // SECURITY FIX: Use user-specific cache keys to prevent data leakage
+    const userCacheKey = (key) => `${user.id}_${key}`;
+    
     // Load data in background without blocking UI
     try {
       if (navigator.onLine) {
@@ -37,13 +40,13 @@ export const DatabaseProvider = ({ children }) => {
         const internsResponse = await apiClient.getInterns();
         if (internsResponse.success) {
           setInterns(internsResponse.data || []);
-          await offlineManager.cacheForOffline('interns', internsResponse.data);
+          await offlineManager.cacheForOffline(userCacheKey('interns'), internsResponse.data);
         }
 
         const certsResponse = await apiClient.getCertifications();
         if (certsResponse.success) {
           setCertifications(certsResponse.data || []);
-          await offlineManager.cacheForOffline('certifications', certsResponse.data);
+          await offlineManager.cacheForOffline(userCacheKey('certifications'), certsResponse.data);
         }
 
         // Fetch all profiles (admin only)
@@ -51,19 +54,19 @@ export const DatabaseProvider = ({ children }) => {
           const profilesResponse = await apiClient.getUsers();
           if (profilesResponse.success) {
             setAllProfiles(profilesResponse.data || []);
-            await offlineManager.cacheForOffline('users', profilesResponse.data);
+            await offlineManager.cacheForOffline(userCacheKey('users'), profilesResponse.data);
           }
         }
       } else {
-        // Offline: Load from cache
-        const cachedInterns = await offlineManager.getCachedData('interns');
+        // Offline: Load from user-specific cache
+        const cachedInterns = await offlineManager.getCachedData(userCacheKey('interns'));
         if (cachedInterns) setInterns(cachedInterns);
 
-        const allCerts = await offlineManager.getAllCertifications();
+        const allCerts = await offlineManager.getAllCertifications(user.id);
         setCertifications(allCerts);
 
         if (profile?.role === 'admin') {
-          const cachedUsers = await offlineManager.getCachedData('users');
+          const cachedUsers = await offlineManager.getCachedData(userCacheKey('users'));
           if (cachedUsers) setAllProfiles(cachedUsers);
         }
       }
@@ -72,14 +75,14 @@ export const DatabaseProvider = ({ children }) => {
       
       // Fallback to cached data on error
       try {
-        const cachedInterns = await offlineManager.getCachedData('interns');
+        const cachedInterns = await offlineManager.getCachedData(userCacheKey('interns'));
         if (cachedInterns) setInterns(cachedInterns);
 
-        const allCerts = await offlineManager.getAllCertifications();
+        const allCerts = await offlineManager.getAllCertifications(user.id);
         setCertifications(allCerts);
 
         if (profile?.role === 'admin') {
-          const cachedUsers = await offlineManager.getCachedData('users');
+          const cachedUsers = await offlineManager.getCachedData(userCacheKey('users'));
           if (cachedUsers) setAllProfiles(cachedUsers);
         }
       } catch (cacheError) {

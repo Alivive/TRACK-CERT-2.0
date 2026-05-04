@@ -78,12 +78,15 @@ class OfflineManager {
   }
 
   // Get all certifications (online + offline)
-  async getAllCertifications() {
+  async getAllCertifications(userId = null) {
     try {
       let certifications = [];
 
+      // SECURITY FIX: Use user-specific cache key if userId provided
+      const cacheKey = userId ? `${userId}_certifications` : 'certifications';
+      
       // Get cached online certifications
-      const cachedCerts = await offlineStorage.getCachedData('certifications');
+      const cachedCerts = await offlineStorage.getCachedData(cacheKey);
       if (cachedCerts) {
         certifications = [...cachedCerts];
       }
@@ -126,6 +129,36 @@ class OfflineManager {
     } catch (error) {
       console.error(`[OFFLINE] Failed to get cached ${key}:`, error);
       return null;
+    }
+  }
+
+  // Clear specific cached data
+  async clearCachedData(key) {
+    try {
+      await offlineStorage.cacheData(key, null);
+      console.log(`[OFFLINE] Cleared cached ${key}`);
+    } catch (error) {
+      console.error(`[OFFLINE] Failed to clear cached ${key}:`, error);
+    }
+  }
+
+  // Clear all cached data for a user
+  async clearUserCache(userId) {
+    try {
+      await offlineStorage.clearUserCache(userId);
+      console.log(`[OFFLINE] Cleared all cache for user ${userId}`);
+    } catch (error) {
+      console.error(`[OFFLINE] Failed to clear user cache:`, error);
+    }
+  }
+
+  // Clear all cached data (complete sign out)
+  async clearAllCache() {
+    try {
+      await offlineStorage.clearAllCache();
+      console.log('[OFFLINE] Cleared all cached data');
+    } catch (error) {
+      console.error('[OFFLINE] Failed to clear all cache:', error);
     }
   }
 
@@ -204,27 +237,30 @@ class OfflineManager {
   }
 
   // Refresh cached data from server
-  async refreshCachedData() {
+  async refreshCachedData(userId = null) {
     if (!this.isOnline) return;
 
     try {
+      // SECURITY FIX: Use user-specific cache keys if userId provided
+      const cacheKey = (key) => userId ? `${userId}_${key}` : key;
+      
       // Cache certifications
       const certsResponse = await apiClient.getCertifications();
       if (certsResponse.success) {
-        await this.cacheForOffline('certifications', certsResponse.data);
+        await this.cacheForOffline(cacheKey('certifications'), certsResponse.data);
       }
 
       // Cache interns
       const internsResponse = await apiClient.getInterns();
       if (internsResponse.success) {
-        await this.cacheForOffline('interns', internsResponse.data);
+        await this.cacheForOffline(cacheKey('interns'), internsResponse.data);
       }
 
       // Cache users (admin only)
       try {
         const usersResponse = await apiClient.getUsers();
         if (usersResponse.success) {
-          await this.cacheForOffline('users', usersResponse.data);
+          await this.cacheForOffline(cacheKey('users'), usersResponse.data);
         }
       } catch (error) {
         // Ignore if not admin

@@ -199,6 +199,58 @@ class OfflineStorage {
       }
     };
   }
+
+  // Clear all user-specific cached data
+  async clearUserCache(userId) {
+    if (!this.db) await this.init();
+    
+    const transaction = this.db.transaction(['cache'], 'readwrite');
+    const store = transaction.objectStore('cache');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.openCursor();
+      
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          // Delete any cache entry that contains the userId or is user-specific
+          const key = cursor.value.key;
+          if (key.includes(userId) || 
+              key === 'certifications' || 
+              key === 'interns' || 
+              key === 'users' ||
+              key.startsWith('profile_')) {
+            cursor.delete();
+          }
+          cursor.continue();
+        } else {
+          resolve(true);
+        }
+      };
+      
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Clear ALL cached data (for complete sign out)
+  async clearAllCache() {
+    if (!this.db) await this.init();
+    
+    const transaction = this.db.transaction(['cache', 'offlineCertifications', 'pendingActions'], 'readwrite');
+    
+    return new Promise((resolve, reject) => {
+      try {
+        transaction.objectStore('cache').clear();
+        transaction.objectStore('offlineCertifications').clear();
+        transaction.objectStore('pendingActions').clear();
+        
+        transaction.oncomplete = () => resolve(true);
+        transaction.onerror = () => reject(transaction.error);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 }
 
 // Create singleton instance

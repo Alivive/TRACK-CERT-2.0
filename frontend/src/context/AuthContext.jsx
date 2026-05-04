@@ -12,14 +12,19 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('[AUTH] Fetching profile for user:', userId);
       
-      // First, try to load cached profile immediately
+      // SECURITY FIX: Validate cached profile belongs to current user
       const { offlineManager } = await import('../utils/offlineManager');
       const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
       
-      if (cachedProfile) {
-        console.log('[AUTH] Loading cached profile first:', cachedProfile.full_name);
+      // Only use cached profile if it matches the current userId
+      if (cachedProfile && cachedProfile.id === userId) {
+        console.log('[AUTH] Loading validated cached profile:', cachedProfile.full_name);
         setProfile(cachedProfile);
         setLoading(false);
+      } else if (cachedProfile && cachedProfile.id !== userId) {
+        console.warn('[AUTH] Cached profile mismatch detected - clearing invalid cache');
+        // Clear invalid cached profile
+        await offlineManager.clearCachedData(`profile_${userId}`);
       }
       
       // Then fetch fresh data from backend if online
@@ -40,19 +45,26 @@ export const AuthProvider = ({ children }) => {
 
         if (response.ok && data.success && data.data) {
           console.log('[AUTH] Profile fetched successfully:', data.data.full_name);
-          setProfile(data.data);
-          // Cache the fresh profile
-          await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
-        } else if (!cachedProfile) {
+          
+          // SECURITY FIX: Validate backend response matches requested userId
+          if (data.data.id === userId) {
+            setProfile(data.data);
+            // Cache the fresh profile
+            await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
+          } else {
+            console.error('[AUTH] Backend returned profile for different user!');
+            throw new Error('Profile mismatch - security violation');
+          }
+        } else if (!cachedProfile || cachedProfile.id !== userId) {
           throw new Error(data.error || `HTTP error! status: ${response.status}`);
         }
       }
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
-      // Only set profile to null if we don't have cached data
+      // Only set profile to null if we don't have valid cached data
       const { offlineManager } = await import('../utils/offlineManager');
       const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
-      if (!cachedProfile) {
+      if (!cachedProfile || cachedProfile.id !== userId) {
         setProfile(null);
       }
     } finally {
@@ -60,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Check for existing session on mount
+  // Listen for auth changes
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -86,7 +98,21 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[AUTH] Auth state changed:', event);
       
-      if (session?.user) {
+      // SECURITY FIX: Clear previous user's cache when auth state changes
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        console.log('[AUTH] Clearing all cached data on sign out');
+        const { offlineStorage } = await import('../utils/offlineStorage');
+        await offlineStorage.clearAllCache();
+        setUser(null);
+        setProfile(null);
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        // Clear any stale cache before loading new user
+        const { offlineStorage } = await import('../utils/offlineStorage');
+        await offlineStorage.clearAllCache();
+        
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+      } else if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
       } else {
@@ -124,6 +150,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     
     try {
+      // SECURITY FIX: Clear IndexedDB before signing out
+      const { offlineStorage } = await import('../utils/offlineStorage');
+      console.log('[AUTH] Clearing IndexedDB cache...');
+      await offlineStorage.clearAllCache();
+      
       // Clear Supabase session
       await supabase.auth.signOut();
       
@@ -143,7 +174,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('[AUTH] Sign out error:', error);
       
-      // Force clear even if Supabase fails
+      // Force clear even if operations fail
+      try {
+        const { offlineStorage } = await import('../utils/offlineStorage');
+        await offlineStorage.clearAllCache();
+      } catch (cacheError) {
+        console.error('[AUTH] Failed to clear cache:', cacheError);
+      }
+      
       localStorage.clear();
       sessionStorage.clear();
       setUser(null);
