@@ -12,9 +12,6 @@ const Login = () => {
   
   // Dynamic access codes from DB
   const [systemCodes, setSystemCodes] = useState({ admin_code: '', intern_code: '' });
-  
-  // Dynamic system stats
-  const [sysStats, setSysStats] = useState({ interns: 0, certs: 0, tracks: 7, hours: 0 });
 
   const [formData, setFormData] = useState({
     email: '',
@@ -35,24 +32,6 @@ const Login = () => {
         if (settings) {
           setSystemCodes(settings);
         }
-
-        // Load stats
-        const { data: internsData } = await supabase
-          .from('interns')
-          .select('id', { count: 'exact' });
-
-        const { data: certsData } = await supabase
-          .from('certifications')
-          .select('hours', { count: 'exact' });
-
-        const totalHours = certsData?.reduce((sum, cert) => sum + (cert.hours || 0), 0) || 0;
-
-        setSysStats({
-          interns: internsData?.length || 0,
-          certs: certsData?.length || 0,
-          tracks: 7, // Fixed: AI, FE, BE, API, CYBER, CLOUD, SOFT
-          hours: totalHours
-        });
       } catch (error) {
         console.error('[LOGIN] Failed to load system data:', error);
       }
@@ -207,35 +186,23 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="auth-right">
-        <div className="auth-right-graphic">
-          <div className="auth-grid">
-            <div className="auth-grid-card red-top">
-              <div className="auth-grid-num">{sysStats.interns}</div>
-              <div className="auth-grid-lbl">INTERNS</div>
-            </div>
-            <div className="auth-grid-card red-top">
-              <div className="auth-grid-num">{sysStats.certs}</div>
-              <div className="auth-grid-lbl">CERTS</div>
-            </div>
-            <div className="auth-grid-card red-top">
-              <div className="auth-grid-num">{sysStats.tracks}</div>
-              <div className="auth-grid-lbl">TRACKS</div>
-            </div>
-            <div className="auth-grid-card">
-              <div className="auth-grid-num">{sysStats.hours >= 1000 ? (sysStats.hours / 1000).toFixed(1) + 'K' : sysStats.hours}</div>
-              <div className="auth-grid-lbl">HOURS</div>
-            </div>
-            <div className="auth-grid-card">
-              <div className="auth-grid-num">{sysStats.interns > 0 ? (sysStats.certs / sysStats.interns).toFixed(1) : '0'}</div>
-              <div className="auth-grid-lbl">AVG CERTS</div>
-            </div>
-            <div className="auth-grid-card">
-              <div className="auth-grid-num">{sysStats.interns > 0 ? Math.round(sysStats.hours / sysStats.interns) : '0'}</div>
-              <div className="auth-grid-lbl">AVG HRS</div>
-            </div>
-          </div>
-          <div className="auth-tagline">TRACK · CERTIFY · GROW</div>
+      <div className="auth-right" style={{
+        backgroundImage: 'url(/#wallpaper_.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}>
+        <div className="auth-tagline" style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.7)',
+          padding: '15px 30px',
+          borderRadius: '8px',
+          backdropFilter: 'blur(10px)'
+        }}>
+          TRACK · CERTIFY · GROW
         </div>
       </div>
     </div>
