@@ -1,7 +1,7 @@
 # CerTrack Auto-Update System
 
 ## Overview
-Your PWA now has a **fully automatic update system** that detects and applies code changes without manual intervention.
+Your PWA now has a **fully automatic update system** that detects and applies code changes without manual intervention, **while preserving user authentication and preferences**.
 
 ## How It Works
 
@@ -10,7 +10,18 @@ Your PWA now has a **fully automatic update system** that detects and applies co
 - Stored in `frontend/src/utils/cacheVersion.js`
 - Automatically increments with each deployment
 
-### 2. **Automatic Update Detection**
+### 2. **Smart Cache Clearing with Data Preservation**
+When an update is detected, the system:
+- ✅ **PRESERVES** Authentication tokens (Supabase session)
+- ✅ **PRESERVES** User theme preferences
+- ✅ **PRESERVES** User settings and preferences
+- ❌ **CLEARS** Old JavaScript/CSS cache
+- ❌ **CLEARS** Outdated offline data
+- ❌ **CLEARS** Stale IndexedDB entries
+
+**Result: Users stay logged in after updates!**
+
+### 3. **Automatic Update Detection**
 The system checks for updates in **3 ways**:
 
 #### A. On App Load
@@ -36,7 +47,14 @@ The system checks for updates in **3 ways**:
 3. Shows countdown notification: "Auto-updating in 10 seconds..."
 4. User can click "Update Now" or wait
 5. App automatically reloads after countdown
-6. Old cache cleared, new version loaded
+6. Old cache cleared, **user stays logged in** ✅
+7. New version loaded with preserved preferences
+
+#### What Users Experience
+- ✅ **Stay logged in** - No re-authentication needed
+- ✅ **Keep theme** - Dark/light mode preference preserved
+- ✅ **Seamless update** - Just a quick reload
+- ✅ **No data loss** - Settings and preferences intact
 
 #### Manual Dismiss Option
 - User can click "Later" to postpone
@@ -82,6 +100,24 @@ VitePWA({
 ✅ **Service Worker** - PWA functionality
 ✅ **Cache** - Clears old data automatically
 ✅ **IndexedDB** - Offline storage cleared
+
+## What Gets Preserved (No Logout!)
+
+✅ **Authentication Tokens** - Supabase session (all `sb-*` keys)
+✅ **User Theme** - Dark/light mode preference
+✅ **User Preferences** - Settings and customizations
+✅ **Login State** - Users stay logged in after update
+
+### Protected localStorage Keys
+```javascript
+const PRESERVE_KEYS = [
+  'sb-',                    // Supabase auth tokens
+  'supabase.auth.token',    // Legacy Supabase auth
+  'certrack_cache_version', // Version tracker
+  'theme',                  // User theme preference
+  'user_preferences'        // User settings
+];
+```
 
 ## Deployment Workflow
 

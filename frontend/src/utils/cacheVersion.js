@@ -8,6 +8,15 @@ export const CACHE_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toStr
 // Check for updates every 30 seconds
 export const UPDATE_CHECK_INTERVAL = 30000;
 
+// Keys to preserve during cache clear (authentication and critical user data)
+const PRESERVE_KEYS = [
+  'sb-', // Supabase auth tokens (all keys starting with 'sb-')
+  'supabase.auth.token', // Legacy Supabase auth
+  'certrack_cache_version', // Our version tracker
+  'theme', // User theme preference
+  'user_preferences' // Any user preferences
+];
+
 export const checkAndClearOldCache = async () => {
   const STORAGE_KEY = 'certrack_cache_version';
   const currentVersion = localStorage.getItem(STORAGE_KEY);
@@ -17,19 +26,45 @@ export const checkAndClearOldCache = async () => {
     console.log(`[CACHE] Old: ${currentVersion}, New: ${CACHE_VERSION}`);
     
     try {
-      // Clear localStorage (except version)
-      const versionBackup = CACHE_VERSION;
-      localStorage.clear();
-      localStorage.setItem(STORAGE_KEY, versionBackup);
+      // PRESERVE CRITICAL DATA - Backup keys that should survive updates
+      const dataBackup = {};
       
-      // Clear sessionStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        // Check if key matches any preserve pattern
+        const shouldPreserve = PRESERVE_KEYS.some(pattern => 
+          key.startsWith(pattern) || key === pattern
+        );
+        
+        if (shouldPreserve) {
+          dataBackup[key] = localStorage.getItem(key);
+          console.log(`[CACHE] Preserving: ${key}`);
+        }
+      }
+      
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Restore preserved data
+      Object.keys(dataBackup).forEach(key => {
+        localStorage.setItem(key, dataBackup[key]);
+      });
+      
+      // Set new version
+      localStorage.setItem(STORAGE_KEY, CACHE_VERSION);
+      
+      // Clear sessionStorage (doesn't contain auth data)
       sessionStorage.clear();
       
-      // Clear IndexedDB
-      const { offlineStorage } = await import('./offlineStorage');
-      await offlineStorage.clearAllCache();
+      // Clear IndexedDB (offline data cache only, not auth)
+      try {
+        const { offlineStorage } = await import('./offlineStorage');
+        await offlineStorage.clearAllCache();
+      } catch (error) {
+        console.warn('[CACHE] Could not clear IndexedDB:', error);
+      }
       
-      console.log('[CACHE] Old cache cleared successfully.');
+      console.log('[CACHE] ✅ Cache cleared. Auth & preferences preserved.');
       
       // Set flag for notification
       sessionStorage.setItem('cache_just_cleared', 'true');
