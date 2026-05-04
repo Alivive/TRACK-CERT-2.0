@@ -143,9 +143,11 @@ const InternProfiles = () => {
   if (selectedIntern) {
     return (
       <div className="page active">
-        <button className="btn btn-ghost" onClick={() => setSelectedInternId(null)} style={{ marginBottom: '20px' }}>
-          <ArrowLeft size={16} /> BACK TO LIST
-        </button>
+        {isAdmin && (
+          <button className="btn btn-ghost" onClick={() => setSelectedInternId(null)} style={{ marginBottom: '20px' }}>
+            <ArrowLeft size={16} /> BACK TO LIST
+          </button>
+        )}
 
         <div className="intern-profile">
           <div className="card">
