@@ -6,6 +6,7 @@ import { Users, Award, Clock, TrendingUp } from 'lucide-react';
 
 const Dashboard = ({ onPageChange }) => {
   const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   // Defensive destructuring: default to empty values if DB is still "waking up"
   const { 
     interns = [], 
@@ -14,14 +15,32 @@ const Dashboard = ({ onPageChange }) => {
     loading 
   } = useDatabase();
 
+  // Filter certifications based on role
+  const displayCertifications = useMemo(() => {
+    if (isAdmin) {
+      return certifications;
+    }
+    // For interns, show only their own certifications
+    return certifications.filter(c => c.intern_id === profile?.intern_id);
+  }, [certifications, isAdmin, profile?.intern_id]);
+
   const getTH = useCallback((cl) => cl.reduce((s, c) => s + (c.hours || 0), 0), []);
   
-  const stats = useMemo(() => [
-    { label: 'TOTAL INTERNS', value: interns.length, delta: '+ 3 this intake', icon: <Users size={20} color="var(--red-light)" /> },
-    { label: 'TOTAL CERTS', value: certifications.length, delta: '+ 100+ this month', icon: <Award size={20} color="var(--red-light)" /> },
-    { label: 'TOTAL HOURS', value: getTH(certifications), delta: 'Across all tracks', icon: <Clock size={20} color="var(--red-light)" /> },
-    { label: 'AVG PER INTERN', value: (certifications.length / Math.max(interns.length, 1)).toFixed(1), delta: 'Certifications', icon: <TrendingUp size={20} color="var(--red-light)" /> }
-  ], [interns.length, certifications, getTH]);
+  const stats = useMemo(() => {
+    if (isAdmin) {
+      return [
+        { label: 'TOTAL INTERNS', value: interns.length, delta: '+ 3 this intake', icon: <Users size={20} color="var(--red-light)" /> },
+        { label: 'TOTAL CERTS', value: certifications.length, delta: '+ 100+ this month', icon: <Award size={20} color="var(--red-light)" /> },
+        { label: 'TOTAL HOURS', value: getTH(certifications), delta: 'Across all tracks', icon: <Clock size={20} color="var(--red-light)" /> },
+        { label: 'AVG PER INTERN', value: (certifications.length / Math.max(interns.length, 1)).toFixed(1), delta: 'Certifications', icon: <TrendingUp size={20} color="var(--red-light)" /> }
+      ];
+    }
+    // Intern stats - show only their own data
+    return [
+      { label: 'MY CERTIFICATIONS', value: displayCertifications.length, delta: 'Total earned', icon: <Award size={20} color="var(--red-light)" /> },
+      { label: 'TOTAL HOURS', value: getTH(displayCertifications), delta: 'Learning time', icon: <Clock size={20} color="var(--red-light)" /> },
+    ];
+  }, [isAdmin, interns.length, certifications, displayCertifications, getTH]);
 
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Live Data...</div>;
 
@@ -76,7 +95,7 @@ const Dashboard = ({ onPageChange }) => {
                 </tr>
               </thead>
               <tbody>
-                {certifications.slice(0, 5).map(c => {
+                {displayCertifications.slice(0, 5).map(c => {
                   const intern = internDict[c.intern_id];
                   return (
                     <tr key={c.id}>
@@ -92,7 +111,7 @@ const Dashboard = ({ onPageChange }) => {
                     </tr>
                   );
                 })}
-                {certifications.length === 0 && (
+                {displayCertifications.length === 0 && (
                   <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>No live certifications found.</td></tr>
                 )}
               </tbody>
@@ -104,8 +123,8 @@ const Dashboard = ({ onPageChange }) => {
           <div className="card-header"><span className="card-title">BY CATEGORY</span></div>
           <div className="card-body">
             {Object.keys(CATS).map(key => {
-              const count = certifications.filter(c => c.category === key).length;
-              const percent = (count / Math.max(certifications.length, 1)) * 100;
+              const count = displayCertifications.filter(c => c.category === key).length;
+              const percent = (count / Math.max(displayCertifications.length, 1)) * 100;
               return (
                 <div key={key} style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '6px' }}>
