@@ -9,6 +9,15 @@ const Categories = () => {
   const isAdmin = profile?.role === 'admin';
   const { internDict, certifications, loading, deleteCertification } = useDatabase();
   const [filter, setFilter] = useState('all');
+  const [groupFilter, setGroupFilter] = useState('all');
+
+  // Category groups for filtering
+  const categoryGroups = {
+    'all': ['AI', 'FE', 'BE', 'API', 'CYBER', 'CLOUD', 'SOFT'],
+    'web-dev': ['FE', 'BE', 'API'],
+    'security-cloud': ['CYBER', 'CLOUD'],
+    'ai-apis': ['AI', 'API']
+  };
 
   const handleDeleteCert = async (certId) => {
     if (window.confirm('Are you sure you want to delete this certification?')) {
@@ -25,7 +34,11 @@ const Categories = () => {
 
   // Calculate stats per category
   const categoryStats = useMemo(() => {
-    return Object.keys(CATS).map(key => {
+    const filteredCategories = groupFilter === 'all' 
+      ? Object.keys(CATS) 
+      : categoryGroups[groupFilter];
+    
+    return filteredCategories.map(key => {
       const catCerts = certifications.filter(c => c.category === key);
       const hours = getTH(catCerts);
       const activeInterns = new Set(catCerts.map(c => c.intern_id)).size;
@@ -39,7 +52,7 @@ const Categories = () => {
         badge: CAT_BADGE[key]
       };
     });
-  }, [certifications]);
+  }, [certifications, groupFilter]);
 
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Track Data...</div>;
 
@@ -49,6 +62,49 @@ const Categories = () => {
         <span className="section-title">CATEGORY OVERVIEW</span>
       </div>
 
+      {/* Filter Tabs */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '10px', 
+        marginBottom: '30px',
+        flexWrap: 'wrap'
+      }}>
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'web-dev', label: 'Web dev' },
+          { key: 'security-cloud', label: 'Security & cloud' },
+          { key: 'ai-apis', label: 'AI & APIs' }
+        ].map(group => (
+          <button
+            key={group.key}
+            onClick={() => setGroupFilter(group.key)}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '8px',
+              border: groupFilter === group.key ? '1px solid var(--white)' : '1px solid var(--border2)',
+              background: groupFilter === group.key ? 'var(--black3)' : 'transparent',
+              color: groupFilter === group.key ? 'var(--white)' : 'var(--gray)',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (groupFilter !== group.key) {
+                e.target.style.borderColor = 'var(--gray)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (groupFilter !== group.key) {
+                e.target.style.borderColor = 'var(--border2)';
+              }
+            }}
+          >
+            {group.label}
+          </button>
+        ))}
+      </div>
+
       {/* Category Cards Grid */}
       <div style={{ 
         display: 'grid', 
@@ -56,69 +112,99 @@ const Categories = () => {
         gap: '20px', 
         marginBottom: '30px' 
       }}>
-        {categoryStats.map(cat => (
-          <div 
-            key={cat.key}
-            className="card"
-            style={{ 
-              cursor: 'pointer',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-              border: filter === cat.key ? '2px solid var(--red-light)' : '1px solid var(--border)'
-            }}
-            onClick={() => setFilter(cat.key)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div className="card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <span className={`badge ${cat.badge}`} style={{ fontSize: '18px', padding: '8px' }}>
-                  {cat.icon}
-                </span>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--white)' }}>
-                    {cat.name}
-                  </div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--white)', marginTop: '4px' }}>
-                    {cat.count}
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{ 
-                height: '4px', 
-                background: 'var(--black4)', 
-                borderRadius: '2px',
-                marginBottom: '12px'
-              }}>
-                <div 
-                  className={cat.badge}
-                  style={{ 
-                    height: '100%', 
-                    width: `${(cat.count / Math.max(certifications.length, 1)) * 100}%`,
-                    borderRadius: '2px'
-                  }}
-                ></div>
-              </div>
+        {categoryStats.map(cat => {
+          const borderColors = {
+            'badge-ai': '#e74c3c',
+            'badge-fe': '#3498db',
+            'badge-be': '#2ecc71',
+            'badge-api': '#f39c12',
+            'badge-cyber': '#9b59b6',
+            'badge-cloud': '#1abc9c',
+            'badge-soft': '#e67e22'
+          };
+          
+          return (
+            <div 
+              key={cat.key}
+              className="card"
+              style={{ 
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                border: filter === cat.key 
+                  ? `2px solid ${borderColors[cat.badge] || 'var(--red-light)'}` 
+                  : `1px solid ${borderColors[cat.badge] || 'var(--border)'}`,
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              onClick={() => setFilter(cat.key)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = `0 8px 24px ${borderColors[cat.badge]}40`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              {/* Top colored bar */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: borderColors[cat.badge] || 'var(--red-light)'
+              }}></div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                <span style={{ color: 'var(--gray2)' }}>Hours</span>
-                <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.hours}h</span>
-              </div>
-              {isAdmin && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
-                  <span style={{ color: 'var(--gray2)' }}>Active interns</span>
-                  <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.activeInterns}</span>
+              <div className="card-body" style={{ paddingTop: '20px' }}>
+                {cat.count === 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    fontSize: '11px',
+                    color: borderColors[cat.badge] || 'var(--gray)',
+                    fontWeight: '500'
+                  }}>
+                    No certs yet
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span 
+                    className={`badge ${cat.badge}`} 
+                    style={{ 
+                      fontSize: '24px', 
+                      padding: '12px',
+                      background: `${borderColors[cat.badge]}20`
+                    }}
+                  >
+                    {cat.icon}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--white)', marginBottom: '4px' }}>
+                      {cat.name}
+                    </div>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--white)' }}>
+                      {cat.count}
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', paddingTop: '12px', borderTop: '1px solid var(--border2)' }}>
+                  <span style={{ color: 'var(--gray2)' }}>Hours logged</span>
+                  <span style={{ color: borderColors[cat.badge] || 'var(--white)', fontWeight: '600' }}>{cat.hours}h</span>
+                </div>
+                {isAdmin && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
+                    <span style={{ color: 'var(--gray2)' }}>Active interns</span>
+                    <span style={{ color: 'var(--white)', fontWeight: '600' }}>{cat.activeInterns}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="section-header">
