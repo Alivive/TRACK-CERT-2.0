@@ -1,20 +1,26 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
-import { CATS } from '../utils/mockData';
+import { useCategories } from '../context/CategoriesContext';
 import { Plus, CheckCircle } from 'lucide-react';
 
 const AddCertification = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns, addCertification, loading: dbLoading } = useDatabase();
+  const { categories, getCategoryObject } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  
+  // Use dynamic categories
+  const CATS = getCategoryObject();
+  const defaultCategory = categories.length > 0 ? categories[0].id : 'AI';
+  
   const [formData, setFormData] = useState({
     intern_id: '',
     name: '',
     provider: '',
-    category: 'AI',
+    category: defaultCategory,
     hours: '',
     date: new Date().toISOString().split('T')[0]
   });
@@ -41,7 +47,7 @@ const AddCertification = () => {
         intern_id: '',
         name: '',
         provider: '',
-        category: 'AI',
+        category: defaultCategory,
         hours: '',
         date: new Date().toISOString().split('T')[0]
       });

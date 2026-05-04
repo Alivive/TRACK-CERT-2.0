@@ -1,8 +1,10 @@
 import html2pdf from 'html2pdf.js';
-import { CATS } from './mockData';
 
-export const generateInternReport = (intern, certifications) => {
+export const generateInternReport = (intern, certifications, categories = {}) => {
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
+  
+  // Use provided categories or fallback to empty object
+  const CATS = categories;
   
   const element = document.createElement('div');
   element.innerHTML = `
@@ -79,12 +81,16 @@ export const generateInternReport = (intern, certifications) => {
   return html2pdf().from(element).set(opt).save();
 };
 
-export const generateSummaryReport = (interns, certifications) => {
+export const generateSummaryReport = (interns, certifications, categories = {}) => {
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
   const totalCerts = certifications.length;
   const totalHours = getTH(certifications);
   const avgCerts = (totalCerts / Math.max(interns.length, 1)).toFixed(1);
   const avgHours = (totalHours / Math.max(interns.length, 1)).toFixed(1);
+  
+  // Use provided categories or fallback to empty object
+  const CATS = categories;
+  const categoryKeys = Object.keys(CATS);
 
   const element = document.createElement('div');
   element.innerHTML = `
@@ -127,7 +133,7 @@ export const generateSummaryReport = (interns, certifications) => {
               <th style="padding: 10px; border: 1px solid #333; text-align: left; color: #ffffff !important;">Name</th>
               <th style="padding: 10px; border: 1px solid #333; text-align: left; color: #ffffff !important;">Email</th>
               <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Role</th>
-              ${['AI', 'FE', 'BE', 'API', 'Cyber', 'Cloud', 'Soft'].map(c => `<th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">${c}</th>`).join('')}
+              ${categoryKeys.map(k => `<th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">${k}</th>`).join('')}
               <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Total</th>
               <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Hours</th>
             </tr>
@@ -143,7 +149,7 @@ export const generateSummaryReport = (interns, certifications) => {
                   <td style="padding: 8px; border: 1px solid #ddd; color: #000000 !important;">${i.first} ${i.last}</td>
                   <td style="padding: 8px; border: 1px solid #ddd; color: #000000 !important;">${i.email}</td>
                   <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">intern</td>
-                  ${['AI', 'FE', 'BE', 'API', 'CYBER', 'CLOUD', 'SOFT'].map(k => `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${catCnt[k] || 0}</td>`).join('')}
+                  ${categoryKeys.map(k => `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${catCnt[k] || 0}</td>`).join('')}
                   <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #000000 !important;">${ic.length}</td>
                   <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #000000 !important;">${getTH(ic)}h</td>
                 </tr>

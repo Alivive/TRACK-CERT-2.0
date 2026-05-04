@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { useCategories } from '../context/CategoriesContext';
 import { Download } from 'lucide-react';
 import { generateInternReport, generateSummaryReport } from '../utils/pdfGenerator';
 
@@ -8,6 +9,7 @@ const Reports = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns, certifications, loading } = useDatabase();
+  const { getCategoryObject } = useCategories();
   const [reportTitle, setReportTitle] = useState('Quarterly Certification Summary');
   const [selectedInternId, setSelectedInternId] = useState(isAdmin ? '' : (profile?.intern_id || ''));
   const [isGenerating, setIsGenerating] = useState(false);
@@ -28,7 +30,7 @@ const Reports = () => {
         email: intern?.email || ''
       };
       const mappedCerts = ic.map(c => ({ ...c, cat: c.category }));
-      await generateInternReport(mappedIntern, mappedCerts);
+      await generateInternReport(mappedIntern, mappedCerts, getCategoryObject());
     } catch (error) {
       console.error('PDF Generation failed:', error);
     } finally {
@@ -42,7 +44,7 @@ const Reports = () => {
     try {
       const mappedInterns = interns.map(i => ({ ...i, first: i.first_name, last: i.last_name }));
       const mappedCerts = certifications.map(c => ({ ...c, cat: c.category }));
-      await generateSummaryReport(mappedInterns, mappedCerts);
+      await generateSummaryReport(mappedInterns, mappedCerts, getCategoryObject());
     } catch (error) {
       console.error('Summary PDF Generation failed:', error);
     } finally {

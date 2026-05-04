@@ -1,12 +1,18 @@
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
-import { CATS, CAT_BADGE } from '../utils/mockData';
+import { useCategories } from '../context/CategoriesContext';
 import { Users, Award, Clock, TrendingUp } from 'lucide-react';
 
 const Dashboard = ({ onPageChange }) => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
+  const { categories, getCategoryObject, getCategoryBadges } = useCategories();
+  
+  // Use dynamic categories
+  const CATS = getCategoryObject();
+  const CAT_BADGE = getCategoryBadges();
+  
   // Defensive destructuring: default to empty values if DB is still "waking up"
   const { 
     interns = [], 

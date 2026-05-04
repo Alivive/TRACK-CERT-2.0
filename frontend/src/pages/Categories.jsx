@@ -1,15 +1,30 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
-import { CATS, CAT_BADGE } from '../utils/mockData';
-import { Trash2 } from 'lucide-react';
+import { useCategories } from '../context/CategoriesContext';
+import { Trash2, Plus, Edit2, Save, X } from 'lucide-react';
 
 const Categories = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { internDict, certifications, loading, deleteCertification } = useDatabase();
+  const { categories, addCategory, updateCategory, deleteCategory, getCategoryObject, getCategoryBadges } = useCategories();
+  
   const [filter, setFilter] = useState('all');
   const [groupFilter, setGroupFilter] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCat, setEditingCat] = useState(null);
+  const [newCategory, setNewCategory] = useState({
+    id: '',
+    name: '',
+    icon: '◎',
+    fill_class: '',
+    badge_class: 'badge-gray'
+  });
+
+  // Use dynamic categories or fallback to static
+  const CATS = categories.length > 0 ? getCategoryObject() : {};
+  const CAT_BADGE = categories.length > 0 ? getCategoryBadges() : {};
 
   // Category groups for filtering
   const categoryGroups = {
@@ -22,6 +37,26 @@ const Categories = () => {
   const handleDeleteCert = async (certId) => {
     if (window.confirm('Are you sure you want to delete this certification?')) {
       await deleteCertification(certId);
+    }
+  };
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    const result = await addCategory(newCategory);
+    if (result.success) {
+      setShowAddModal(false);
+      setNewCategory({ id: '', name: '', icon: '◎', fill_class: '', badge_class: 'badge-gray' });
+    } else {
+      alert('Failed to add category: ' + result.error);
+    }
+  };
+
+  const handleDeleteCategory = async (catId) => {
+    if (window.confirm(`Are you sure you want to delete this category? Existing certifications will keep their category.`)) {
+      const result = await deleteCategory(catId);
+      if (!result.success) {
+        alert('Failed to delete category: ' + result.error);
+      }
     }
   };
 
@@ -61,6 +96,68 @@ const Categories = () => {
       <div className="section-header">
         <span className="section-title">CATEGORY OVERVIEW</span>
       </div>
+
+      {/* Admin Category Management Section */}
+      {isAdmin && (
+        <>
+          <div className="section-header" style={{ marginTop: '40px' }}>
+            <span className="section-title">MANAGE CATEGORIES</span>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowAddModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Plus size={16} /> ADD CATEGORY
+            </button>
+          </div>
+
+          <div className="card">
+            <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
+              <table style={{ minWidth: '600px' }}>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>NAME</th>
+                    <th>ICON</th>
+                    <th>COLOR</th>
+                    <th>ORDER</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map(cat => (
+                    <tr key={cat.id}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{cat.id}</td>
+                      <td style={{ fontSize: '12px' }}>{cat.name}</td>
+                      <td><span style={{ fontSize: '20px' }}>{cat.icon}</span></td>
+                      <td><span className={`badge ${cat.badge_class}`}>{cat.badge_class}</span></td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{cat.display_order}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            className="btn btn-ghost" 
+                            style={{ padding: '5px', color: 'var(--blue)' }}
+                            onClick={() => setEditingCat(cat)}
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            className="btn btn-ghost" 
+                            style={{ padding: '5px', color: 'var(--red-light)' }}
+                            onClick={() => handleDeleteCategory(cat.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Filter Tabs */}
       <div style={{ 
@@ -279,6 +376,163 @@ const Categories = () => {
           </table>
         </div>
       </div>
+
+      {/* Add/Edit Category Modal */}
+      {(showAddModal || editingCat) && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="card" style={{ maxWidth: '500px', width: '90%', margin: '20px' }}>
+            <div className="card-header">
+              <span className="card-title">{editingCat ? 'EDIT CATEGORY' : 'ADD NEW CATEGORY'}</span>
+              <button 
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingCat(null);
+                  setNewCategory({ id: '', name: '', icon: '◎', fill_class: '', badge_class: 'badge-gray' });
+                }}
+                style={{ padding: '5px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="card-body">
+              <form onSubmit={editingCat ? async (e) => {
+                e.preventDefault();
+                const result = await updateCategory(editingCat.id, {
+                  name: editingCat.name,
+                  icon: editingCat.icon,
+                  fill_class: editingCat.fill_class,
+                  badge_class: editingCat.badge_class,
+                  display_order: editingCat.display_order
+                });
+                if (result.success) {
+                  setEditingCat(null);
+                } else {
+                  alert('Failed to update category: ' + result.error);
+                }
+              } : handleAddCategory}>
+                <div className="form-group">
+                  <label className="form-label">Category ID</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g., ML, DATA" 
+                    required 
+                    disabled={!!editingCat}
+                    value={editingCat ? editingCat.id : newCategory.id}
+                    onChange={(e) => editingCat 
+                      ? setEditingCat({...editingCat, id: e.target.value})
+                      : setNewCategory({...newCategory, id: e.target.value.toUpperCase()})
+                    }
+                  />
+                  <small style={{ color: 'var(--gray2)', fontSize: '11px' }}>Short code (2-10 characters, uppercase)</small>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Category Name</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g., Machine Learning" 
+                    required 
+                    value={editingCat ? editingCat.name : newCategory.name}
+                    onChange={(e) => editingCat 
+                      ? setEditingCat({...editingCat, name: e.target.value})
+                      : setNewCategory({...newCategory, name: e.target.value})
+                    }
+                  />
+                </div>
+
+                <div className="grid-2" style={{ gap: '20px' }}>
+                  <div className="form-group">
+                    <label className="form-label">Icon</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="◎" 
+                      required 
+                      value={editingCat ? editingCat.icon : newCategory.icon}
+                      onChange={(e) => editingCat 
+                        ? setEditingCat({...editingCat, icon: e.target.value})
+                        : setNewCategory({...newCategory, icon: e.target.value})
+                      }
+                    />
+                    <small style={{ color: 'var(--gray2)', fontSize: '11px' }}>Unicode symbol</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Display Order</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="0" 
+                      value={editingCat ? editingCat.display_order : categories.length + 1}
+                      onChange={(e) => editingCat 
+                        ? setEditingCat({...editingCat, display_order: parseInt(e.target.value)})
+                        : setNewCategory({...newCategory, display_order: parseInt(e.target.value)})
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Badge Color</label>
+                  <select 
+                    className="form-input" 
+                    required
+                    value={editingCat ? editingCat.badge_class : newCategory.badge_class}
+                    onChange={(e) => editingCat 
+                      ? setEditingCat({...editingCat, badge_class: e.target.value})
+                      : setNewCategory({...newCategory, badge_class: e.target.value})
+                    }
+                  >
+                    <option value="badge-gray">Gray</option>
+                    <option value="badge-red">Red</option>
+                    <option value="badge-blue">Blue</option>
+                    <option value="badge-green">Green</option>
+                    <option value="badge-teal">Teal</option>
+                    <option value="badge-amber">Amber</option>
+                    <option value="badge-purple">Purple</option>
+                    <option value="badge-orange">Orange</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
+                    <Save size={16} /> {editingCat ? 'UPDATE' : 'CREATE'}
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-ghost" 
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setEditingCat(null);
+                      setNewCategory({ id: '', name: '', icon: '◎', fill_class: '', badge_class: 'badge-gray' });
+                    }}
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

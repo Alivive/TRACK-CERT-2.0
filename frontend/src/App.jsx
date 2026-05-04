@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DatabaseProvider } from './context/DatabaseContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { CategoriesProvider } from './context/CategoriesContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -112,10 +113,12 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <DatabaseProvider>
-          <PWAUpdatePrompt />
-          <OfflineStatus />
-          <CacheUpdateNotification />
-          <AppContent />
+          <CategoriesProvider>
+            <PWAUpdatePrompt />
+            <OfflineStatus />
+            <CacheUpdateNotification />
+            <AppContent />
+          </CategoriesProvider>
         </DatabaseProvider>
       </AuthProvider>
     </ThemeProvider>
