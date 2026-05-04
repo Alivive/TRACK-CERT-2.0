@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { Upload, CheckCircle, AlertCircle, Download, FileText } from 'lucide-react';
 
 const ImportData = () => {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   const { interns, addCertification, refreshData } = useDatabase();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -97,6 +100,23 @@ const ImportData = () => {
       setLoading(false);
     }
   };
+
+  // Admin-only access
+  if (!isAdmin) {
+    return (
+      <div id="page-import" className="page active">
+        <div className="card">
+          <div className="card-body" style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+            <h2 style={{ fontSize: '20px', marginBottom: '10px', color: 'var(--red-light)' }}>Access Denied</h2>
+            <p style={{ color: 'var(--gray)', fontSize: '14px' }}>
+              Only administrators can access the bulk import feature.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="page-import" className="page active">
