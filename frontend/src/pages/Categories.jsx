@@ -7,13 +7,14 @@ import { Trash2, Plus, Edit2, Save, X } from 'lucide-react';
 const Categories = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const { internDict, certifications, loading, deleteCertification } = useDatabase();
+  const { internDict, certifications, loading, deleteCertification, updateCertification } = useDatabase();
   const { categories, addCategory, updateCategory, deleteCategory, getCategoryObject, getCategoryBadges } = useCategories();
   
   const [filter, setFilter] = useState('all');
   const [groupFilter, setGroupFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
+  const [editingCert, setEditingCert] = useState(null);
   const [newCategory, setNewCategory] = useState({
     id: '',
     name: '',
@@ -38,6 +39,27 @@ const Categories = () => {
     if (window.confirm('Are you sure you want to delete this certification?')) {
       await deleteCertification(certId);
     }
+  };
+
+  const handleEditCert = (cert) => {
+    setEditingCert({ ...cert });
+  };
+
+  const handleSaveCert = async () => {
+    if (!editingCert) return;
+    
+    const { id, ...updates } = editingCert;
+    const result = await updateCertification(id, updates);
+    
+    if (result.error) {
+      alert('Failed to update certification: ' + result.error.message);
+    } else {
+      setEditingCert(null);
+    }
+  };
+
+  const handleCancelEditCert = () => {
+    setEditingCert(null);
   };
 
   const handleAddCategory = async (e) => {
@@ -348,7 +370,9 @@ const Categories = () => {
             <tbody>
               {filteredCerts.map(c => {
                 const intern = internDict[c.intern_id];
-                const canDelete = isAdmin || profile?.intern_id === c.intern_id;
+                const canEdit = isAdmin || profile?.intern_id === c.intern_id;
+                const isEditing = editingCert?.id === c.id;
+                
                 return (
                   <tr key={c.id}>
                     {isAdmin && (
@@ -359,21 +383,118 @@ const Categories = () => {
                         </div>
                       </td>
                     )}
-                    <td style={{ fontSize: '12px' }}>{c.name}</td>
-                    <td><span className={`badge ${CAT_BADGE[c.category]}`}>{CATS[c.category]?.name || c.category}</span></td>
-                    <td style={{ fontSize: '12px', color: 'var(--gray)' }}>{c.provider}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{c.hours}h</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--gray)' }}>{c.date}</td>
+                    <td style={{ fontSize: '12px' }}>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ fontSize: '12px', padding: '4px 8px', width: '100%' }}
+                          value={editingCert.name}
+                          onChange={(e) => setEditingCert({ ...editingCert, name: e.target.value })}
+                        />
+                      ) : (
+                        c.name
+                      )}
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <select
+                          className="form-input"
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                          value={editingCert.category}
+                          onChange={(e) => setEditingCert({ ...editingCert, category: e.target.value })}
+                        >
+                          {Object.keys(CATS).map(key => (
+                            <option key={key} value={key}>{CATS[key].name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`badge ${CAT_BADGE[c.category]}`}>{CATS[c.category]?.name || c.category}</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ fontSize: '12px', padding: '4px 8px', width: '100%' }}
+                          value={editingCert.provider}
+                          onChange={(e) => setEditingCert({ ...editingCert, provider: e.target.value })}
+                        />
+                      ) : (
+                        c.provider
+                      )}
+                    </td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ fontSize: '12px', padding: '4px 8px', width: '60px' }}
+                          value={editingCert.hours}
+                          onChange={(e) => setEditingCert({ ...editingCert, hours: parseInt(e.target.value) || 0 })}
+                        />
+                      ) : (
+                        `${c.hours}h`
+                      )}
+                    </td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--gray)' }}>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          className="form-input"
+                          style={{ fontSize: '11px', padding: '4px 8px' }}
+                          value={editingCert.date}
+                          onChange={(e) => setEditingCert({ ...editingCert, date: e.target.value })}
+                        />
+                      ) : (
+                        c.date
+                      )}
+                    </td>
                     {(isAdmin || profile?.role === 'intern') && (
                       <td>
-                        {canDelete && (
-                          <button 
-                            className="btn btn-ghost" 
-                            style={{ padding: '5px', color: 'var(--red-light)' }}
-                            onClick={() => handleDeleteCert(c.id)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                        {canEdit && (
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            {isEditing ? (
+                              <>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: '5px', color: 'var(--green)' }}
+                                  onClick={handleSaveCert}
+                                  title="Save"
+                                >
+                                  <Save size={14} />
+                                </button>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: '5px', color: 'var(--gray)' }}
+                                  onClick={handleCancelEditCert}
+                                  title="Cancel"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: '5px', color: 'var(--blue)' }}
+                                  onClick={() => handleEditCert(c)}
+                                  title="Edit"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: '5px', color: 'var(--red-light)' }}
+                                  onClick={() => handleDeleteCert(c.id)}
+                                  title="Delete"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         )}
                       </td>
                     )}

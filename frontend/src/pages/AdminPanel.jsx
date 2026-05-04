@@ -143,7 +143,22 @@ const AdminPanel = () => {
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Removal of irritating extensional loading screen - showing content rather faster
+  // Show loading skeleton while data is being fetched
+  if (loading && activeTab === 'config') {
+    return (
+      <div id="page-admin" className="page active">
+        <div className="section-header">
+          <span className="section-title">ADMIN COMMAND CENTER</span>
+        </div>
+        <div className="card" style={{ maxWidth: '600px' }}>
+          <div className="card-body" style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '14px', color: 'var(--gray)', marginBottom: '10px' }}>Loading configuration...</div>
+            <div style={{ width: '40px', height: '40px', border: '3px solid var(--border2)', borderTop: '3px solid var(--red-light)', borderRadius: '50%', margin: '0 auto', animation: 'spin 1s linear infinite' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="page-admin" className="page active">
@@ -273,7 +288,14 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.length > 0 ? filteredUsers.map(p => (
+                  {allProfiles.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '40px' }}>
+                        <div style={{ color: 'var(--gray)', marginBottom: '10px' }}>Loading profiles...</div>
+                        <div style={{ width: '30px', height: '30px', border: '2px solid var(--border2)', borderTop: '2px solid var(--red-light)', borderRadius: '50%', margin: '0 auto', animation: 'spin 1s linear infinite' }}></div>
+                      </td>
+                    </tr>
+                  ) : filteredUsers.length > 0 ? filteredUsers.map(p => (
                     <tr key={p.id} style={{ background: editingId === p.id ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
                       <td>
                         {editingId === p.id ? (

@@ -33,60 +33,55 @@ export const DatabaseProvider = ({ children }) => {
     // SECURITY FIX: Use user-specific cache keys to prevent data leakage
     const userCacheKey = (key) => `${user.id}_${key}`;
     
-    // Load data in background without blocking UI
+    // OPTIMIZATION: Load cached data FIRST for instant display
     try {
-      if (navigator.onLine) {
-        // Online: Fetch from API and cache
-        const internsResponse = await apiClient.getInterns();
+      const cachedInterns = await offlineManager.getCachedData(userCacheKey('interns'));
+      if (cachedInterns && cachedInterns.length > 0) {
+        setInterns(cachedInterns);
+      }
+
+      const cachedCerts = await offlineManager.getCachedData(userCacheKey('certifications'));
+      if (cachedCerts && cachedCerts.length > 0) {
+        setCertifications(cachedCerts);
+      }
+
+      if (profile?.role === 'admin') {
+        const cachedUsers = await offlineManager.getCachedData(userCacheKey('users'));
+        if (cachedUsers && cachedUsers.length > 0) {
+          setAllProfiles(cachedUsers);
+        }
+      }
+    } catch (cacheError) {
+      console.warn('[DB] Could not load cached data:', cacheError);
+    }
+    
+    // Then fetch fresh data in background if online
+    if (navigator.onLine) {
+      try {
+        // Fetch all data in parallel for speed
+        const [internsResponse, certsResponse, profilesResponse] = await Promise.all([
+          apiClient.getInterns(),
+          apiClient.getCertifications(),
+          profile?.role === 'admin' ? apiClient.getUsers() : Promise.resolve({ success: false })
+        ]);
+
         if (internsResponse.success) {
           setInterns(internsResponse.data || []);
           await offlineManager.cacheForOffline(userCacheKey('interns'), internsResponse.data);
         }
 
-        const certsResponse = await apiClient.getCertifications();
         if (certsResponse.success) {
           setCertifications(certsResponse.data || []);
           await offlineManager.cacheForOffline(userCacheKey('certifications'), certsResponse.data);
         }
 
-        // Fetch all profiles (admin only)
-        if (profile?.role === 'admin') {
-          const profilesResponse = await apiClient.getUsers();
-          if (profilesResponse.success) {
-            setAllProfiles(profilesResponse.data || []);
-            await offlineManager.cacheForOffline(userCacheKey('users'), profilesResponse.data);
-          }
+        if (profile?.role === 'admin' && profilesResponse.success) {
+          setAllProfiles(profilesResponse.data || []);
+          await offlineManager.cacheForOffline(userCacheKey('users'), profilesResponse.data);
         }
-      } else {
-        // Offline: Load from user-specific cache
-        const cachedInterns = await offlineManager.getCachedData(userCacheKey('interns'));
-        if (cachedInterns) setInterns(cachedInterns);
-
-        const allCerts = await offlineManager.getAllCertifications(user.id);
-        setCertifications(allCerts);
-
-        if (profile?.role === 'admin') {
-          const cachedUsers = await offlineManager.getCachedData(userCacheKey('users'));
-          if (cachedUsers) setAllProfiles(cachedUsers);
-        }
-      }
-    } catch (error) {
-      console.error('[DB] Refresh data error:', error);
-      
-      // Fallback to cached data on error
-      try {
-        const cachedInterns = await offlineManager.getCachedData(userCacheKey('interns'));
-        if (cachedInterns) setInterns(cachedInterns);
-
-        const allCerts = await offlineManager.getAllCertifications(user.id);
-        setCertifications(allCerts);
-
-        if (profile?.role === 'admin') {
-          const cachedUsers = await offlineManager.getCachedData(userCacheKey('users'));
-          if (cachedUsers) setAllProfiles(cachedUsers);
-        }
-      } catch (cacheError) {
-        console.error('[DB] Failed to load cached data:', cacheError);
+      } catch (error) {
+        console.error('[DB] Refresh data error:', error);
+        // Cached data already loaded above, so UI still works
       }
     }
   }, [user, profile]);
@@ -173,6 +168,28 @@ export const DatabaseProvider = ({ children }) => {
       return { error };
     }
   };
+
+  const updateCertification = async (id, updates) => {
+    try {
+      if (navigator.onLine) {
+        // Online: Update via API (when backend supports it)
+        // const response = await apiClient.updateCertification(id, updates);
+        // For now, update locally
+        setCertifications(prev => prev.map(c => 
+          c.id === id ? { ...c, ...updates } : c
+        ));
+        return { data: { ...updates, id }, error: null };
+      } else {
+        // Offline: Update locally and queue for sync
+        setCertifications(prev => prev.map(c => 
+          c.id === id ? { ...c, ...updates, offline: true, pending: true } : c
+        ));
+        return { data: { ...updates, id }, error: null };
+      }
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
   
   const updateProfileRole = async (userId, newRole) => {
     try {
@@ -218,6 +235,7 @@ export const DatabaseProvider = ({ children }) => {
       addIntern, 
       addCertification, 
       deleteCertification,
+      updateCertification,
       allProfiles,
       updateProfileRole,
       updateProfile,

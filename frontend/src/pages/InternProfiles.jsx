@@ -14,6 +14,7 @@ const InternProfiles = () => {
     certifications = [], 
     loading, 
     deleteCertification, 
+    updateCertification,
     addIntern,
     updateIntern
   } = useDatabase();
@@ -42,6 +43,8 @@ const InternProfiles = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingInternId, setEditingInternId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [editingCertId, setEditingCertId] = useState(null);
+  const [editCertForm, setEditCertForm] = useState({});
   const [newIntern, setNewIntern] = useState({ 
     first_name: '', 
     last_name: '', 
@@ -141,6 +144,32 @@ const InternProfiles = () => {
     }
   };
 
+  const handleEditCert = (cert) => {
+    setEditingCertId(cert.id);
+    setEditCertForm({
+      name: cert.name,
+      provider: cert.provider,
+      hours: cert.hours,
+      date: cert.date,
+      category: cert.category
+    });
+  };
+
+  const handleSaveCert = async (certId) => {
+    const result = await updateCertification(certId, editCertForm);
+    if (result.error) {
+      alert('Failed to update certification: ' + result.error.message);
+    } else {
+      setEditingCertId(null);
+      setEditCertForm({});
+    }
+  };
+
+  const handleCancelEditCert = () => {
+    setEditingCertId(null);
+    setEditCertForm({});
+  };
+
   const handleDownloadPDF = async (intern, ic) => {
     try {
       const mappedIntern = {
@@ -212,27 +241,123 @@ const InternProfiles = () => {
                       <h4 style={{ margin: 0, fontSize: '14px', letterSpacing: '1px' }}>{CATS[key].name}</h4>
                       <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>{catCerts.length} certs</span>
                     </div>
-                    {catCerts.length > 0 ? catCerts.map(c => (
-                      <div key={c.id} className="cert-item">
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{c.provider} · {c.date}</div>
+                    {catCerts.length > 0 ? catCerts.map(c => {
+                      const isEditingCert = editingCertId === c.id;
+                      const canEdit = isAdmin || !isAdmin; // Both admin and intern can edit
+                      
+                      return (
+                        <div key={c.id} className="cert-item" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                          {isEditingCert ? (
+                            <>
+                              <div style={{ flex: '1 1 100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>NAME</label>
+                                  <input
+                                    type="text"
+                                    className="form-input"
+                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                    value={editCertForm.name}
+                                    onChange={(e) => setEditCertForm({ ...editCertForm, name: e.target.value })}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>PROVIDER</label>
+                                  <input
+                                    type="text"
+                                    className="form-input"
+                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                    value={editCertForm.provider}
+                                    onChange={(e) => setEditCertForm({ ...editCertForm, provider: e.target.value })}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CATEGORY</label>
+                                  <select
+                                    className="form-input"
+                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                    value={editCertForm.category}
+                                    onChange={(e) => setEditCertForm({ ...editCertForm, category: e.target.value })}
+                                  >
+                                    {Object.keys(CATS).map(key => (
+                                      <option key={key} value={key}>{CATS[key].name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                  <div>
+                                    <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>HOURS</label>
+                                    <input
+                                      type="number"
+                                      className="form-input"
+                                      style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                      value={editCertForm.hours}
+                                      onChange={(e) => setEditCertForm({ ...editCertForm, hours: parseInt(e.target.value) || 0 })}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>DATE</label>
+                                    <input
+                                      type="date"
+                                      className="form-input"
+                                      style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                      value={editCertForm.date}
+                                      onChange={(e) => setEditCertForm({ ...editCertForm, date: e.target.value })}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: '6px 12px', fontSize: '11px', color: 'var(--green)' }}
+                                  onClick={() => handleSaveCert(c.id)}
+                                >
+                                  <Save size={12} /> SAVE
+                                </button>
+                                <button 
+                                  className="btn btn-ghost" 
+                                  style={{ padding: '6px 12px', fontSize: '11px', color: 'var(--gray)' }}
+                                  onClick={handleCancelEditCert}
+                                >
+                                  <X size={12} /> CANCEL
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.name}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{c.provider} · {c.date}</div>
+                              </div>
+                              <div className="cert-hours">
+                                <div>{c.hours}</div>
+                                <div className="cert-hours-label">hrs</div>
+                              </div>
+                              {canEdit && (
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                  <button 
+                                    className="btn btn-ghost" 
+                                    style={{ padding: '5px', color: 'var(--blue)' }}
+                                    onClick={() => handleEditCert(c)}
+                                    title="Edit"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button 
+                                    className="btn btn-ghost" 
+                                    style={{ padding: '5px', color: 'var(--red-light)' }}
+                                    onClick={() => handleDeleteCert(c.id)}
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
-                        <div className="cert-hours">
-                          <div>{c.hours}</div>
-                          <div className="cert-hours-label">hrs</div>
-                        </div>
-                        {isAdmin && (
-                          <button 
-                            className="btn btn-ghost" 
-                            style={{ padding: '5px', marginLeft: '10px', color: 'var(--red-light)' }}
-                            onClick={() => handleDeleteCert(c.id)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    )) : (
+                      );
+                    }) : (
                       <div style={{ color: 'var(--gray)', fontSize: '13px', padding: '16px 0' }}>No certifications yet.</div>
                     )}
                   </div>
