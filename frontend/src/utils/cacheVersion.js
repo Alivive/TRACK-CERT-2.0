@@ -5,6 +5,9 @@
 // This value is automatically set during build time
 export const CACHE_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toString();
 
+// Check for updates every 30 seconds
+export const UPDATE_CHECK_INTERVAL = 30000;
+
 export const checkAndClearOldCache = async () => {
   const STORAGE_KEY = 'certrack_cache_version';
   const currentVersion = localStorage.getItem(STORAGE_KEY);
@@ -39,5 +42,17 @@ export const checkAndClearOldCache = async () => {
   } else {
     console.log('[CACHE] Cache is current. No clearing needed.');
     return false;
+  }
+};
+
+// Force reload if new version is detected
+export const forceUpdateIfNeeded = async () => {
+  const STORAGE_KEY = 'certrack_cache_version';
+  const currentVersion = localStorage.getItem(STORAGE_KEY);
+  
+  if (currentVersion && currentVersion !== CACHE_VERSION) {
+    console.log('[UPDATE] New version detected, forcing reload...');
+    await checkAndClearOldCache();
+    window.location.reload(true);
   }
 };

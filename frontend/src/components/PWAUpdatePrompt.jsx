@@ -4,6 +4,7 @@ import { RefreshCw, X } from 'lucide-react';
 const PWAUpdatePrompt = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState(null);
+  const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
     // Check if service worker is supported
@@ -33,8 +34,27 @@ const PWAUpdatePrompt = () => {
           });
         });
       });
+
+      // Check for updates every 60 seconds
+      setInterval(() => {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.update();
+        });
+      }, 60000);
     }
   }, []);
+
+  // Auto-update countdown
+  useEffect(() => {
+    if (showUpdatePrompt && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showUpdatePrompt && countdown === 0) {
+      handleUpdate();
+    }
+  }, [showUpdatePrompt, countdown]);
 
   const handleUpdate = () => {
     if (waitingWorker) {
@@ -43,8 +63,14 @@ const PWAUpdatePrompt = () => {
     }
   };
 
+  const handleUpdateNow = () => {
+    setCountdown(0);
+    handleUpdate();
+  };
+
   const handleDismiss = () => {
     setShowUpdatePrompt(false);
+    setCountdown(10); // Reset countdown
   };
 
   if (!showUpdatePrompt) {
@@ -108,12 +134,12 @@ const PWAUpdatePrompt = () => {
             lineHeight: '1.4',
             marginBottom: '12px'
           }}>
-            A new version of CerTrack is available with improvements and bug fixes.
+            A new version of CerTrack is available. Auto-updating in {countdown} seconds...
           </div>
           
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={handleUpdate}
+              onClick={handleUpdateNow}
               style={{
                 background: 'rgba(255,255,255,0.2)',
                 border: '1px solid rgba(255,255,255,0.3)',

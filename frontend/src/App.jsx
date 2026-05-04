@@ -15,7 +15,7 @@ import AdminPanel from './pages/AdminPanel';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import OfflineStatus from './components/OfflineStatus';
-import { checkAndClearOldCache } from './utils/cacheVersion';
+import { checkAndClearOldCache, forceUpdateIfNeeded, UPDATE_CHECK_INTERVAL } from './utils/cacheVersion';
 import CacheUpdateNotification from './components/CacheUpdateNotification';
 
 const AppContent = () => {
@@ -35,6 +35,20 @@ const AppContent = () => {
     };
     
     initializeApp();
+
+    // Periodic update check - every 30 seconds
+    const updateCheckInterval = setInterval(async () => {
+      console.log('[APP] Checking for updates...');
+      await forceUpdateIfNeeded();
+      
+      // Also check service worker for updates
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        registration.update();
+      }
+    }, UPDATE_CHECK_INTERVAL);
+
+    return () => clearInterval(updateCheckInterval);
   }, []);
 
   // Auto-hide loader after 3 seconds max to prevent infinite loading
