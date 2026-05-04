@@ -486,6 +486,10 @@ tr:last-child td{border-bottom:none}
   to { transform: rotate(360deg); }
 }
 
+@keyframes rotate {
+  to { transform: rotate(360deg); }
+}
+
 /* PREMIUM SCROLLBARS */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--black); }
