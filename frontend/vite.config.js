@@ -13,7 +13,7 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'logo.jpg', 'icons/*.png'],
       manifest: {
-        name: 'CerTrack  - Statistics defining change',
+        name: 'CerTrack',
         short_name: 'CerTrack',
         description: 'Professional certification tracking and management system for  interns',
         theme_color: '#c0392b',
