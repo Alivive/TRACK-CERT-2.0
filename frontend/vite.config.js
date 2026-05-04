@@ -9,9 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg}']
       },
-      includeAssets: ['favicon.ico', 'logo.png', 'icons/*.png'],
+      includeAssets: ['favicon.ico', 'logo.jpg', 'icons/*.png'],
       manifest: {
         name: 'CerTrack  - Statistics defining change',
         short_name: 'CerTrack',
