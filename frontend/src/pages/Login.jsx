@@ -187,7 +187,7 @@ const Login = () => {
       </div>
 
       <div className="auth-right" style={{
-        backgroundImage: 'url(/#wallpaper_.jpg)',
+        backgroundImage: 'url(/wallpaper.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
