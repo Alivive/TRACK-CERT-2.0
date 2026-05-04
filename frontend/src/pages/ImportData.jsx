@@ -58,34 +58,43 @@ const ImportData = () => {
 
       for (const row of rows) {
         try {
-          // Find intern by name
-          const internName = row['Intern Name'] || row['Employee Name'];
-          if (!internName) {
-            errors.push(`Row skipped: Missing intern name`);
-            failCount++;
-            continue;
-          }
-
           let intern;
+          
           if (isAdmin) {
-            // Admin can upload for any intern
-            intern = interns.find(i => 
-              `${i.first_name} ${i.last_name}`.toLowerCase() === internName.toLowerCase()
-            );
-          } else {
-            // Intern can only upload for themselves
-            intern = interns.find(i => i.id === profile?.intern_id);
-            if (!intern || `${intern.first_name} ${intern.last_name}`.toLowerCase() !== internName.toLowerCase()) {
-              errors.push(`You can only upload certifications for yourself: ${profile?.full_name}`);
+            // Admin must specify intern name
+            const internName = row['Intern Name'] || row['Employee Name'];
+            if (!internName) {
+              errors.push(`Row skipped: Missing intern name`);
               failCount++;
               continue;
             }
-          }
-
-          if (!intern) {
-            errors.push(`Intern not found: ${internName}`);
-            failCount++;
-            continue;
+            
+            intern = interns.find(i => 
+              `${i.first_name} ${i.last_name}`.toLowerCase() === internName.toLowerCase()
+            );
+            
+            if (!intern) {
+              errors.push(`Intern not found: ${internName}`);
+              failCount++;
+              continue;
+            }
+          } else {
+            // Intern: automatically use their own profile
+            intern = interns.find(i => i.id === profile?.intern_id);
+            
+            if (!intern) {
+              errors.push(`Your intern profile not found. Please contact administrator.`);
+              failCount++;
+              continue;
+            }
+            
+            // Optional: Verify intern name if provided
+            const internName = row['Intern Name'] || row['Employee Name'];
+            if (internName && `${intern.first_name} ${intern.last_name}`.toLowerCase() !== internName.toLowerCase()) {
+              errors.push(`Row skipped: You can only upload certifications for yourself (${intern.first_name} ${intern.last_name})`);
+              failCount++;
+              continue;
+            }
           }
 
           // Map category names to keys
@@ -157,13 +166,18 @@ const ImportData = () => {
           <div className="card-body">
             <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '10px' }}>REQUIRED COLUMNS:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              <span className="badge badge-ai">Intern Name</span>
-              <span className="badge badge-fe">Certification Name</span>
-              <span className="badge badge-be">Provider</span>
-              <span className="badge badge-api">Category</span>
-              <span className="badge badge-cyber">Hours</span>
-              <span className="badge badge-cloud">Completion Date</span>
+              {isAdmin && <span className="badge badge-red">Intern Name</span>}
+              <span className="badge badge-teal">Certification Name</span>
+              <span className="badge badge-blue">Provider</span>
+              <span className="badge badge-amber">Category</span>
+              <span className="badge badge-purple">Hours</span>
+              <span className="badge badge-green">Completion Date</span>
             </div>
+            {!isAdmin && (
+              <div style={{ marginTop: '12px', padding: '10px', background: 'var(--black4)', borderRadius: '4px', fontSize: '12px', color: 'var(--gray)' }}>
+                <strong>Note:</strong> You don't need to include "Intern Name" - all certifications will be automatically added to your profile.
+              </div>
+            )}
           </div>
         </div>
       </div>
