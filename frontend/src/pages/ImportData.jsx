@@ -52,9 +52,21 @@ const ImportData = () => {
             continue;
           }
 
-          const intern = interns.find(i => 
-            `${i.first_name} ${i.last_name}`.toLowerCase() === internName.toLowerCase()
-          );
+          let intern;
+          if (isAdmin) {
+            // Admin can upload for any intern
+            intern = interns.find(i => 
+              `${i.first_name} ${i.last_name}`.toLowerCase() === internName.toLowerCase()
+            );
+          } else {
+            // Intern can only upload for themselves
+            intern = interns.find(i => i.id === profile?.intern_id);
+            if (!intern || `${intern.first_name} ${intern.last_name}`.toLowerCase() !== internName.toLowerCase()) {
+              errors.push(`You can only upload certifications for yourself: ${profile?.full_name}`);
+              failCount++;
+              continue;
+            }
+          }
 
           if (!intern) {
             errors.push(`Intern not found: ${internName}`);
@@ -100,23 +112,6 @@ const ImportData = () => {
       setLoading(false);
     }
   };
-
-  // Admin-only access
-  if (!isAdmin) {
-    return (
-      <div id="page-import" className="page active">
-        <div className="card">
-          <div className="card-body" style={{ padding: '40px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
-            <h2 style={{ fontSize: '20px', marginBottom: '10px', color: 'var(--red-light)' }}>Access Denied</h2>
-            <p style={{ color: 'var(--gray)', fontSize: '14px' }}>
-              Only administrators can access the bulk import feature.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div id="page-import" className="page active">
@@ -164,7 +159,9 @@ const ImportData = () => {
           
           <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>Upload Certification Records</h2>
           <p style={{ color: 'var(--gray)', fontSize: '14px', maxWidth: '500px', margin: '0 auto 24px' }}>
-            Upload your CSV file with certification data. Make sure intern names match exactly with existing records.
+            {isAdmin 
+              ? 'Upload CSV file with certification data for any intern. Make sure intern names match exactly with existing records.'
+              : 'Upload CSV file with your certification data. All rows must have your name as the intern.'}
           </p>
 
           {results && (
