@@ -22,7 +22,7 @@ const Sidebar = ({ activePage, onPageChange, isOpen }) => {
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <img src="/logo.png" alt="Logo" style={{ width: '32px', height: '32px', marginBottom: '10px', display: 'block', borderRadius: '50%' }} />
+          <img src="/logo.jpg" alt="Logo" style={{ width: '32px', height: '32px', marginBottom: '10px', display: 'block', borderRadius: '50%' }} />
           <div className="logo-mark">Cer<span>Track</span></div>
           <div className="logo-sub">AFRICA · INTERN SYSTEM</div>
         </div>
