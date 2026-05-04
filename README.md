@@ -42,5 +42,5 @@ This system utilizes **Row Level Security (RLS)** at the database level.
 
 ---
 
-Developed with ❤️ by the **Aliviw Mwendwa**.
+Developed with  by **Aliviw Mwendwa**.
 *"Precision in Tracking, Excellence in Certification."*
