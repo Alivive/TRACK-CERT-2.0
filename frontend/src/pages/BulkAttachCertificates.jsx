@@ -268,7 +268,7 @@ const BulkAttachCertificates = () => {
         <div className="card" style={{ marginBottom: '20px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
           <div className="card-body" style={{ padding: '12px 16px' }}>
             <div style={{ fontSize: '12px', color: 'var(--blue)', fontWeight: '600' }}>
-              📋 Uploading certificates for: <strong>{profile?.name || 'Your Profile'}</strong>
+              📋 Uploading certificates for: <strong>{profile?.full_name || profile?.name || profile?.email || 'Your Profile'}</strong>
             </div>
           </div>
         </div>
