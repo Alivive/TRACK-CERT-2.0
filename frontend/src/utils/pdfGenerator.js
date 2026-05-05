@@ -367,7 +367,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
         </div>
 
         <!-- All Interns Table -->
-        <div style="margin-bottom: 48px;">
+        <div style="margin-bottom: 48px; page-break-before: always;" class="keep-together">
           <div style="background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ All Interns — Certification Summary</h3>
             <span style="font-size: 12px; color: #94a3b8;">${interns.length} active interns · ${totalCerts} total certifications</span>
@@ -425,7 +425,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
         </div>
 
         <!-- Category Breakdown -->
-        <div style="margin-bottom: 48px;">
+        <div style="margin-bottom: 48px; page-break-inside: avoid;" class="keep-together">
           <div style="background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Category Breakdown</h3>
             <span style="font-size: 12px; color: #94a3b8;">${categoryKeys.length} categories · ${totalHours} total hours</span>
@@ -467,7 +467,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
         </div>
 
         <!-- Quick Insights -->
-        <div style="margin-bottom: 32px;">
+        <div style="margin-bottom: 32px; page-break-inside: avoid;" class="keep-together">
           <div style="background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0;">
             <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Quick Insights</h3>
           </div>
