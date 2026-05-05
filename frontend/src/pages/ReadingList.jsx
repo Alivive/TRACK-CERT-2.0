@@ -59,9 +59,12 @@ const ReadingList = () => {
 
       // Load interns (admin only)
       if (isAdmin) {
-        const { supabase } = await import('../utils/supabaseClient');
-        const { data } = await supabase.from('interns').select('*').order('first_name');
-        setInterns(data || []);
+        const { apiClient } = await import('../utils/apiClient');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/interns`);
+        const result = await response.json();
+        if (result.success) {
+          setInterns(result.data || []);
+        }
       }
     } catch (error) {
       console.error('[READING] Load data error:', error);
