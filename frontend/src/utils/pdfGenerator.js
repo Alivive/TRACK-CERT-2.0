@@ -217,10 +217,22 @@ export const generateInternReport = async (intern, certifications, categories = 
                 ${catCerts.length > 0 ? `
                   <div style="margin-left: 24px;">
                     ${catCerts.map(c => `
-                      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
                         <div style="flex: 1;">
                           <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">${c.name}</div>
-                          <div style="font-size: 12px; color: #6366f1; font-weight: 500;">${c.provider}</div>
+                          <div style="font-size: 12px; color: #6366f1; font-weight: 500; margin-bottom: 4px;">${c.provider}</div>
+                          ${c.certificate_url ? `
+                            <div style="font-size: 10px; margin-bottom: 2px;">
+                              <span style="color: #64748b;">🔗 Certificate: </span>
+                              <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none;">${c.certificate_url.length > 40 ? c.certificate_url.substring(0, 40) + '...' : c.certificate_url}</a>
+                            </div>
+                          ` : ''}
+                          ${c.verification_url ? `
+                            <div style="font-size: 10px;">
+                              <span style="color: #64748b;">✓ Verify: </span>
+                              <a href="${c.verification_url}" style="color: #059669; text-decoration: none;">${c.verification_url.length > 40 ? c.verification_url.substring(0, 40) + '...' : c.verification_url}</a>
+                            </div>
+                          ` : ''}
                         </div>
                         <div style="display: flex; align-items: center; gap: 16px;">
                           <div style="background: #f1f5f9; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #0f172a;">${c.hours}h</div>

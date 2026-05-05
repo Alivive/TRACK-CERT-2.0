@@ -176,21 +176,22 @@ const AddCertification = () => {
             {/* Certificate Attachments Section */}
             <div style={{ marginTop: '20px', padding: '20px', background: 'var(--black4)', borderRadius: '8px' }}>
               <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', color: 'var(--white)', fontWeight: '600' }}>
-                📎 CERTIFICATE ATTACHMENTS (Optional)
+                📎 CERTIFICATE PROOF (Required)
               </h4>
               
               <div className="grid-2" style={{ gap: '20px' }}>
                 <div className="form-group">
-                  <label className="form-label">Certificate Image/PDF</label>
+                  <label className="form-label">Certificate Image/PDF *</label>
                   <input 
                     type="file" 
                     className="form-input" 
                     accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    required
                     onChange={(e) => setFormData({...formData, certificate_file: e.target.files[0]})}
                     style={{ padding: '8px' }}
                   />
                   <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '5px' }}>
-                    Upload certificate image or PDF (Max 5MB)
+                    Upload certificate image or PDF (Max 5MB) - Required
                   </div>
                 </div>
                 
@@ -210,16 +211,17 @@ const AddCertification = () => {
               </div>
               
               <div className="form-group" style={{ marginTop: '15px' }}>
-                <label className="form-label">Certificate URL</label>
+                <label className="form-label">Certificate URL *</label>
                 <input 
                   type="url" 
                   className="form-input" 
                   placeholder="https://coursera.org/share/abc123 or https://linkedin.com/learning/certificates/xyz" 
+                  required
                   value={formData.certificate_url}
                   onChange={(e) => setFormData({...formData, certificate_url: e.target.value})}
                 />
                 <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '5px' }}>
-                  Direct link to view certificate online
+                  Direct link to view certificate online - Required
                 </div>
               </div>
             </div>

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square } from 'lucide-react';
+import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square, ExternalLink, Eye } from 'lucide-react';
 
 const Categories = () => {
   const { profile } = useAuth();
@@ -527,6 +527,7 @@ const Categories = () => {
                 <th>PROVIDER</th>
                 <th>HRS</th>
                 <th>DATE</th>
+                <th>CERTIFICATE</th>
                 {(isAdmin || profile?.role === 'intern') && <th>ACTIONS</th>}
               </tr>
             </thead>
@@ -625,6 +626,37 @@ const Categories = () => {
                       ) : (
                         c.date
                       )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {c.certificate_url && (
+                          <a 
+                            href={c.certificate_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost"
+                            style={{ padding: '4px', color: 'var(--blue)', fontSize: '10px' }}
+                            title="View Certificate"
+                          >
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                        {c.verification_url && (
+                          <a 
+                            href={c.verification_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost"
+                            style={{ padding: '4px', color: 'var(--green)', fontSize: '10px' }}
+                            title="Verify Certificate"
+                          >
+                            <Eye size={12} />
+                          </a>
+                        )}
+                        {!c.certificate_url && !c.verification_url && (
+                          <span style={{ fontSize: '10px', color: 'var(--gray)' }}>—</span>
+                        )}
+                      </div>
                     </td>
                     {(isAdmin || profile?.role === 'intern') && (
                       <td>
