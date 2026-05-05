@@ -96,7 +96,7 @@ app.post('/api/users', async (req, res, next) => {
     
     if (userError) throw userError;
 
-    // If the user role is 'intern', also create an intern record
+    // If the user role is 'intern', also create an intern record and link it
     if (req.body.role === 'intern' && req.body.full_name && req.body.email) {
       console.log('[API] Creating intern record for new user:', req.body.email);
       
@@ -122,6 +122,24 @@ app.post('/api/users', async (req, res, next) => {
           // Don't fail the user creation, just log the error
         } else {
           console.log('[API] Intern record created successfully:', internData.id);
+          
+          // Update user record with intern_id
+          try {
+            const { error: linkError } = await supabase
+              .from('users')
+              .update({ intern_id: internData.id })
+              .eq('id', userData.id);
+            
+            if (linkError) {
+              console.error('[API] Failed to link user to intern:', linkError);
+            } else {
+              console.log('[API] User linked to intern successfully');
+              // Update the returned user data to include intern_id
+              userData.intern_id = internData.id;
+            }
+          } catch (linkException) {
+            console.error('[API] Exception linking user to intern:', linkException);
+          }
         }
       } catch (internCreationError) {
         console.error('[API] Exception creating intern record:', internCreationError);
@@ -532,59 +550,92 @@ app.post('/api/admin/sync-interns', async (req, res, next) => {
     // Get all existing interns
     const { data: existingInterns, error: internsError } = await supabase
       .from('interns')
-      .select('email');
+      .select('*');
     
     if (internsError) throw internsError;
     
-    const existingEmails = new Set(existingInterns.map(i => i.email.toLowerCase()));
+    const existingEmails = new Map(existingInterns.map(i => [i.email.toLowerCase(), i.id]));
     const created = [];
+    const linked = [];
     const skipped = [];
     
-    // Create intern records for users who don't have them
+    // Create intern records for users who don't have them AND link existing ones
     for (const user of internUsers) {
-      if (!user.email || existingEmails.has(user.email.toLowerCase())) {
-        skipped.push(user.email);
+      if (!user.email) {
+        skipped.push(user.email || 'no-email');
         continue;
       }
       
-      // Parse full name
-      const nameParts = (user.full_name || '').trim().split(' ');
-      const firstName = nameParts[0] || 'Unknown';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      const emailLower = user.email.toLowerCase();
+      let internId = existingEmails.get(emailLower);
       
-      try {
-        const { data: newIntern, error: createError } = await supabase
-          .from('interns')
-          .insert([{
-            first_name: firstName,
-            last_name: lastName,
-            email: user.email,
-            start_date: new Date().toISOString().split('T')[0]
-          }])
-          .select()
-          .single();
+      if (!internId) {
+        // Create new intern record
+        const nameParts = (user.full_name || '').trim().split(' ');
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName = nameParts.slice(1).join(' ') || '';
         
-        if (createError) {
-          console.error('[API] Failed to create intern for:', user.email, createError);
+        try {
+          const { data: newIntern, error: createError } = await supabase
+            .from('interns')
+            .insert([{
+              first_name: firstName,
+              last_name: lastName,
+              email: user.email,
+              start_date: new Date().toISOString().split('T')[0]
+            }])
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('[API] Failed to create intern for:', user.email, createError);
+            skipped.push(user.email);
+            continue;
+          } else {
+            console.log('[API] Created intern record for:', user.email);
+            created.push(user.email);
+            internId = newIntern.id;
+          }
+        } catch (error) {
+          console.error('[API] Exception creating intern for:', user.email, error);
           skipped.push(user.email);
-        } else {
-          console.log('[API] Created intern record for:', user.email);
-          created.push(user.email);
+          continue;
         }
-      } catch (error) {
-        console.error('[API] Exception creating intern for:', user.email, error);
+      }
+      
+      // Update user profile with intern_id if not already set
+      if (internId && user.intern_id !== internId) {
+        try {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ intern_id: internId })
+            .eq('id', user.id);
+          
+          if (updateError) {
+            console.error('[API] Failed to link user to intern:', user.email, updateError);
+          } else {
+            console.log('[API] Linked user to intern:', user.email, '→', internId);
+            linked.push(user.email);
+          }
+        } catch (error) {
+          console.error('[API] Exception linking user to intern:', user.email, error);
+        }
+      } else if (internId) {
+        // Already linked
         skipped.push(user.email);
       }
     }
     
-    console.log('[API] Sync complete. Created:', created.length, 'Skipped:', skipped.length);
+    console.log('[API] Sync complete. Created:', created.length, 'Linked:', linked.length, 'Skipped:', skipped.length);
     
     res.json({ 
       success: true, 
       data: {
         created: created.length,
+        linked: linked.length,
         skipped: skipped.length,
         createdEmails: created,
+        linkedEmails: linked,
         skippedEmails: skipped
       }
     });
