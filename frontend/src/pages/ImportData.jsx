@@ -197,24 +197,100 @@ const ImportData = () => {
           </p>
 
           {results && (
-            <div style={{ background: 'var(--black3)', padding: '20px', borderRadius: '8px', marginBottom: '20px', maxWidth: '500px', margin: '0 auto 20px', textAlign: 'left' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+            <div style={{ 
+              background: results.successCount > 0 ? 'linear-gradient(135deg, rgba(39, 174, 96, 0.1) 0%, rgba(39, 174, 96, 0.05) 100%)' : 'var(--black3)', 
+              padding: '30px', 
+              borderRadius: '12px', 
+              marginBottom: '20px', 
+              maxWidth: '600px', 
+              margin: '0 auto 30px', 
+              textAlign: 'left',
+              border: results.successCount > 0 ? '2px solid rgba(39, 174, 96, 0.3)' : '1px solid var(--border2)',
+              boxShadow: results.successCount > 0 ? '0 8px 32px rgba(39, 174, 96, 0.2)' : 'none'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <CheckCircle size={32} color="#27ae60" />
                 <div>
-                  <div style={{ color: '#27ae60', fontSize: '24px', fontWeight: '700' }}>{results.successCount}</div>
-                  <div style={{ color: 'var(--gray2)', fontSize: '11px' }}>IMPORTED</div>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--red-light)', fontSize: '24px', fontWeight: '700' }}>{results.failCount}</div>
-                  <div style={{ color: 'var(--gray2)', fontSize: '11px' }}>FAILED</div>
+                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--white)', marginBottom: '4px' }}>
+                    Import Complete!
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--gray)' }}>
+                    {results.successCount} certification{results.successCount !== 1 ? 's' : ''} successfully imported
+                  </div>
                 </div>
               </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '15px', 
+                marginBottom: results.errors.length > 0 ? '20px' : '0' 
+              }}>
+                <div style={{ 
+                  background: 'rgba(39, 174, 96, 0.15)', 
+                  padding: '20px', 
+                  borderRadius: '8px',
+                  border: '1px solid rgba(39, 174, 96, 0.3)'
+                }}>
+                  <div style={{ color: '#27ae60', fontSize: '32px', fontWeight: '700', marginBottom: '4px' }}>
+                    {results.successCount}
+                  </div>
+                  <div style={{ color: '#27ae60', fontSize: '12px', fontWeight: '600', letterSpacing: '1px' }}>
+                    ✓ IMPORTED
+                  </div>
+                </div>
+                <div style={{ 
+                  background: results.failCount > 0 ? 'rgba(192, 57, 43, 0.15)' : 'var(--black4)', 
+                  padding: '20px', 
+                  borderRadius: '8px',
+                  border: results.failCount > 0 ? '1px solid rgba(192, 57, 43, 0.3)' : '1px solid var(--border2)'
+                }}>
+                  <div style={{ 
+                    color: results.failCount > 0 ? 'var(--red-light)' : 'var(--gray)', 
+                    fontSize: '32px', 
+                    fontWeight: '700', 
+                    marginBottom: '4px' 
+                  }}>
+                    {results.failCount}
+                  </div>
+                  <div style={{ 
+                    color: results.failCount > 0 ? 'var(--red-light)' : 'var(--gray2)', 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    letterSpacing: '1px' 
+                  }}>
+                    {results.failCount > 0 ? '✗ FAILED' : '✓ NO ERRORS'}
+                  </div>
+                </div>
+              </div>
+              
               {results.errors.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--border2)', paddingTop: '15px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '8px' }}>ERRORS:</div>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                <div style={{ 
+                  borderTop: '1px solid var(--border2)', 
+                  paddingTop: '20px',
+                  background: 'var(--black4)',
+                  padding: '15px',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: 'var(--red-light)', 
+                    marginBottom: '12px',
+                    fontWeight: '600',
+                    letterSpacing: '1px'
+                  }}>
+                    ⚠️ ERRORS ENCOUNTERED:
+                  </div>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                     {results.errors.map((err, i) => (
-                      <div key={i} style={{ fontSize: '12px', color: 'var(--red-light)', marginBottom: '4px' }}>
-                        • {err}
+                      <div key={i} style={{ 
+                        fontSize: '12px', 
+                        color: 'var(--gray)', 
+                        marginBottom: '8px',
+                        paddingLeft: '12px',
+                        borderLeft: '2px solid var(--red-light)'
+                      }}>
+                        {err}
                       </div>
                     ))}
                   </div>
