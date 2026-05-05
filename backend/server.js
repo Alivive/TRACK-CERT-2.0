@@ -197,9 +197,9 @@ app.delete('/api/interns/:id', async (req, res, next) => {
 app.get('/api/certifications', async (req, res, next) => {
   try {
     let query = supabase
-      .from('certification_details')
+      .from('certifications')
       .select('*')
-      .order('date_obtained', { ascending: false });
+      .order('date', { ascending: false });
     
     if (req.query.intern_id) {
       query = query.eq('intern_id', req.query.intern_id);
@@ -386,7 +386,7 @@ app.delete('/api/books/:id', async (req, res, next) => {
 app.get('/api/book-assignments', async (req, res, next) => {
   try {
     let query = supabase
-      .from('book_assignment_details')
+      .from('book_assignments')
       .select('*')
       .order('assigned_at', { ascending: false });
     
