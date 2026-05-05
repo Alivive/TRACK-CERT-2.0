@@ -34,14 +34,20 @@ const BulkAttachCertificates = () => {
   const certsWithoutFiles = useMemo(() => {
     return certifications.filter(c => {
       const hasFile = c.certificate_file_url;
-      const matchesIntern = filterIntern === 'all' || c.intern_id === filterIntern;
+      
+      // For regular users: only show their own certifications
+      // For admins: show based on filter (all or specific intern)
+      const matchesIntern = isAdmin 
+        ? (filterIntern === 'all' || c.intern_id === filterIntern)
+        : c.intern_id === profile?.id;
+      
       const matchesSearch = !searchTerm || 
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.provider.toLowerCase().includes(searchTerm.toLowerCase());
       
       return !hasFile && matchesIntern && matchesSearch;
     });
-  }, [certifications, filterIntern, searchTerm]);
+  }, [certifications, filterIntern, searchTerm, isAdmin, profile?.id]);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -225,6 +231,17 @@ const BulkAttachCertificates = () => {
           <RefreshCw size={14} /> {syncing ? 'SYNCING...' : 'SYNC DATA'}
         </button>
       </div>
+
+      {/* Show whose files are being uploaded */}
+      {!isAdmin && (
+        <div className="card" style={{ marginBottom: '20px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          <div className="card-body" style={{ padding: '12px 16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--blue)', fontWeight: '600' }}>
+              📋 Uploading certificates for: <strong>{profile?.name || 'Your Profile'}</strong>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid-2" style={{ marginBottom: '20px' }}>
         <div className="card">
