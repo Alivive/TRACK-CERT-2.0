@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { Upload, CheckCircle, X, Paperclip, RefreshCw, Zap } from 'lucide-react';
@@ -18,16 +18,36 @@ const BulkAttachCertificates = () => {
   const [filterIntern, setFilterIntern] = useState('all');
   const [autoMatch, setAutoMatch] = useState(true);
   const [uploadSpeed, setUploadSpeed] = useState('normal');
+  const [dataLoading, setDataLoading] = useState(true);
 
-  // Get unique interns for filter
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setDataLoading(true);
+      try {
+        await refreshData();
+      } catch (error) {
+        console.error('[BULK ATTACH] Error loading data:', error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [refreshData]);
+
+  // Get unique interns with their names for filter
   const interns = useMemo(() => {
     const unique = {};
     certifications.forEach(c => {
       if (!unique[c.intern_id]) {
-        unique[c.intern_id] = c.intern_id;
+        unique[c.intern_id] = {
+          id: c.intern_id,
+          name: c.intern_name || c.intern_id // Use intern_name if available, fallback to ID
+        };
       }
     });
-    return Object.keys(unique);
+    return Object.values(unique);
   }, [certifications]);
 
   // Filter certifications without attachments
@@ -253,14 +273,19 @@ const BulkAttachCertificates = () => {
               style={{ fontSize: '13px' }}
             >
               <option value="all">All Interns</option>
-              {interns.map(internId => (
-                <option key={internId} value={internId}>
-                  Intern: {internId}
+              {interns.map(intern => (
+                <option key={intern.id} value={intern.id}>
+                  {intern.name}
                 </option>
               ))}
             </select>
             <div style={{ fontSize: '11px', color: 'var(--gray2)', marginTop: '8px' }}>
-              📋 Uploading certificates for: <strong>{filterIntern === 'all' ? 'All Interns' : filterIntern}</strong>
+              📋 Uploading certificates for: <strong>
+                {filterIntern === 'all' 
+                  ? 'All Interns' 
+                  : interns.find(i => i.id === filterIntern)?.name || filterIntern
+                }
+              </strong>
             </div>
           </div>
         </div>
@@ -288,24 +313,38 @@ const BulkAttachCertificates = () => {
         <div className="card">
           <div className="card-header"><span className="card-title">STATISTICS</span></div>
           <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--blue)', marginBottom: '4px' }}>
-                  {certsWithoutFiles.length}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--gray2)', textTransform: 'uppercase', fontWeight: '600' }}>
-                  Total Certifications
+            {dataLoading ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>
+                <div style={{ fontSize: '14px', marginBottom: '10px' }}>Loading your certifications...</div>
+                <div style={{ fontSize: '12px', color: 'var(--gray2)' }}>Please wait...</div>
+              </div>
+            ) : certifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>
+                <div style={{ fontSize: '14px', marginBottom: '10px' }}>No certifications found</div>
+                <div style={{ fontSize: '12px', color: 'var(--gray2)' }}>
+                  Go to "Add Certification" to create one first
                 </div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', marginBottom: '4px' }}>
-                  {selectedFiles.length}
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--blue)', marginBottom: '4px' }}>
+                    {certsWithoutFiles.length}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--gray2)', textTransform: 'uppercase', fontWeight: '600' }}>
+                    Total Certifications
+                  </div>
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--gray2)', textTransform: 'uppercase', fontWeight: '600' }}>
-                  Files selected
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', marginBottom: '4px' }}>
+                    {selectedFiles.length}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--gray2)', textTransform: 'uppercase', fontWeight: '600' }}>
+                    Files selected
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
