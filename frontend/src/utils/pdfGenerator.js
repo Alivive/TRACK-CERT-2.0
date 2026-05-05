@@ -17,45 +17,90 @@ export const generateInternReport = async (intern, certifications, categories = 
   
   const completedBooks = bookAssignments.filter(b => b.status === 'completed').length;
   const inProgressBooks = bookAssignments.filter(b => b.status === 'in-progress').length;
+  const totalHours = getTH(certifications);
   
   // Use provided categories or fallback to empty object
   const CATS = categories;
   
+  // Group certifications by category
+  const certsByCategory = {};
+  Object.keys(CATS).forEach(key => {
+    certsByCategory[key] = certifications.filter(c => c.cat === key);
+  });
+  
+  // Category colors matching the PDF
+  const categoryColors = {
+    'API': '#6366f1',
+    'AI': '#8b5cf6',
+    'BE': '#06b6d4',
+    'BS': '#8b5cf6',
+    'CLOUD': '#06b6d4',
+    'CYBER': '#ef4444',
+    'DA': '#f97316',
+    'FE': '#10b981',
+    'GD': '#f97316',
+    'SOFT': '#ec4899',
+    'SD': '#06b6d4'
+  };
+  
+  const getInitials = (first, last) => {
+    return ((first?.[0] || '') + (last?.[0] || '')).toUpperCase();
+  };
+  
   const element = document.createElement('div');
   element.innerHTML = `
-    <div style="font-family: 'Inter', sans-serif; color: #1a1a1a; background: #ffffff;">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 0; }
+    </style>
+    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.5;">
+      
       <!-- Header -->
-      <div style="background: #1a1a1a; color: #ffffff; padding: 30px 40px; display: flex; justify-content: space-between; align-items: flex-start;">
-        <div>
-          <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">FinSense Africa</h1>
-          <p style="margin: 5px 0 0 0; font-size: 14px; color: #888; font-weight: 400;">Intern Certification Tracker</p>
-        </div>
-        <div style="text-align: right;">
-          <h2 style="margin: 0; font-size: 20px; font-weight: 600;">Intern Report</h2>
-          <p style="margin: 5px 0 0 0; font-size: 14px; color: #888;">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 32px 48px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FinSense Africa</h1>
+            <p style="margin: 6px 0 0 0; font-size: 14px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker · Confidential</p>
+          </div>
+          <div style="text-align: right;">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">INTERN REPORT</h2>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #94a3b8; font-weight: 500;">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          </div>
         </div>
       </div>
 
-      <div style="padding: 40px;">
-        <!-- Profile Card -->
-        <div style="background: #f8f9fa; border-radius: 12px; padding: 30px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-          <div>
-            <h3 style="margin: 0; font-size: 24px; font-weight: 700;">${intern.first} ${intern.last}</h3>
-            <p style="margin: 10px 0 5px 0; font-size: 14px; color: #555;">Email: ${intern.email}</p>
-            <p style="margin: 0; font-size: 14px; color: #555;">Role: intern</p>
+      <div style="padding: 48px;">
+        
+        <!-- Profile Header -->
+        <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 16px; padding: 32px; margin-bottom: 40px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px;">
+            <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: white; flex-shrink: 0;">
+              ${getInitials(intern.first, intern.last)}
+            </div>
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; color: #0f172a;">${intern.first} ${intern.last}</h3>
+              <p style="margin: 0; font-size: 15px; color: #64748b;">${intern.email}</p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● INTERN</p>
+            </div>
           </div>
-          <div style="display: flex; gap: 30px; text-align: center;">
-            <div>
-              <div style="font-size: 24px; font-weight: 700;">${certifications.length}</div>
-              <div style="font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px;">Total Certs</div>
+          
+          <!-- Stats Cards -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${certifications.length}</div>
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">TOTAL CERTIFICATIONS</div>
+              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">All categories</div>
             </div>
-            <div>
-              <div style="font-size: 24px; font-weight: 700;">${getTH(certifications)}h</div>
-              <div style="font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px;">Total Hours</div>
+            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${totalHours}h</div>
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">TOTAL LEARNING HOURS</div>
+              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">Across all certs</div>
             </div>
-            <div>
-              <div style="font-size: 24px; font-weight: 700;">${completedBooks}</div>
-              <div style="font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px;">Books Read</div>
+            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #f97316; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${completedBooks}</div>
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">BOOKS COMPLETED</div>
+              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">${inProgressBooks} in progress</div>
             </div>
           </div>
         </div>
@@ -63,76 +108,150 @@ export const generateInternReport = async (intern, certifications, categories = 
         <!-- Reading Progress -->
         ${bookAssignments.length > 0 ? `
         <div style="margin-bottom: 40px;">
-          <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px;">📚 Reading Progress</h3>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 20px; font-weight: 700; color: #2ecc71;">${completedBooks}</div>
-              <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px;">Completed</div>
-            </div>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 20px; font-weight: 700; color: #f39c12;">${inProgressBooks}</div>
-              <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px;">In Progress</div>
-            </div>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
-              <div style="font-size: 20px; font-weight: 700; color: #888;">${bookAssignments.length}</div>
-              <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px;">Total Assigned</div>
-            </div>
+          <div style="background: #0f172a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0; margin-bottom: 0;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Reading Progress</h3>
           </div>
-          <div style="margin-top: 15px;">
-            ${bookAssignments.map(book => `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+          <div style="background: #f8fafc; padding: 24px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0; border-top: none;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+              <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
+                <div style="font-size: 36px; font-weight: 800; color: #10b981; margin-bottom: 8px;">${completedBooks}</div>
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● COMPLETED</div>
+              </div>
+              <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
+                <div style="font-size: 36px; font-weight: 800; color: #f97316; margin-bottom: 8px;">${inProgressBooks}</div>
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● IN PROGRESS</div>
+              </div>
+              <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
+                <div style="font-size: 36px; font-weight: 800; color: #6366f1; margin-bottom: 8px;">${bookAssignments.length}</div>
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● TOTAL ASSIGNED</div>
+              </div>
+            </div>
+            ${bookAssignments.map(book => {
+              const statusColor = book.status === 'completed' ? '#10b981' : book.status === 'in-progress' ? '#f97316' : '#6366f1';
+              const statusBg = book.status === 'completed' ? '#d1fae5' : book.status === 'in-progress' ? '#fed7aa' : '#e0e7ff';
+              return `
+              <div style="background: white; padding: 16px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: space-between;">
                 <div style="flex: 1;">
-                  <div style="font-size: 14px; font-weight: 600;">${book.book_title}</div>
-                  <div style="font-size: 12px; color: #888;">${book.book_author}${book.book_pages ? ` • ${book.book_pages} pages` : ''}</div>
-                  ${book.notes ? `<div style="font-size: 11px; color: #666; margin-top: 4px; font-style: italic;">"${book.notes}"</div>` : ''}
+                  <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">■ ${book.book_title}</div>
+                  <div style="font-size: 12px; color: #64748b;">${book.book_author}${book.book_pages ? ` · ${book.book_pages} pages` : ''}</div>
                 </div>
-                <div style="padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; white-space: nowrap; margin-left: 10px; ${
-                  book.status === 'completed' ? 'background: #d4edda; color: #155724;' :
-                  book.status === 'in-progress' ? 'background: #fff3cd; color: #856404;' :
-                  'background: #f8f9fa; color: #888;'
-                }">
-                  ${book.status.toUpperCase().replace('-', ' ')}
+                <div style="background: ${statusBg}; color: ${statusColor}; padding: 6px 14px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">
+                  ${book.status.replace('-', ' ')}
                 </div>
               </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         </div>
         ` : ''}
 
-        <!-- Certifications by Category -->
-        ${Object.keys(CATS).map(key => {
-          const catCerts = certifications.filter(c => c.cat === key);
-          const catHours = getTH(catCerts);
-          return `
-            <div style="margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h4 style="margin: 0; font-size: 18px; font-weight: 700;">${CATS[key].name}</h4>
-                <div style="font-size: 13px; color: #888;">${catCerts.length} certs • ${catHours}h</div>
-              </div>
-              ${catCerts.length > 0 ? `
-                <div style="margin-top: 10px;">
-                  ${catCerts.map(c => `
-                    <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px;">
-                      <span>${c.name} (${c.provider}) — <b>${c.hours}h</b></span>
-                      <span style="color: #888;">${c.date}</span>
-                    </div>
-                  `).join('')}
+        <!-- Certification Overview -->
+        <div style="margin-bottom: 40px;">
+          <div style="background: #0f172a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Certification Overview by Category</h3>
+          </div>
+          <div style="background: #f8fafc; padding: 32px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0; border-top: none;">
+            <div style="display: flex; gap: 40px; align-items: center;">
+              <div style="position: relative; width: 180px; height: 180px; flex-shrink: 0;">
+                <svg width="180" height="180" viewBox="0 0 180 180">
+                  <circle cx="90" cy="90" r="70" fill="none" stroke="#e2e8f0" stroke-width="20"/>
+                  ${(() => {
+                    let offset = 0;
+                    const total = certifications.length;
+                    const circumference = 2 * Math.PI * 70;
+                    return Object.keys(CATS).map(key => {
+                      const count = certsByCategory[key].length;
+                      if (count === 0) return '';
+                      const percentage = count / total;
+                      const dashLength = circumference * percentage;
+                      const dashOffset = -offset;
+                      offset += dashLength;
+                      return `<circle cx="90" cy="90" r="70" fill="none" stroke="${categoryColors[key] || '#6366f1'}" stroke-width="20" stroke-dasharray="${dashLength} ${circumference}" stroke-dashoffset="${dashOffset}" transform="rotate(-90 90 90)"/>`;
+                    }).join('');
+                  })()}
+                </svg>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                  <div style="font-size: 42px; font-weight: 800; color: #0f172a;">${certifications.length}</div>
+                  <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">TOTAL</div>
                 </div>
-              ` : `
-                <p style="margin: 0; font-size: 13px; color: #aaa; font-style: italic;">No certifications in this category yet.</p>
-              `}
+              </div>
+              <div style="flex: 1;">
+                ${Object.keys(CATS).map(key => {
+                  const count = certsByCategory[key].length;
+                  return `
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <div style="width: 12px; height: 12px; border-radius: 2px; background: ${categoryColors[key] || '#6366f1'}; flex-shrink: 0;"></div>
+                      <span style="font-size: 14px; color: #475569; font-weight: 500;">${CATS[key].name}</span>
+                    </div>
+                    <span style="font-size: 16px; font-weight: 700; color: #0f172a;">${count}</span>
+                  </div>
+                  `;
+                }).join('')}
+              </div>
             </div>
-          `;
-        }).join('')}
+          </div>
+        </div>
+
+        <!-- Full Certification List -->
+        <div style="margin-bottom: 40px;">
+          <div style="background: #0f172a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Full Certification List</h3>
+            <span style="font-size: 13px; color: #94a3b8;">${certifications.length} total certifications</span>
+          </div>
+          <div style="background: white; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0; border-top: none;">
+            ${Object.keys(CATS).map(key => {
+              const catCerts = certsByCategory[key];
+              const catHours = getTH(catCerts);
+              return `
+              <div style="padding: 24px 32px; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: ${categoryColors[key] || '#6366f1'};"></div>
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">${CATS[key].name}</h4>
+                  </div>
+                  <div style="background: ${categoryColors[key] || '#6366f1'}; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                    ${catCerts.length} certs · ${catHours}h
+                  </div>
+                </div>
+                ${catCerts.length > 0 ? `
+                  <div style="margin-left: 24px;">
+                    ${catCerts.map(c => `
+                      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <div style="flex: 1;">
+                          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">${c.name}</div>
+                          <div style="font-size: 12px; color: #6366f1; font-weight: 500;">${c.provider}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                          <div style="background: #f1f5f9; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #0f172a;">${c.hours}h</div>
+                          <div style="font-size: 12px; color: #64748b; min-width: 90px; text-align: right;">${c.date}</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <p style="margin: 0; font-size: 13px; color: #94a3b8; font-style: italic; margin-left: 24px;">No certifications in this category yet.</p>
+                `}
+              </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding-top: 32px; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 11px; color: #94a3b8;">FinSense Africa · Intern Certification Tracker · Confidential</p>
+        </div>
+
       </div>
     </div>
   `;
 
   const opt = {
     margin: 0,
-    filename: `Report_${intern.first}_${intern.last}.pdf`,
+    filename: `Intern-Report-${intern.first}-${intern.last}.pdf`,
     image: { type: 'jpeg', quality: 1.0 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
 
@@ -144,7 +263,6 @@ export const generateSummaryReport = async (interns, certifications, categories 
   const totalCerts = certifications.length;
   const totalHours = getTH(certifications);
   const avgCerts = (totalCerts / Math.max(interns.length, 1)).toFixed(1);
-  const avgHours = (totalHours / Math.max(interns.length, 1)).toFixed(1);
   
   // Fetch all book assignments
   let allBookAssignments = [];
@@ -158,109 +276,230 @@ export const generateSummaryReport = async (interns, certifications, categories 
   }
   
   const totalBooksCompleted = allBookAssignments.filter(b => b.status === 'completed').length;
-  const totalBooksAssigned = allBookAssignments.length;
   
   // Use provided categories or fallback to empty object
   const CATS = categories;
   const categoryKeys = Object.keys(CATS);
 
+  // Category colors matching the design
+  const categoryColors = {
+    'API': '#6366f1',
+    'AI': '#8b5cf6', 
+    'BE': '#06b6d4',
+    'BS': '#8b5cf6',
+    'CLOUD': '#06b6d4',
+    'CYBER': '#ef4444',
+    'DA': '#f97316',
+    'FE': '#10b981',
+    'GD': '#f97316',
+    'SOFT': '#ec4899',
+    'SD': '#06b6d4'
+  };
+
+  // Find insights
+  const categoryStats = Object.keys(CATS).map(key => {
+    const catCerts = certifications.filter(c => c.cat === key);
+    const catHours = getTH(catCerts);
+    return {
+      key,
+      name: CATS[key].name,
+      count: catCerts.length,
+      hours: catHours,
+      avgHours: catCerts.length > 0 ? (catHours / catCerts.length) : 0
+    };
+  }).filter(c => c.count > 0);
+
+  const topCategory = categoryStats.reduce((max, cat) => cat.count > max.count ? cat : max, { count: 0, name: 'None' });
+  const mostHours = categoryStats.reduce((max, cat) => cat.hours > max.hours ? cat : max, { hours: 0, name: 'None' });
+  const highestAvg = categoryStats.reduce((max, cat) => cat.avgHours > max.avgHours ? cat : max, { avgHours: 0, name: 'None' });
+
+  // Get most common provider
+  const providers = {};
+  certifications.forEach(c => {
+    providers[c.provider] = (providers[c.provider] || 0) + 1;
+  });
+  const topProvider = Object.keys(providers).reduce((max, p) => providers[p] > (providers[max] || 0) ? p : max, 'None');
+
   const element = document.createElement('div');
   element.innerHTML = `
-    <div style="font-family: 'Inter', sans-serif !important; color: #000000 !important; background: #ffffff !important;">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 0; }
+    </style>
+    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.5;">
+      
       <!-- Header -->
-      <div style="background: #1a1a1a !important; color: #ffffff !important; padding: 30px 40px; display: flex; justify-content: space-between; align-items: flex-start;">
-        <div>
-          <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: #ffffff !important;">FinSense Africa</h1>
-          <p style="margin: 5px 0 0 0; font-size: 14px; color: #aaaaaa !important; font-weight: 400;">Intern Certification Tracker</p>
-        </div>
-        <div style="text-align: right;">
-          <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff !important;">Summary Report</h2>
-          <p style="margin: 5px 0 0 0; font-size: 14px; color: #aaaaaa !important;">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 40px 48px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h1 style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FinSense Africa</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker</p>
+          </div>
+          <div style="text-align: right;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">SUMMARY REPORT</h2>
+            <div style="background: #10b981; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-top: 12px; display: inline-block;">
+              ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style="padding: 40px; background: #ffffff !important;">
-        <!-- Summary Stats Grid -->
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 40px;">
+      <div style="padding: 48px;">
+        
+        <!-- Colorful Progress Bar -->
+        <div style="height: 8px; background: linear-gradient(90deg, #6366f1 0%, #10b981 25%, #f97316 50%, #ec4899 75%, #06b6d4 100%); border-radius: 4px; margin-bottom: 32px;"></div>
+
+        <!-- Summary Stats Cards -->
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-bottom: 48px;">
           ${[
-            { val: interns.length, lbl: 'Total Interns' },
-            { val: totalCerts, lbl: 'Total Certifications' },
-            { val: totalHours + 'h', lbl: 'Total Hours' },
-            { val: totalBooksCompleted, lbl: 'Books Completed' },
-            { val: avgCerts, lbl: 'Avg Certs / Intern' }
+            { val: interns.length, lbl: 'TOTAL INTERNS', color: '#a5b4fc', bg: '#eef2ff' },
+            { val: totalCerts, lbl: 'TOTAL CERTIFICATIONS', color: '#86efac', bg: '#f0fdf4' },
+            { val: totalHours + 'h', lbl: 'TOTAL HOURS', color: '#fed7aa', bg: '#fff7ed' },
+            { val: totalBooksCompleted, lbl: 'BOOKS COMPLETED', color: '#fbb6ce', bg: '#fdf2f8' },
+            { val: avgCerts, lbl: 'AVG CERTS PER INTERN', color: '#a7f3d0', bg: '#ecfdf5' }
           ].map(s => `
-            <div style="background: #f0f2f5 !important; border-radius: 8px; padding: 20px 10px; text-align: center;">
-              <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px; color: #000000 !important;">${s.val}</div>
-              <div style="font-size: 10px; color: #666666 !important; text-transform: uppercase;">${s.lbl}</div>
+            <div style="background: ${s.bg}; border-radius: 16px; padding: 24px 20px; text-align: center; border: 1px solid ${s.color};">
+              <div style="font-size: 36px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">${s.val}</div>
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">${s.lbl}</div>
             </div>
           `).join('')}
         </div>
 
         <!-- All Interns Table -->
-        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px; color: #000000 !important;">All Interns — Certification Summary</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 11px; background: #ffffff !important;">
-          <thead>
-            <tr style="background: #1a1a1a !important; color: #ffffff !important;">
-              <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">#</th>
-              <th style="padding: 10px; border: 1px solid #333; text-align: left; color: #ffffff !important;">Name</th>
-              <th style="padding: 10px; border: 1px solid #333; text-align: left; color: #ffffff !important;">Email</th>
-              <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Role</th>
-              ${categoryKeys.map(k => `<th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">${k}</th>`).join('')}
-              <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Total</th>
-              <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Hours</th>
-              <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Books</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div style="margin-bottom: 48px;">
+          <div style="background: #0f172a; color: white; padding: 16px 24px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">■ All Interns — Certification Summary</h3>
+            <span style="font-size: 13px; color: #94a3b8;">${interns.length} active interns · ${totalCerts} total certifications</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
             ${interns.map((i, idx) => {
               const ic = certifications.filter(c => c.intern_id === i.id);
               const internBooks = allBookAssignments.filter(b => b.intern_id === i.id);
               const completedBooks = internBooks.filter(b => b.status === 'completed').length;
               const catCnt = {};
               ic.forEach(c => catCnt[c.cat] = (catCnt[c.cat] || 0) + 1);
+              const totalHours = getTH(ic);
+              
               return `
-                <tr style="background: #ffffff !important;">
-                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${idx + 1}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd; color: #000000 !important;">${i.first} ${i.last}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd; color: #000000 !important;">${i.email}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">intern</td>
-                  ${categoryKeys.map(k => `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${catCnt[k] || 0}</td>`).join('')}
-                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #000000 !important;">${ic.length}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #000000 !important;">${getTH(ic)}h</td>
-                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #2ecc71 !important;">${completedBooks}</td>
-                </tr>
+                <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 20px;">
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0;">
+                    ${idx + 1}
+                  </div>
+                  <div style="flex: 1; min-width: 200px;">
+                    <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">${i.first} ${i.last}</div>
+                    <div style="font-size: 12px; color: #64748b;">${i.email}</div>
+                    <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-top: 2px;">INTERN</div>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-width: 400px;">
+                    ${categoryKeys.map(k => {
+                      const count = catCnt[k] || 0;
+                      const color = categoryColors[k] || '#6366f1';
+                      return `
+                        <div style="background: ${count > 0 ? color : '#f1f5f9'}; color: ${count > 0 ? 'white' : '#94a3b8'}; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; min-width: 32px; text-align: center;">
+                          ${count}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                  <div style="display: flex; gap: 16px; align-items: center; min-width: 120px; justify-content: flex-end;">
+                    <div style="text-align: center;">
+                      <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${ic.length}</div>
+                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">TOTAL</div>
+                    </div>
+                    <div style="text-align: center;">
+                      <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${totalHours}h</div>
+                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">HOURS</div>
+                    </div>
+                    <div style="text-align: center;">
+                      <div style="font-size: 18px; font-weight: 800; color: #10b981;">${completedBooks}</div>
+                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">BOOKS</div>
+                    </div>
+                  </div>
+                </div>
               `;
             }).join('')}
-          </tbody>
-        </table>
+          </div>
+        </div>
 
         <!-- Category Breakdown -->
-        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px; color: #000000 !important;">Category Breakdown</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; background: #ffffff !important;">
-          <thead>
-            <tr style="background: #1a1a1a !important; color: #ffffff !important;">
-              <th style="padding: 12px; border: 1px solid #333; text-align: left; color: #ffffff !important;">Category</th>
-              <th style="padding: 12px; border: 1px solid #333; text-align: center; color: #ffffff !important;">Certifications</th>
-              <th style="padding: 12px; border: 1px solid #333; text-align: center; color: #ffffff !important;">Total Hours</th>
-              <th style="padding: 12px; border: 1px solid #333; text-align: center; color: #ffffff !important;">Avg Hours / Cert</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div style="margin-bottom: 48px;">
+          <div style="background: #0f172a; color: white; padding: 16px 24px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">■ Category Breakdown</h3>
+            <span style="font-size: 13px; color: #94a3b8;">${categoryKeys.length} categories · ${totalHours} total hours</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 32px;">
             ${Object.keys(CATS).map(key => {
               const catCerts = certifications.filter(c => c.cat === key);
               const catHours = getTH(catCerts);
               const avgHours = catCerts.length > 0 ? (catHours / catCerts.length).toFixed(1) : '—';
+              const percentage = totalCerts > 0 ? (catCerts.length / totalCerts) * 100 : 0;
+              const color = categoryColors[key] || '#6366f1';
+              
               return `
-                <tr style="background: #ffffff !important;">
-                  <td style="padding: 10px; border: 1px solid #ddd; font-weight: 600; color: #000000 !important;">${CATS[key].name}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${catCerts.length}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${catHours}h</td>
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${avgHours}${catCerts.length > 0 ? 'h' : ''}</td>
-                </tr>
+                <div style="display: flex; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9;">
+                  <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 200px;">
+                    <div style="width: 16px; height: 16px; border-radius: 4px; background: ${color}; flex-shrink: 0;"></div>
+                    <span style="font-size: 15px; font-weight: 600; color: #0f172a;">${CATS[key].name}</span>
+                  </div>
+                  <div style="flex: 2; margin: 0 24px;">
+                    <div style="background: #f1f5f9; height: 8px; border-radius: 4px; overflow: hidden;">
+                      <div style="background: ${color}; height: 100%; width: ${percentage}%; border-radius: 4px;"></div>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 32px; align-items: center; min-width: 200px; justify-content: flex-end;">
+                    <div style="background: ${color}; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                      ${catCerts.length}
+                    </div>
+                    <div style="font-size: 14px; font-weight: 600; color: #0f172a; min-width: 40px; text-align: right;">
+                      ${catHours}h
+                    </div>
+                    <div style="font-size: 14px; color: #64748b; min-width: 40px; text-align: right;">
+                      ${avgHours}${catCerts.length > 0 ? 'h' : ''}
+                    </div>
+                  </div>
+                </div>
               `;
             }).join('')}
-          </tbody>
-        </table>
+          </div>
+        </div>
+
+        <!-- Quick Insights -->
+        <div style="margin-bottom: 32px;">
+          <div style="background: #0f172a; color: white; padding: 16px 24px; border-radius: 12px 12px 0 0;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">■ Quick Insights</h3>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 32px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px;">
+              <div>
+                <div style="font-size: 12px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">TOP CATEGORY</div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${topCategory.name}</div>
+                <div style="font-size: 12px; color: #64748b;">${topCategory.count} certifications</div>
+              </div>
+              <div>
+                <div style="font-size: 12px; color: #06b6d4; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">MOST HOURS</div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${mostHours.name}</div>
+                <div style="font-size: 12px; color: #64748b;">${mostHours.hours}h total</div>
+              </div>
+              <div>
+                <div style="font-size: 12px; color: #f97316; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">TOP PROVIDER</div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${topProvider}</div>
+                <div style="font-size: 12px; color: #64748b;">${providers[topProvider] || 0} certifications</div>
+              </div>
+              <div>
+                <div style="font-size: 12px; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">HIGHEST AVG</div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${highestAvg.name}</div>
+                <div style="font-size: 12px; color: #64748b;">${highestAvg.avgHours.toFixed(1)}h per cert</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding-top: 32px; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 11px; color: #94a3b8;">FinSense Africa · Intern Certification Tracker · Confidential</p>
+        </div>
+
       </div>
     </div>
   `;
@@ -269,7 +508,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
     margin: 0,
     filename: `Summary_Report_${new Date().toISOString().split('T')[0]}.pdf`,
     image: { type: 'jpeg', quality: 1.0 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
 
