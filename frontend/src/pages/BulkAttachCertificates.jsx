@@ -33,9 +33,7 @@ const BulkAttachCertificates = () => {
   // Filter certifications without attachments
   const certsWithoutFiles = useMemo(() => {
     return certifications.filter(c => {
-      const hasFile = c.certificate_file_url;
-      
-      // For regular users: only show their own certifications
+      // For regular users: show all their certifications (with or without files)
       // For admins: show based on filter (all or specific intern)
       const matchesIntern = isAdmin 
         ? (filterIntern === 'all' || c.intern_id === filterIntern)
@@ -45,7 +43,7 @@ const BulkAttachCertificates = () => {
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.provider.toLowerCase().includes(searchTerm.toLowerCase());
       
-      return !hasFile && matchesIntern && matchesSearch;
+      return matchesIntern && matchesSearch;
     });
   }, [certifications, filterIntern, searchTerm, isAdmin, profile?.id]);
 
@@ -243,6 +241,31 @@ const BulkAttachCertificates = () => {
         </div>
       )}
 
+      {/* Admin intern selector */}
+      {isAdmin && (
+        <div className="card" style={{ marginBottom: '20px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+          <div className="card-header"><span className="card-title">SELECT INTERN</span></div>
+          <div className="card-body">
+            <select
+              className="form-input"
+              value={filterIntern}
+              onChange={(e) => setFilterIntern(e.target.value)}
+              style={{ fontSize: '13px' }}
+            >
+              <option value="all">All Interns</option>
+              {interns.map(internId => (
+                <option key={internId} value={internId}>
+                  Intern: {internId}
+                </option>
+              ))}
+            </select>
+            <div style={{ fontSize: '11px', color: 'var(--gray2)', marginTop: '8px' }}>
+              📋 Uploading certificates for: <strong>{filterIntern === 'all' ? 'All Interns' : filterIntern}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid-2" style={{ marginBottom: '20px' }}>
         <div className="card">
           <div className="card-header"><span className="card-title">⚡ OPTIMIZED FOR BULK</span></div>
@@ -271,7 +294,7 @@ const BulkAttachCertificates = () => {
                   {certsWithoutFiles.length}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--gray2)', textTransform: 'uppercase', fontWeight: '600' }}>
-                  Certs without files
+                  Total Certifications
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
