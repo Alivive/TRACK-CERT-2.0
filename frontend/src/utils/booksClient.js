@@ -74,8 +74,12 @@ export const booksClient = {
   async getAssignments(internId = null) {
     try {
       let query = supabase
-        .from('book_assignment_details')
-        .select('*')
+        .from('book_assignments')
+        .select(`
+          *,
+          books:book_id (title, author, pages),
+          interns:intern_id (first_name, last_name)
+        `)
         .order('assigned_at', { ascending: false });
       
       if (internId) {
@@ -85,7 +89,18 @@ export const booksClient = {
       const { data, error } = await query;
       
       if (error) throw error;
-      return { success: true, data };
+      
+      // Flatten the nested data structure
+      const flattenedData = data.map(assignment => ({
+        ...assignment,
+        book_title: assignment.books?.title,
+        book_author: assignment.books?.author,
+        book_pages: assignment.books?.pages,
+        intern_first_name: assignment.interns?.first_name,
+        intern_last_name: assignment.interns?.last_name
+      }));
+      
+      return { success: true, data: flattenedData };
     } catch (error) {
       console.error('[BOOKS] Get assignments error:', error);
       return { success: false, error };
