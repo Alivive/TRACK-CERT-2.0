@@ -74,85 +74,68 @@ export const generateInternReport = async (intern, certifications, categories = 
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.5;">
       
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 32px 48px;">
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 16px 24px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
-            <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FinSense Africa</h1>
-            <p style="margin: 6px 0 0 0; font-size: 14px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker · Confidential</p>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FinSense Africa</h1>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker · Confidential</p>
           </div>
           <div style="text-align: right;">
-            <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">INTERN REPORT</h2>
-            <p style="margin: 8px 0 0 0; font-size: 14px; color: #94a3b8; font-weight: 500;">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <h2 style="margin: 0; font-size: 14px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">INTERN REPORT</h2>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8; font-weight: 500;">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
         </div>
       </div>
 
-      <div style="padding: 48px;">
+      <div style="padding: 20px 24px;">
         
         <!-- Profile Header -->
-        <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 16px; padding: 32px; margin-bottom: 40px; border: 1px solid #e2e8f0;">
-          <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 24px;">
-            <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: white; flex-shrink: 0;">
+        <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; flex-shrink: 0;">
               ${getInitials(intern.first, intern.last)}
             </div>
             <div style="flex: 1;">
-              <h3 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; color: #0f172a;">${intern.first} ${intern.last}</h3>
-              <p style="margin: 0; font-size: 15px; color: #64748b;">${intern.email}</p>
-              <p style="margin: 4px 0 0 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● INTERN</p>
+              <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #0f172a;">${intern.first} ${intern.last}</h3>
+              <p style="margin: 0; font-size: 12px; color: #64748b;">${intern.email}</p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● INTERN</p>
             </div>
           </div>
           
           <!-- Stats Cards -->
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${certifications.length}</div>
-              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">TOTAL CERTIFICATIONS</div>
-              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">All categories</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="background: white; border-radius: 8px; padding: 12px; border-left: 3px solid #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">${certifications.length}</div>
+              <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">TOTAL CERTIFICATIONS</div>
             </div>
-            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${totalHours}h</div>
-              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">TOTAL LEARNING HOURS</div>
-              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">Across all certs</div>
+            <div style="background: white; border-radius: 8px; padding: 12px; border-left: 3px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">${totalHours}h</div>
+              <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">TOTAL LEARNING HOURS</div>
             </div>
-            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #f97316; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${completedBooks}</div>
-              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">BOOKS COMPLETED</div>
-              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">${inProgressBooks} in progress</div>
+            <div style="background: white; border-radius: 8px; padding: 12px; border-left: 3px solid #f97316; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">${completedBooks}</div>
+              <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">BOOKS COMPLETED</div>
             </div>
           </div>
         </div>
 
         <!-- Reading Progress -->
         ${bookAssignments.length > 0 ? `
-        <div style="margin-bottom: 40px;">
-          <div style="background: #0f172a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0; margin-bottom: 0;">
-            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Reading Progress</h3>
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
+            <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">■ Reading Progress</h3>
           </div>
-          <div style="background: #f8fafc; padding: 24px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0; border-top: none;">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
-              <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
-                <div style="font-size: 36px; font-weight: 800; color: #10b981; margin-bottom: 8px;">${completedBooks}</div>
-                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● COMPLETED</div>
-              </div>
-              <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
-                <div style="font-size: 36px; font-weight: 800; color: #f97316; margin-bottom: 8px;">${inProgressBooks}</div>
-                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● IN PROGRESS</div>
-              </div>
-              <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
-                <div style="font-size: 36px; font-weight: 800; color: #6366f1; margin-bottom: 8px;">${bookAssignments.length}</div>
-                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">● TOTAL ASSIGNED</div>
-              </div>
-            </div>
-            ${bookAssignments.map(book => {
+          <div style="background: #f8fafc; padding: 12px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none;">
+            ${bookAssignments.slice(0, 5).map(book => {
               const statusColor = book.status === 'completed' ? '#10b981' : book.status === 'in-progress' ? '#f97316' : '#6366f1';
               const statusBg = book.status === 'completed' ? '#d1fae5' : book.status === 'in-progress' ? '#fed7aa' : '#e0e7ff';
               return `
-              <div style="background: white; padding: 16px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: space-between;">
+              <div style="background: white; padding: 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid ${statusColor}; display: flex; align-items: center; justify-content: space-between;">
                 <div style="flex: 1;">
-                  <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">■ ${book.book_title}</div>
-                  <div style="font-size: 12px; color: #64748b;">${book.book_author}${book.book_pages ? ` · ${book.book_pages} pages` : ''}</div>
+                  <div style="font-size: 11px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">■ ${book.book_title}</div>
+                  <div style="font-size: 9px; color: #64748b;">${book.book_author}</div>
                 </div>
-                <div style="background: ${statusBg}; color: ${statusColor}; padding: 6px 14px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">
+                <div style="background: ${statusBg}; color: ${statusColor}; padding: 3px 8px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">
                   ${book.status.replace('-', ' ')}
                 </div>
               </div>
@@ -163,45 +146,22 @@ export const generateInternReport = async (intern, certifications, categories = 
         ` : ''}
 
         <!-- Certification Overview -->
-        <div style="margin-bottom: 40px;">
-          <div style="background: #0f172a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
-            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Certification Overview by Category</h3>
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
+            <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">■ Certification Overview by Category</h3>
           </div>
-          <div style="background: #f8fafc; padding: 32px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0; border-top: none;">
-            <div style="display: flex; gap: 40px; align-items: center;">
-              <div style="position: relative; width: 180px; height: 180px; flex-shrink: 0;">
-                <svg width="180" height="180" viewBox="0 0 180 180">
-                  <circle cx="90" cy="90" r="70" fill="none" stroke="#e2e8f0" stroke-width="20"/>
-                  ${(() => {
-                    let offset = 0;
-                    const total = certifications.length;
-                    const circumference = 2 * Math.PI * 70;
-                    return Object.keys(CATS).map(key => {
-                      const count = certsByCategory[key].length;
-                      if (count === 0) return '';
-                      const percentage = count / total;
-                      const dashLength = circumference * percentage;
-                      const dashOffset = -offset;
-                      offset += dashLength;
-                      return `<circle cx="90" cy="90" r="70" fill="none" stroke="${categoryColors[key] || '#6366f1'}" stroke-width="20" stroke-dasharray="${dashLength} ${circumference}" stroke-dashoffset="${dashOffset}" transform="rotate(-90 90 90)"/>`;
-                    }).join('');
-                  })()}
-                </svg>
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                  <div style="font-size: 42px; font-weight: 800; color: #0f172a;">${certifications.length}</div>
-                  <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">TOTAL</div>
-                </div>
-              </div>
+          <div style="background: #f8fafc; padding: 12px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none;">
+            <div style="display: flex; gap: 16px; align-items: center;">
               <div style="flex: 1;">
                 ${Object.keys(CATS).map(key => {
                   const count = certsByCategory[key].length;
                   return `
-                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                      <div style="width: 12px; height: 12px; border-radius: 2px; background: ${categoryColors[key] || '#6366f1'}; flex-shrink: 0;"></div>
-                      <span style="font-size: 14px; color: #475569; font-weight: 500;">${CATS[key].name}</span>
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="width: 8px; height: 8px; border-radius: 2px; background: ${categoryColors[key] || '#6366f1'}; flex-shrink: 0;"></div>
+                      <span style="font-size: 11px; color: #475569; font-weight: 500;">${CATS[key].name}</span>
                     </div>
-                    <span style="font-size: 16px; font-weight: 700; color: #0f172a;">${count}</span>
+                    <span style="font-size: 12px; font-weight: 700; color: #0f172a;">${count}</span>
                   </div>
                   `;
                 }).join('')}
@@ -211,56 +171,54 @@ export const generateInternReport = async (intern, certifications, categories = 
         </div>
 
         <!-- Full Certification List -->
-        <div style="margin-bottom: 40px;">
-          <div style="background: #0f172a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Full Certification List</h3>
-            <span style="font-size: 13px; color: #94a3b8;">${certifications.length} total certifications</span>
+        <div style="margin-bottom: 20px;">
+          <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">■ Full Certification List</h3>
+            <span style="font-size: 10px; color: #94a3b8;">${certifications.length} total certifications</span>
           </div>
-          <div style="background: white; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0; border-top: none;">
+          <div style="background: white; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none;">
             ${Object.keys(CATS).map(key => {
               const catCerts = certsByCategory[key];
               const catHours = getTH(catCerts);
               return `
-              <div style="padding: 24px 32px; border-bottom: 1px solid #e2e8f0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 12px; height: 12px; border-radius: 50%; background: ${categoryColors[key] || '#6366f1'};"></div>
-                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">${CATS[key].name}</h4>
+              <div style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${catCerts.length > 0 ? '8px' : '0'};">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: ${categoryColors[key] || '#6366f1'};"></div>
+                    <h4 style="margin: 0; font-size: 12px; font-weight: 700; color: #0f172a;">${CATS[key].name}</h4>
                   </div>
-                  <div style="background: ${categoryColors[key] || '#6366f1'}; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                  <div style="background: ${categoryColors[key] || '#6366f1'}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 9px; font-weight: 700;">
                     ${catCerts.length} certs · ${catHours}h
                   </div>
                 </div>
                 ${catCerts.length > 0 ? `
-                  <div style="margin-left: 24px;">
+                  <div style="margin-left: 16px;">
                     ${catCerts.map(c => `
-                      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
                         <div style="flex: 1;">
-                          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">${c.name}</div>
-                          <div style="font-size: 12px; color: #6366f1; font-weight: 500; margin-bottom: 4px;">${c.provider}</div>
+                          <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 1px;">${c.name}</div>
+                          <div style="font-size: 10px; color: #6366f1; font-weight: 500; margin-bottom: 2px;">${c.provider}</div>
                           ${c.certificate_url ? `
-                            <div style="font-size: 10px; margin-bottom: 2px;">
+                            <div style="font-size: 8px; margin-bottom: 1px;">
                               <span style="color: #64748b;">🔗 </span>
-                              <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none; font-weight: 600;">View Certificate</a>
+                              <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none; font-weight: 600;">Certificate Source</a>
                             </div>
                           ` : ''}
                           ${c.certificate_file_url ? `
-                            <div style="font-size: 10px;">
+                            <div style="font-size: 8px;">
                               <span style="color: #64748b;">📎 </span>
-                              <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none; font-weight: 600;">View File</a>
+                              <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none; font-weight: 600;">View Certificate</a>
                             </div>
                           ` : ''}
                         </div>
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                          <div style="background: #f1f5f9; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #0f172a;">${c.hours}h</div>
-                          <div style="font-size: 12px; color: #64748b; min-width: 90px; text-align: right;">${c.date}</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          <div style="background: #f1f5f9; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #0f172a;">${c.hours}h</div>
+                          <div style="font-size: 9px; color: #64748b; min-width: 70px; text-align: right;">${c.date}</div>
                         </div>
                       </div>
                     `).join('')}
                   </div>
-                ` : `
-                  <p style="margin: 0; font-size: 13px; color: #94a3b8; font-style: italic; margin-left: 24px;">No certifications in this category yet.</p>
-                `}
+                ` : ''}
               </div>
               `;
             }).join('')}
@@ -268,8 +226,8 @@ export const generateInternReport = async (intern, certifications, categories = 
         </div>
 
         <!-- Footer -->
-        <div style="text-align: center; padding-top: 32px; border-top: 1px solid #e2e8f0;">
-          <p style="margin: 0; font-size: 11px; color: #94a3b8;">FinSense Africa · Intern Certification Tracker · Confidential</p>
+        <div style="text-align: center; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 9px; color: #94a3b8;">FinSense Africa · Intern Certification Tracker · Confidential</p>
         </div>
 
       </div>

@@ -41,12 +41,28 @@ const ReadingList = () => {
   }, [profile]);
 
   const loadData = async () => {
+    // Load from cache first for instant display
+    try {
+      const cachedBooks = localStorage.getItem('reading_books');
+      const cachedAssignments = localStorage.getItem('reading_assignments');
+      
+      if (cachedBooks) {
+        setBooks(JSON.parse(cachedBooks));
+      }
+      if (cachedAssignments) {
+        setAssignments(JSON.parse(cachedAssignments));
+      }
+    } catch (e) {
+      console.warn('[READING] Cache load failed:', e);
+    }
+
     setLoading(true);
     try {
       // Load books
       const booksRes = await booksClient.getBooks();
       if (booksRes.success) {
         setBooks(booksRes.data || []);
+        localStorage.setItem('reading_books', JSON.stringify(booksRes.data || []));
       }
 
       // Load assignments
@@ -56,13 +72,20 @@ const ReadingList = () => {
       
       if (assignmentsRes.success) {
         setAssignments(assignmentsRes.data || []);
+        localStorage.setItem('reading_assignments', JSON.stringify(assignmentsRes.data || []));
       }
 
       // Load interns (admin only)
       if (isAdmin) {
+        const cachedInterns = localStorage.getItem('reading_interns');
+        if (cachedInterns) {
+          setInterns(JSON.parse(cachedInterns));
+        }
+        
         const { supabase } = await import('../utils/supabaseClient');
         const { data } = await supabase.from('interns').select('*').order('first_name');
         setInterns(data || []);
+        localStorage.setItem('reading_interns', JSON.stringify(data || []));
       }
     } catch (error) {
       console.error('[READING] Load data error:', error);
@@ -250,22 +273,13 @@ const ReadingList = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '14px', color: 'var(--gray)', marginBottom: '10px' }}>Loading reading list...</div>
-        <div style={{ width: '40px', height: '40px', border: '3px solid var(--border2)', borderTop: '3px solid var(--red-light)', borderRadius: '50%', margin: '0 auto', animation: 'spin 1s linear infinite' }}></div>
-      </div>
-    );
-  }
-
   return (
     <div id="page-reading" className="page active">
       <div className="section-header">
         <span className="section-title">READING LIST</span>
         {isAdmin && (
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn btn-ghost" onClick={() => setShowAssignModal(true)}>
+            <button className="btn btn-ghost" onClick={() => setShowAssignModal(true)} disabled={loading}>
               <User size={14} /> ASSIGN BOOK
             </button>
             <button className="btn btn-primary" onClick={() => {
@@ -286,7 +300,7 @@ const ReadingList = () => {
             <div className="stat-label">TOTAL BOOKS</div>
             <Book size={18} color="var(--red-light)" />
           </div>
-          <div className="stat-value">{stats.total}</div>
+          <div className="stat-value">{loading ? '...' : stats.total}</div>
           <div className="stat-delta">Assigned to you</div>
         </div>
         <div className="stat-card">
@@ -294,7 +308,7 @@ const ReadingList = () => {
             <div className="stat-label">READING</div>
             <BookOpen size={18} color="#f39c12" />
           </div>
-          <div className="stat-value">{stats.inProgress}</div>
+          <div className="stat-value">{loading ? '...' : stats.inProgress}</div>
           <div className="stat-delta">In progress</div>
         </div>
         <div className="stat-card">
@@ -302,7 +316,7 @@ const ReadingList = () => {
             <div className="stat-label">COMPLETED</div>
             <CheckCircle size={18} color="#2ecc71" />
           </div>
-          <div className="stat-value">{stats.completed}</div>
+          <div className="stat-value">{loading ? '...' : stats.completed}</div>
           <div className="stat-delta">Books finished</div>
         </div>
         <div className="stat-card">
@@ -310,7 +324,7 @@ const ReadingList = () => {
             <div className="stat-label">PENDING</div>
             <Clock size={18} color="var(--gray)" />
           </div>
-          <div className="stat-value">{stats.assigned}</div>
+          <div className="stat-value">{loading ? '...' : stats.assigned}</div>
           <div className="stat-delta">Not started</div>
         </div>
       </div>
@@ -637,7 +651,25 @@ const ReadingList = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Select Interns (Check Multiple)</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label className="form-label" style={{ margin: 0 }}>Select Interns (Check Multiple)</label>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{ padding: '4px 12px', fontSize: '11px' }}
+                      onClick={() => {
+                        if (assignForm.intern_ids.length === interns.length) {
+                          // Deselect all
+                          setAssignForm({ ...assignForm, intern_ids: [] });
+                        } else {
+                          // Select all
+                          setAssignForm({ ...assignForm, intern_ids: interns.map(i => i.id) });
+                        }
+                      }}
+                    >
+                      {assignForm.intern_ids.length === interns.length ? 'DESELECT ALL' : 'SELECT ALL'}
+                    </button>
+                  </div>
                   <div style={{ 
                     maxHeight: '200px', 
                     overflowY: 'auto', 
