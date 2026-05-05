@@ -14,6 +14,7 @@ const Sidebar = ({ activePage, onPageChange, isOpen }) => {
     { id: 'categories', label: 'Categories', icon: <Layers size={16} />, section: 'OVERVIEW' },
     { id: 'add_cert', label: 'Add Certification', icon: <PlusCircle size={16} />, section: 'DATA' },
     { id: 'import', label: 'Import Data', icon: <Upload size={16} />, section: 'DATA' },
+    { id: 'bulk_attach', label: 'Attach Files', icon: <Upload size={16} />, section: 'DATA' },
     { id: 'reports', label: 'Reports & PDF', icon: <FileText size={16} />, section: 'DATA' },
     { id: 'reading', label: 'Reading List', icon: <BookOpen size={16} />, section: 'LEARNING' },
     { id: 'admin', label: 'Admin Panel', icon: <Settings size={16} />, section: 'ADMIN', adminOnly: true },

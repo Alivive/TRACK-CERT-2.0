@@ -195,7 +195,7 @@ const AddCertification = () => {
               </div>
               
               <div className="form-group" style={{ marginTop: '15px' }}>
-                <label className="form-label">Certificate URL *</label>
+                <label className="form-label">Certificate Website URL *</label>
                 <input 
                   type="url" 
                   className="form-input" 

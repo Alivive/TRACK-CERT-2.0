@@ -186,7 +186,7 @@ const InternProfiles = () => {
         intern_id: intern.id
       };
       const mappedCerts = ic.map(c => ({ ...c, cat: c.category }));
-      await generateInternReport(mappedIntern, mappedCerts);
+      await generateInternReport(mappedIntern, mappedCerts, CATS);
     } catch (error) {
       console.error('PDF Generation failed:', error);
       alert('Failed to generate PDF. Please try again.');
@@ -315,7 +315,7 @@ const InternProfiles = () => {
                                   </div>
                                 </div>
                                 <div>
-                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE URL</label>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE WEBSITE URL</label>
                                   <input
                                     type="url"
                                     className="form-input"

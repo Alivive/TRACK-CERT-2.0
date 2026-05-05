@@ -13,4 +13,4 @@ COMMENT ON COLUMN certifications.certificate_file_url
 IS 'URL to uploaded certificate file (PDF/image) stored in Supabase Storage';
 
 COMMENT ON COLUMN certifications.certificate_url 
-IS 'Direct URL to online certificate (e.g., Coursera, LinkedIn Learning)';
+IS 'Direct website URL to online certificate (e.g., Coursera, LinkedIn Learning)';
