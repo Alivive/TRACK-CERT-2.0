@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Trash2, Plus, Edit2, Save, X } from 'lucide-react';
+import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square } from 'lucide-react';
 
 const Categories = () => {
   const { profile } = useAuth();
@@ -15,6 +15,11 @@ const Categories = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
   const [editingCert, setEditingCert] = useState(null);
+  
+  // Bulk delete state
+  const [selectedCerts, setSelectedCerts] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  
   const [newCategory, setNewCategory] = useState({
     id: '',
     name: '',
@@ -44,6 +49,74 @@ const Categories = () => {
       if (error) {
         alert('Failed to delete certification: ' + error.message);
       }
+    }
+  };
+
+  // Bulk delete functions
+  const handleSelectCert = (certId) => {
+    const newSelected = new Set(selectedCerts);
+    if (newSelected.has(certId)) {
+      newSelected.delete(certId);
+    } else {
+      newSelected.add(certId);
+    }
+    setSelectedCerts(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCerts.size === filteredCerts.length) {
+      // Deselect all
+      setSelectedCerts(new Set());
+    } else {
+      // Select all visible certifications that user can delete
+      const selectableCerts = filteredCerts
+        .filter(c => isAdmin || profile?.intern_id === c.intern_id)
+        .map(c => c.id);
+      setSelectedCerts(new Set(selectableCerts));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCerts.size === 0) return;
+    
+    const certNames = Array.from(selectedCerts)
+      .map(id => certifications.find(c => c.id === id)?.name)
+      .filter(Boolean)
+      .slice(0, 3); // Show first 3 names
+    
+    const displayNames = certNames.join(', ') + (selectedCerts.size > 3 ? ` and ${selectedCerts.size - 3} more` : '');
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedCerts.size} certification(s)?\n\n${displayNames}\n\nThis action cannot be undone.`)) {
+      return;
+    }
+    
+    setBulkDeleting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Delete certifications one by one
+    for (const certId of selectedCerts) {
+      try {
+        const { error } = await deleteCertification(certId);
+        if (error) {
+          errorCount++;
+          console.error('Failed to delete certification:', certId, error);
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        errorCount++;
+        console.error('Exception deleting certification:', certId, error);
+      }
+    }
+    
+    setBulkDeleting(false);
+    setSelectedCerts(new Set());
+    
+    if (errorCount > 0) {
+      alert(`Deleted ${successCount} certifications successfully. ${errorCount} failed to delete.`);
+    } else {
+      alert(`Successfully deleted ${successCount} certification(s).`);
     }
   };
 
@@ -360,10 +433,91 @@ const Categories = () => {
             {filteredCerts.length} total · {getTH(filteredCerts)}h total
           </span>
         </div>
+        
+        {/* Bulk Actions Bar */}
+        {(isAdmin || profile?.role === 'intern') && (
+          <div style={{ 
+            padding: '12px 20px', 
+            borderBottom: '1px solid var(--border2)', 
+            background: selectedCerts.size > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.02)',
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            transition: 'all 0.2s'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={handleSelectAll}
+                style={{ 
+                  fontSize: '11px', 
+                  padding: '6px 12px',
+                  color: selectedCerts.size > 0 ? 'var(--red-light)' : 'var(--gray)'
+                }}
+              >
+                {selectedCerts.size === filteredCerts.filter(c => isAdmin || profile?.intern_id === c.intern_id).length && filteredCerts.length > 0 ? (
+                  <><CheckSquare size={14} /> DESELECT ALL</>
+                ) : (
+                  <><Square size={14} /> SELECT ALL</>
+                )}
+              </button>
+              {selectedCerts.size > 0 && (
+                <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>
+                  {selectedCerts.size} selected
+                </span>
+              )}
+            </div>
+            
+            {selectedCerts.size > 0 && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="btn btn-outline"
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  style={{ 
+                    fontSize: '11px', 
+                    padding: '6px 16px',
+                    color: 'var(--red-light)',
+                    borderColor: 'var(--red-light)'
+                  }}
+                >
+                  <Trash2 size={14} /> {bulkDeleting ? 'DELETING...' : `DELETE ${selectedCerts.size}`}
+                </button>
+                
+                {!isAdmin && (
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => {
+                      const myCerts = filteredCerts.filter(c => profile?.intern_id === c.intern_id);
+                      setSelectedCerts(new Set(myCerts.map(c => c.id)));
+                    }}
+                    style={{ 
+                      fontSize: '11px', 
+                      padding: '6px 16px',
+                      color: 'var(--red-light)',
+                      borderColor: 'var(--red-light)'
+                    }}
+                  >
+                    SELECT ALL MINE
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ minWidth: '600px' }}>
             <thead>
               <tr>
+                {(isAdmin || profile?.role === 'intern') && <th style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedCerts.size > 0 && selectedCerts.size === filteredCerts.filter(c => isAdmin || profile?.intern_id === c.intern_id).length}
+                    onChange={handleSelectAll}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </th>}
                 {isAdmin && <th>NAME</th>}
                 <th>CERTIFICATION</th>
                 <th>CATEGORY</th>
@@ -380,7 +534,19 @@ const Categories = () => {
                 const isEditing = editingCert?.id === c.id;
                 
                 return (
-                  <tr key={c.id}>
+                  <tr key={c.id} style={{ background: selectedCerts.has(c.id) ? 'rgba(239, 68, 68, 0.1)' : 'transparent' }}>
+                    {(isAdmin || profile?.role === 'intern') && (
+                      <td>
+                        {canEdit && (
+                          <input
+                            type="checkbox"
+                            checked={selectedCerts.has(c.id)}
+                            onChange={() => handleSelectCert(c.id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        )}
+                      </td>
+                    )}
                     {isAdmin && (
                       <td>
                         <div className="intern-name-cell">
