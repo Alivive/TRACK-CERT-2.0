@@ -17,6 +17,7 @@ const ReadingList = () => {
   const [showAddBookModal, setShowAddBookModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [editingBook, setEditingBook] = useState(null);
   
@@ -474,7 +475,10 @@ const ReadingList = () => {
                           <button
                             className="btn btn-ghost"
                             style={{ padding: '5px 10px', fontSize: '10px', color: 'var(--blue)' }}
-                            title={assignment.notes}
+                            onClick={() => {
+                              setSelectedAssignment(assignment);
+                              setShowNotesModal(true);
+                            }}
                           >
                             VIEW NOTES
                           </button>
@@ -750,6 +754,82 @@ const ReadingList = () => {
                   CANCEL
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Notes Modal */}
+      {showNotesModal && selectedAssignment && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="card" style={{ maxWidth: '600px', width: '100%' }}>
+            <div className="card-header">
+              <span className="card-title">COMPLETION NOTES</span>
+              <button className="btn btn-ghost" style={{ padding: '5px' }} onClick={() => {
+                setShowNotesModal(false);
+                setSelectedAssignment(null);
+              }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="card-body">
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '6px' }}>{selectedAssignment.book_title}</h3>
+                <p style={{ fontSize: '14px', color: 'var(--gray)', marginBottom: '4px' }}>{selectedAssignment.book_author}</p>
+                {isAdmin && (
+                  <p style={{ fontSize: '13px', color: 'var(--gray2)' }}>
+                    Completed by: {selectedAssignment.intern_first_name} {selectedAssignment.intern_last_name}
+                  </p>
+                )}
+              </div>
+              
+              <div style={{ 
+                background: 'var(--black3)', 
+                border: '1px solid var(--border2)', 
+                borderRadius: '8px', 
+                padding: '16px',
+                marginBottom: '12px'
+              }}>
+                <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Notes
+                </div>
+                <div style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--white)', whiteSpace: 'pre-wrap' }}>
+                  {selectedAssignment.notes || 'No notes provided.'}
+                </div>
+              </div>
+
+              {selectedAssignment.completed_at && (
+                <div style={{ fontSize: '12px', color: 'var(--gray2)', textAlign: 'center' }}>
+                  Completed on {new Date(selectedAssignment.completed_at).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </div>
+              )}
+
+              <button 
+                className="btn btn-ghost" 
+                style={{ width: '100%', justifyContent: 'center', marginTop: '20px' }}
+                onClick={() => {
+                  setShowNotesModal(false);
+                  setSelectedAssignment(null);
+                }}
+              >
+                CLOSE
+              </button>
             </div>
           </div>
         </div>
