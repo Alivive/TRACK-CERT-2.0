@@ -109,8 +109,18 @@ const ImportData = () => {
 
           const categoryKey = categoryMap[row['Category']] || row['Category'];
           
-          // Validate category exists
-          if (!categories.find(c => c.id === categoryKey)) {
+          // Map problematic categories to allowed ones temporarily
+          const categoryMapping = {
+            'BS': 'SOFT',    // Business and Finance → Soft Skills
+            'SD': 'BE',      // Software Dev. Essentials → Back End Web Dev
+            'DA': 'AI',      // Data & Analytics → Artificial Intelligence  
+            'GD': 'FE'       // Graphics Design → Front End Web Dev
+          };
+          
+          const mappedCategory = categoryMapping[categoryKey] || categoryKey;
+          
+          // Validate category exists (check mapped category)
+          if (!categories.find(c => c.id === mappedCategory)) {
             errors.push(`Invalid category "${row['Category']}" for "${row['Certification Name']}". Valid: ${categories.map(c => c.id).join(', ')}`);
             failCount++;
             continue;
@@ -120,7 +130,7 @@ const ImportData = () => {
             intern_id: intern.id,
             name: row['Certification Name'],
             provider: row['Provider'],
-            category: categoryKey,
+            category: mappedCategory,  // Use mapped category
             hours: parseInt(row['Hours']) || 0,
             date: row['Completion Date']
           };

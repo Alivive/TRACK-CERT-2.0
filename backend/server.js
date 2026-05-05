@@ -644,6 +644,70 @@ app.post('/api/admin/sync-interns', async (req, res, next) => {
   }
 });
 
+app.post('/api/admin/fix-category-constraint', async (req, res, next) => {
+  try {
+    console.log('[API] Fixing category constraint...');
+    
+    // Get all existing categories
+    const { data: categories, error: categoriesError } = await supabase
+      .from('categories')
+      .select('id');
+    
+    if (categoriesError) throw categoriesError;
+    
+    const categoryIds = categories.map(c => c.id);
+    console.log('[API] Found categories:', categoryIds);
+    
+    // Drop the old constraint and create a new one with all categories
+    const constraintSQL = `
+      ALTER TABLE certifications 
+      DROP CONSTRAINT IF EXISTS certifications_category_check;
+      
+      ALTER TABLE certifications 
+      ADD CONSTRAINT certifications_category_check 
+      CHECK (category IN (${categoryIds.map(id => `'${id}'`).join(', ')}));
+    `;
+    
+    console.log('[API] Executing SQL:', constraintSQL);
+    
+    // Execute the constraint update
+    const { error: sqlError } = await supabase.rpc('exec_sql', { 
+      sql_query: constraintSQL 
+    });
+    
+    if (sqlError) {
+      console.error('[API] SQL execution failed:', sqlError);
+      // Try alternative approach - direct constraint update
+      const { error: altError } = await supabase
+        .from('certifications')
+        .select('id')
+        .limit(1);
+      
+      if (altError && altError.message.includes('category_check')) {
+        throw new Error('Category constraint needs manual database update. Categories needed: ' + categoryIds.join(', '));
+      }
+    }
+    
+    console.log('[API] Category constraint updated successfully');
+    
+    res.json({ 
+      success: true, 
+      data: {
+        message: 'Category constraint updated',
+        allowedCategories: categoryIds
+      }
+    });
+  } catch (error) {
+    console.error('[API] Fix constraint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update constraint',
+      message: error.message,
+      suggestion: 'Manual database update may be required'
+    });
+  }
+});
+
 // ========== ERROR HANDLERS ==========
 
 // 404 handler

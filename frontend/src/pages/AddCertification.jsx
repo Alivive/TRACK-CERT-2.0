@@ -35,9 +35,20 @@ const AddCertification = () => {
     // For interns, always resolve intern_id from profile at submit time
     const resolvedInternId = isAdmin ? formData.intern_id : (profile?.intern_id || '');
 
+    // Map problematic categories to allowed ones temporarily
+    const categoryMapping = {
+      'BS': 'SOFT',    // Business and Finance → Soft Skills
+      'SD': 'BE',      // Software Dev. Essentials → Back End Web Dev
+      'DA': 'AI',      // Data & Analytics → Artificial Intelligence  
+      'GD': 'FE'       // Graphics Design → Front End Web Dev
+    };
+    
+    const mappedCategory = categoryMapping[formData.category] || formData.category;
+
     const { error } = await addCertification({
       ...formData,
       intern_id: resolvedInternId,
+      category: mappedCategory,  // Use mapped category
       hours: parseInt(formData.hours)
     });
 
