@@ -32,6 +32,10 @@ const AdminPanel = () => {
   const [internSuccess, setInternSuccess] = useState(false);
   const [internError, setInternError] = useState('');
 
+  // Sync functionality
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -106,6 +110,36 @@ const AdminPanel = () => {
       await refreshProfile();
     }
     setSaving(false);
+  };
+
+  const handleSyncInterns = async () => {
+    if (!window.confirm('This will create intern records for all registered users with intern role who don\'t have them yet. Continue?')) {
+      return;
+    }
+    
+    setSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/sync-interns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setSyncResult(result.data);
+        // Refresh data
+        window.location.reload();
+      } else {
+        alert('Sync failed: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Sync failed: ' + error.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleAddIntern = async (e) => {
@@ -276,6 +310,29 @@ const AdminPanel = () => {
                 <CheckCircle size={18} /> Profile updated successfully!
               </div>
             )}
+            
+            {syncResult && (
+              <div className="success-banner" style={{ margin: '16px' }}>
+                <CheckCircle size={18} /> Sync completed! Created {syncResult.created} intern records, skipped {syncResult.skipped} existing.
+              </div>
+            )}
+            
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border2)', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: 'var(--white)', marginBottom: '4px' }}>Intern Record Sync</div>
+                  <div style={{ fontSize: '11px', color: 'var(--gray)' }}>Create intern records for registered users who don't have them</div>
+                </div>
+                <button
+                  className="btn btn-outline"
+                  onClick={handleSyncInterns}
+                  disabled={syncing}
+                  style={{ fontSize: '11px', padding: '8px 16px' }}
+                >
+                  <UserPlus size={14} /> {syncing ? 'SYNCING...' : 'SYNC INTERNS'}
+                </button>
+              </div>
+            </div>
             <div style={{ overflowX: 'auto' }}>
               <table>
                 <thead>

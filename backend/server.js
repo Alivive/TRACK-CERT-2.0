@@ -87,14 +87,49 @@ app.get('/api/users/:id', async (req, res, next) => {
 
 app.post('/api/users', async (req, res, next) => {
   try {
-    const { data, error } = await supabase
+    // Create user record
+    const { data: userData, error: userError } = await supabase
       .from('users')
       .insert([req.body])
       .select()
       .single();
     
-    if (error) throw error;
-    res.json({ success: true, data });
+    if (userError) throw userError;
+
+    // If the user role is 'intern', also create an intern record
+    if (req.body.role === 'intern' && req.body.full_name && req.body.email) {
+      console.log('[API] Creating intern record for new user:', req.body.email);
+      
+      // Parse full name into first and last name
+      const nameParts = req.body.full_name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      try {
+        const { data: internData, error: internError } = await supabase
+          .from('interns')
+          .insert([{
+            first_name: firstName,
+            last_name: lastName,
+            email: req.body.email,
+            start_date: new Date().toISOString().split('T')[0] // Today's date
+          }])
+          .select()
+          .single();
+        
+        if (internError) {
+          console.error('[API] Failed to create intern record:', internError);
+          // Don't fail the user creation, just log the error
+        } else {
+          console.log('[API] Intern record created successfully:', internData.id);
+        }
+      } catch (internCreationError) {
+        console.error('[API] Exception creating intern record:', internCreationError);
+        // Don't fail the user creation, just log the error
+      }
+    }
+    
+    res.json({ success: true, data: userData });
   } catch (error) {
     next(error);
   }
@@ -475,6 +510,84 @@ app.put('/api/admin-settings', async (req, res, next) => {
     
     if (error) throw error;
     res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ========== ADMIN UTILITIES API ==========
+
+app.post('/api/admin/sync-interns', async (req, res, next) => {
+  try {
+    console.log('[API] Starting intern sync process...');
+    
+    // Get all users with intern role
+    const { data: internUsers, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'intern');
+    
+    if (usersError) throw usersError;
+    
+    // Get all existing interns
+    const { data: existingInterns, error: internsError } = await supabase
+      .from('interns')
+      .select('email');
+    
+    if (internsError) throw internsError;
+    
+    const existingEmails = new Set(existingInterns.map(i => i.email.toLowerCase()));
+    const created = [];
+    const skipped = [];
+    
+    // Create intern records for users who don't have them
+    for (const user of internUsers) {
+      if (!user.email || existingEmails.has(user.email.toLowerCase())) {
+        skipped.push(user.email);
+        continue;
+      }
+      
+      // Parse full name
+      const nameParts = (user.full_name || '').trim().split(' ');
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      try {
+        const { data: newIntern, error: createError } = await supabase
+          .from('interns')
+          .insert([{
+            first_name: firstName,
+            last_name: lastName,
+            email: user.email,
+            start_date: new Date().toISOString().split('T')[0]
+          }])
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('[API] Failed to create intern for:', user.email, createError);
+          skipped.push(user.email);
+        } else {
+          console.log('[API] Created intern record for:', user.email);
+          created.push(user.email);
+        }
+      } catch (error) {
+        console.error('[API] Exception creating intern for:', user.email, error);
+        skipped.push(user.email);
+      }
+    }
+    
+    console.log('[API] Sync complete. Created:', created.length, 'Skipped:', skipped.length);
+    
+    res.json({ 
+      success: true, 
+      data: {
+        created: created.length,
+        skipped: skipped.length,
+        createdEmails: created,
+        skippedEmails: skipped
+      }
+    });
   } catch (error) {
     next(error);
   }
