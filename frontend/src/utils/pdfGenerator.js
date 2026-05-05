@@ -139,12 +139,26 @@ export const generateInternReport = async (intern, certifications, categories = 
   return html2pdf().from(element).set(opt).save();
 };
 
-export const generateSummaryReport = (interns, certifications, categories = {}) => {
+export const generateSummaryReport = async (interns, certifications, categories = {}) => {
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
   const totalCerts = certifications.length;
   const totalHours = getTH(certifications);
   const avgCerts = (totalCerts / Math.max(interns.length, 1)).toFixed(1);
   const avgHours = (totalHours / Math.max(interns.length, 1)).toFixed(1);
+  
+  // Fetch all book assignments
+  let allBookAssignments = [];
+  try {
+    const result = await booksClient.getAssignments();
+    if (result.success) {
+      allBookAssignments = result.data || [];
+    }
+  } catch (error) {
+    console.warn('[PDF] Could not load book assignments:', error);
+  }
+  
+  const totalBooksCompleted = allBookAssignments.filter(b => b.status === 'completed').length;
+  const totalBooksAssigned = allBookAssignments.length;
   
   // Use provided categories or fallback to empty object
   const CATS = categories;
@@ -172,8 +186,8 @@ export const generateSummaryReport = (interns, certifications, categories = {}) 
             { val: interns.length, lbl: 'Total Interns' },
             { val: totalCerts, lbl: 'Total Certifications' },
             { val: totalHours + 'h', lbl: 'Total Hours' },
-            { val: avgCerts, lbl: 'Avg Certs / Intern' },
-            { val: avgHours + 'h', lbl: 'Avg Hours / Intern' }
+            { val: totalBooksCompleted, lbl: 'Books Completed' },
+            { val: avgCerts, lbl: 'Avg Certs / Intern' }
           ].map(s => `
             <div style="background: #f0f2f5 !important; border-radius: 8px; padding: 20px 10px; text-align: center;">
               <div style="font-size: 20px; font-weight: 700; margin-bottom: 5px; color: #000000 !important;">${s.val}</div>
@@ -194,11 +208,14 @@ export const generateSummaryReport = (interns, certifications, categories = {}) 
               ${categoryKeys.map(k => `<th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">${k}</th>`).join('')}
               <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Total</th>
               <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Hours</th>
+              <th style="padding: 10px; border: 1px solid #333; color: #ffffff !important;">Books</th>
             </tr>
           </thead>
           <tbody>
             ${interns.map((i, idx) => {
               const ic = certifications.filter(c => c.intern_id === i.id);
+              const internBooks = allBookAssignments.filter(b => b.intern_id === i.id);
+              const completedBooks = internBooks.filter(b => b.status === 'completed').length;
               const catCnt = {};
               ic.forEach(c => catCnt[c.cat] = (catCnt[c.cat] || 0) + 1);
               return `
@@ -210,6 +227,7 @@ export const generateSummaryReport = (interns, certifications, categories = {}) 
                   ${categoryKeys.map(k => `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #000000 !important;">${catCnt[k] || 0}</td>`).join('')}
                   <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #000000 !important;">${ic.length}</td>
                   <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #000000 !important;">${getTH(ic)}h</td>
+                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 700; color: #2ecc71 !important;">${completedBooks}</td>
                 </tr>
               `;
             }).join('')}

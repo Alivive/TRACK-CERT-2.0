@@ -53,6 +53,7 @@ const ImportData = () => {
     setLoading(true);
     setError('');
     setResults(null);
+    setSuccess(false);
     
     try {
       const rows = await parseFile(file);
@@ -60,13 +61,13 @@ const ImportData = () => {
       let successCount = 0;
       let failCount = 0;
       const errors = [];
+      const newCertifications = [];
 
       for (const row of rows) {
         try {
           let intern;
           
           if (isAdmin) {
-            // Admin must specify the intern name for specificity purposes within the system
             const internName = row['Intern Name'] || row['Employee Name'];
             if (!internName) {
               errors.push(`Row skipped: Missing intern name`);
@@ -84,7 +85,6 @@ const ImportData = () => {
               continue;
             }
           } else {
-            // Intern: obviously use their own profile
             intern = interns.find(i => i.id === profile?.intern_id);
             
             if (!intern) {
@@ -93,7 +93,6 @@ const ImportData = () => {
               continue;
             }
             
-            // Optional: Verification of the  intern name if provided
             const internName = row['Intern Name'] || row['Employee Name'];
             if (internName && `${intern.first_name} ${intern.last_name}`.toLowerCase() !== internName.toLowerCase()) {
               errors.push(`Row skipped: You can only upload certifications for yourself (${intern.first_name} ${intern.last_name})`);
@@ -102,25 +101,32 @@ const ImportData = () => {
             }
           }
 
-          // Map category names to keys dynamically
           const categoryMap = {};
           categories.forEach(cat => {
             categoryMap[cat.name] = cat.id;
-            categoryMap[cat.id] = cat.id; // Also allow direct ID usage
+            categoryMap[cat.id] = cat.id;
           });
 
           const categoryKey = categoryMap[row['Category']] || row['Category'];
 
-          await addCertification({
+          const certData = {
             intern_id: intern.id,
             name: row['Certification Name'],
             provider: row['Provider'],
             category: categoryKey,
             hours: parseInt(row['Hours']) || 0,
             date: row['Completion Date']
-          });
+          };
 
-          successCount++;
+          const result = await addCertification(certData);
+          
+          if (result.data) {
+            newCertifications.push(result.data);
+            successCount++;
+          } else {
+            errors.push(`Failed to add: ${row['Certification Name']}`);
+            failCount++;
+          }
         } catch (err) {
           errors.push(`Error: ${err.message}`);
           failCount++;
@@ -129,11 +135,21 @@ const ImportData = () => {
 
       setResults({ successCount, failCount, errors });
       setSuccess(true);
+      
+      // Force refresh data after import
       await refreshData();
+      
+      // Show success for 5 seconds then allow new upload
+      setTimeout(() => {
+        setSuccess(false);
+      }, 5000);
+      
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      // Reset file input
+      e.target.value = '';
     }
   };
 
