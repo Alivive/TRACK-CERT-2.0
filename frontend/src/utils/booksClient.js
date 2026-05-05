@@ -1,18 +1,18 @@
-// Books API Client - Uses Backend API
-import { apiClient } from './apiClient';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Books API Client using Supabase directly
+import { supabase } from './supabaseClient';
 
 export const booksClient = {
   // ========== BOOKS ==========
   
   async getBooks() {
     try {
-      const response = await fetch(`${API_BASE}/api/books`);
-      const result = await response.json();
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .order('title', { ascending: true });
       
-      if (!result.success) throw new Error(result.message || 'Failed to get books');
-      return { success: true, data: result.data };
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('[BOOKS] Get books error:', error);
       return { success: false, error };
@@ -21,15 +21,16 @@ export const booksClient = {
 
   async addBook(bookData) {
     try {
-      const response = await fetch(`${API_BASE}/api/books`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookData)
-      });
-      const result = await response.json();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!result.success) throw new Error(result.message || 'Failed to add book');
-      return { success: true, data: result.data };
+      const { data, error } = await supabase
+        .from('books')
+        .insert([{ ...bookData, created_by: user?.id }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('[BOOKS] Add book error:', error);
       return { success: false, error };
@@ -38,15 +39,15 @@ export const booksClient = {
 
   async updateBook(id, updates) {
     try {
-      const response = await fetch(`${API_BASE}/api/books/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      const result = await response.json();
+      const { data, error } = await supabase
+        .from('books')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
       
-      if (!result.success) throw new Error(result.message || 'Failed to update book');
-      return { success: true, data: result.data };
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('[BOOKS] Update book error:', error);
       return { success: false, error };
@@ -55,12 +56,12 @@ export const booksClient = {
 
   async deleteBook(id) {
     try {
-      const response = await fetch(`${API_BASE}/api/books/${id}`, {
-        method: 'DELETE'
-      });
-      const result = await response.json();
+      const { error } = await supabase
+        .from('books')
+        .delete()
+        .eq('id', id);
       
-      if (!result.success) throw new Error(result.message || 'Failed to delete book');
+      if (error) throw error;
       return { success: true };
     } catch (error) {
       console.error('[BOOKS] Delete book error:', error);
@@ -72,15 +73,19 @@ export const booksClient = {
 
   async getAssignments(internId = null) {
     try {
-      const url = internId 
-        ? `${API_BASE}/api/book-assignments?intern_id=${internId}`
-        : `${API_BASE}/api/book-assignments`;
+      let query = supabase
+        .from('book_assignment_details')
+        .select('*')
+        .order('assigned_at', { ascending: false });
       
-      const response = await fetch(url);
-      const result = await response.json();
+      if (internId) {
+        query = query.eq('intern_id', internId);
+      }
       
-      if (!result.success) throw new Error(result.message || 'Failed to get assignments');
-      return { success: true, data: result.data };
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('[BOOKS] Get assignments error:', error);
       return { success: false, error };
@@ -89,20 +94,22 @@ export const booksClient = {
 
   async assignBook(bookId, internId, dueDate = null) {
     try {
-      const response = await fetch(`${API_BASE}/api/book-assignments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('book_assignments')
+        .insert([{
           book_id: bookId,
           intern_id: internId,
+          assigned_by: user?.id,
           due_date: dueDate,
           status: 'assigned'
-        })
-      });
-      const result = await response.json();
+        }])
+        .select()
+        .single();
       
-      if (!result.success) throw new Error(result.message || 'Failed to assign book');
-      return { success: true, data: result.data };
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('[BOOKS] Assign book error:', error);
       return { success: false, error };
@@ -123,15 +130,15 @@ export const booksClient = {
         updates.notes = notes;
       }
       
-      const response = await fetch(`${API_BASE}/api/book-assignments/${assignmentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      const result = await response.json();
+      const { data, error } = await supabase
+        .from('book_assignments')
+        .update(updates)
+        .eq('id', assignmentId)
+        .select()
+        .single();
       
-      if (!result.success) throw new Error(result.message || 'Failed to update assignment');
-      return { success: true, data: result.data };
+      if (error) throw error;
+      return { success: true, data };
     } catch (error) {
       console.error('[BOOKS] Update assignment error:', error);
       return { success: false, error };
@@ -140,12 +147,12 @@ export const booksClient = {
 
   async deleteAssignment(assignmentId) {
     try {
-      const response = await fetch(`${API_BASE}/api/book-assignments/${assignmentId}`, {
-        method: 'DELETE'
-      });
-      const result = await response.json();
+      const { error } = await supabase
+        .from('book_assignments')
+        .delete()
+        .eq('id', assignmentId);
       
-      if (!result.success) throw new Error(result.message || 'Failed to delete assignment');
+      if (error) throw error;
       return { success: true };
     } catch (error) {
       console.error('[BOOKS] Delete assignment error:', error);
@@ -157,17 +164,18 @@ export const booksClient = {
 
   async getReadingStats(internId) {
     try {
-      const response = await fetch(`${API_BASE}/api/book-assignments?intern_id=${internId}`);
-      const result = await response.json();
+      const { data, error } = await supabase
+        .from('book_assignments')
+        .select('status')
+        .eq('intern_id', internId);
       
-      if (!result.success) throw new Error(result.message || 'Failed to get stats');
+      if (error) throw error;
       
-      const assignments = result.data;
       const stats = {
-        total: assignments.length,
-        assigned: assignments.filter(a => a.status === 'assigned').length,
-        inProgress: assignments.filter(a => a.status === 'in-progress').length,
-        completed: assignments.filter(a => a.status === 'completed').length
+        total: data.length,
+        assigned: data.filter(a => a.status === 'assigned').length,
+        inProgress: data.filter(a => a.status === 'in-progress').length,
+        completed: data.filter(a => a.status === 'completed').length
       };
       
       return { success: true, data: stats };
