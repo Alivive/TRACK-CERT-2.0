@@ -32,13 +32,16 @@ const Categories = () => {
   const CATS = categories.length > 0 ? getCategoryObject() : {};
   const CAT_BADGE = categories.length > 0 ? getCategoryBadges() : {};
 
-  // Category groups for filtering
-  const categoryGroups = {
-    'all': ['AI', 'FE', 'BE', 'API', 'CYBER', 'CLOUD', 'SOFT'],
-    'web-dev': ['FE', 'BE', 'API'],
-    'security-cloud': ['CYBER', 'CLOUD'],
-    'ai-apis': ['AI', 'API']
-  };
+  // Category groups for filtering - use dynamic categories
+  const categoryGroups = useMemo(() => {
+    const allCategoryIds = Object.keys(CATS);
+    return {
+      'all': allCategoryIds,
+      'web-dev': ['FE', 'BE', 'API'].filter(id => allCategoryIds.includes(id)),
+      'security-cloud': ['CYBER', 'CLOUD'].filter(id => allCategoryIds.includes(id)),
+      'ai-apis': ['AI', 'API'].filter(id => allCategoryIds.includes(id))
+    };
+  }, [CATS]);
 
   const handleDeleteCert = async (certId) => {
     const cert = certifications.find(c => c.id === certId);
