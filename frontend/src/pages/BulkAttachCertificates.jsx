@@ -6,7 +6,7 @@ import { Upload, CheckCircle, X, Paperclip, RefreshCw, Zap } from 'lucide-react'
 const BulkAttachCertificates = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const { certifications, refreshData } = useDatabase();
+  const { certifications, refreshData, interns } = useDatabase();
   
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
@@ -37,18 +37,26 @@ const BulkAttachCertificates = () => {
   }, [refreshData]);
 
   // Get unique interns with their names for filter
-  const interns = useMemo(() => {
-    const unique = {};
+  const internsForFilter = useMemo(() => {
+    if (!isAdmin) return [];
+    
+    // Get unique intern IDs from certifications
+    const certInternIds = new Set();
     certifications.forEach(c => {
-      if (!unique[c.intern_id]) {
-        unique[c.intern_id] = {
-          id: c.intern_id,
-          name: c.intern_name || c.intern_id // Use intern_name if available, fallback to ID
-        };
+      if (c.intern_id) {
+        certInternIds.add(c.intern_id);
       }
     });
-    return Object.values(unique);
-  }, [certifications]);
+    
+    // Map to intern objects with names
+    return Array.from(certInternIds).map(internId => {
+      const internData = interns.find(i => i.id === internId);
+      return {
+        id: internId,
+        name: internData?.full_name || internData?.name || internId
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [certifications, interns, isAdmin]);
 
   // Filter certifications without attachments
   const certsWithoutFiles = useMemo(() => {
@@ -273,7 +281,7 @@ const BulkAttachCertificates = () => {
               style={{ fontSize: '13px' }}
             >
               <option value="all">All Interns</option>
-              {interns.map(intern => (
+              {internsForFilter.map(intern => (
                 <option key={intern.id} value={intern.id}>
                   {intern.name}
                 </option>
@@ -283,7 +291,7 @@ const BulkAttachCertificates = () => {
               📋 Uploading certificates for: <strong>
                 {filterIntern === 'all' 
                   ? 'All Interns' 
-                  : interns.find(i => i.id === filterIntern)?.name || filterIntern
+                  : internsForFilter.find(i => i.id === filterIntern)?.name || filterIntern
                 }
               </strong>
             </div>
