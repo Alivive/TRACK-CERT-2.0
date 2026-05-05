@@ -108,6 +108,13 @@ const ImportData = () => {
           });
 
           const categoryKey = categoryMap[row['Category']] || row['Category'];
+          
+          // Validate category exists
+          if (!categories.find(c => c.id === categoryKey)) {
+            errors.push(`Invalid category "${row['Category']}" for "${row['Certification Name']}". Valid: ${categories.map(c => c.id).join(', ')}`);
+            failCount++;
+            continue;
+          }
 
           const certData = {
             intern_id: intern.id,
