@@ -368,9 +368,9 @@ export const generateSummaryReport = async (interns, certifications, categories 
 
         <!-- All Interns Table -->
         <div style="margin-bottom: 48px;">
-          <div style="background: #0f172a; color: white; padding: 16px 24px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">■ All Interns — Certification Summary</h3>
-            <span style="font-size: 13px; color: #94a3b8;">${interns.length} active interns · ${totalCerts} total certifications</span>
+          <div style="background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ All Interns — Certification Summary</h3>
+            <span style="font-size: 12px; color: #94a3b8;">${interns.length} active interns · ${totalCerts} total certifications</span>
           </div>
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
             ${interns.map((i, idx) => {
@@ -382,39 +382,41 @@ export const generateSummaryReport = async (interns, certifications, categories 
               const totalHours = getTH(ic);
               
               return `
-                <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 20px;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0;">
-                    ${idx + 1}
+                <div style="padding: 16px 20px; border-bottom: 1px solid #f1f5f9;">
+                  <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
+                      ${idx + 1}
+                    </div>
+                    <div style="flex: 1;">
+                      <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">${i.first} ${i.last}</div>
+                      <div style="font-size: 11px; color: #64748b;">${i.email}</div>
+                      <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-top: 2px;">INTERN</div>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                      <div style="text-align: center;">
+                        <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${ic.length}</div>
+                        <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">TOTAL</div>
+                      </div>
+                      <div style="text-align: center;">
+                        <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${totalHours}h</div>
+                        <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">HOURS</div>
+                      </div>
+                      <div style="text-align: center;">
+                        <div style="font-size: 16px; font-weight: 800; color: #10b981;">${completedBooks}</div>
+                        <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">BOOKS</div>
+                      </div>
+                    </div>
                   </div>
-                  <div style="flex: 1; min-width: 200px;">
-                    <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 2px;">${i.first} ${i.last}</div>
-                    <div style="font-size: 12px; color: #64748b;">${i.email}</div>
-                    <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-top: 2px;">INTERN</div>
-                  </div>
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-width: 400px;">
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-left: 44px;">
                     ${categoryKeys.map(k => {
                       const count = catCnt[k] || 0;
                       const color = categoryColors[k] || '#6366f1';
                       return `
-                        <div style="background: ${count > 0 ? color : '#f1f5f9'}; color: ${count > 0 ? 'white' : '#94a3b8'}; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; min-width: 32px; text-align: center;">
+                        <div style="background: ${count > 0 ? color : '#f1f5f9'}; color: ${count > 0 ? 'white' : '#94a3b8'}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; min-width: 28px; text-align: center;">
                           ${count}
                         </div>
                       `;
                     }).join('')}
-                  </div>
-                  <div style="display: flex; gap: 16px; align-items: center; min-width: 120px; justify-content: flex-end;">
-                    <div style="text-align: center;">
-                      <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${ic.length}</div>
-                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">TOTAL</div>
-                    </div>
-                    <div style="text-align: center;">
-                      <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${totalHours}h</div>
-                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">HOURS</div>
-                    </div>
-                    <div style="text-align: center;">
-                      <div style="font-size: 18px; font-weight: 800; color: #10b981;">${completedBooks}</div>
-                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">BOOKS</div>
-                    </div>
                   </div>
                 </div>
               `;
@@ -424,11 +426,11 @@ export const generateSummaryReport = async (interns, certifications, categories 
 
         <!-- Category Breakdown -->
         <div style="margin-bottom: 48px;">
-          <div style="background: #0f172a; color: white; padding: 16px 24px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">■ Category Breakdown</h3>
-            <span style="font-size: 13px; color: #94a3b8;">${categoryKeys.length} categories · ${totalHours} total hours</span>
+          <div style="background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Category Breakdown</h3>
+            <span style="font-size: 12px; color: #94a3b8;">${categoryKeys.length} categories · ${totalHours} total hours</span>
           </div>
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 32px;">
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 24px 20px;">
             ${Object.keys(CATS).map(key => {
               const catCerts = certifications.filter(c => c.cat === key);
               const catHours = getTH(catCerts);
@@ -437,24 +439,24 @@ export const generateSummaryReport = async (interns, certifications, categories 
               const color = categoryColors[key] || '#6366f1';
               
               return `
-                <div style="display: flex; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9;">
-                  <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 200px;">
-                    <div style="width: 16px; height: 16px; border-radius: 4px; background: ${color}; flex-shrink: 0;"></div>
-                    <span style="font-size: 15px; font-weight: 600; color: #0f172a;">${CATS[key].name}</span>
+                <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+                  <div style="display: flex; align-items: center; gap: 12px; width: 180px; flex-shrink: 0;">
+                    <div style="width: 14px; height: 14px; border-radius: 3px; background: ${color}; flex-shrink: 0;"></div>
+                    <span style="font-size: 13px; font-weight: 600; color: #0f172a;">${CATS[key].name}</span>
                   </div>
-                  <div style="flex: 2; margin: 0 24px;">
-                    <div style="background: #f1f5f9; height: 8px; border-radius: 4px; overflow: hidden;">
-                      <div style="background: ${color}; height: 100%; width: ${percentage}%; border-radius: 4px;"></div>
+                  <div style="flex: 1; margin: 0 16px; max-width: 200px;">
+                    <div style="background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
+                      <div style="background: ${color}; height: 100%; width: ${Math.min(percentage, 100)}%; border-radius: 3px;"></div>
                     </div>
                   </div>
-                  <div style="display: flex; gap: 32px; align-items: center; min-width: 200px; justify-content: flex-end;">
-                    <div style="background: ${color}; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                  <div style="display: flex; gap: 20px; align-items: center; width: 160px; justify-content: flex-end;">
+                    <div style="background: ${color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700;">
                       ${catCerts.length}
                     </div>
-                    <div style="font-size: 14px; font-weight: 600; color: #0f172a; min-width: 40px; text-align: right;">
+                    <div style="font-size: 12px; font-weight: 600; color: #0f172a; width: 35px; text-align: right;">
                       ${catHours}h
                     </div>
-                    <div style="font-size: 14px; color: #64748b; min-width: 40px; text-align: right;">
+                    <div style="font-size: 12px; color: #64748b; width: 35px; text-align: right;">
                       ${avgHours}${catCerts.length > 0 ? 'h' : ''}
                     </div>
                   </div>
@@ -466,30 +468,30 @@ export const generateSummaryReport = async (interns, certifications, categories 
 
         <!-- Quick Insights -->
         <div style="margin-bottom: 32px;">
-          <div style="background: #0f172a; color: white; padding: 16px 24px; border-radius: 12px 12px 0 0;">
-            <h3 style="margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;">■ Quick Insights</h3>
+          <div style="background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px 12px 0 0;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">■ Quick Insights</h3>
           </div>
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 32px;">
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px;">
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 24px 20px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
               <div>
-                <div style="font-size: 12px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">TOP CATEGORY</div>
-                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${topCategory.name}</div>
-                <div style="font-size: 12px; color: #64748b;">${topCategory.count} certifications</div>
+                <div style="font-size: 11px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">TOP CATEGORY</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 3px;">${topCategory.name}</div>
+                <div style="font-size: 11px; color: #64748b;">${topCategory.count} certifications</div>
               </div>
               <div>
-                <div style="font-size: 12px; color: #06b6d4; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">MOST HOURS</div>
-                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${mostHours.name}</div>
-                <div style="font-size: 12px; color: #64748b;">${mostHours.hours}h total</div>
+                <div style="font-size: 11px; color: #06b6d4; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">MOST HOURS</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 3px;">${mostHours.name}</div>
+                <div style="font-size: 11px; color: #64748b;">${mostHours.hours}h total</div>
               </div>
               <div>
-                <div style="font-size: 12px; color: #f97316; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">TOP PROVIDER</div>
-                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${topProvider}</div>
-                <div style="font-size: 12px; color: #64748b;">${providers[topProvider] || 0} certifications</div>
+                <div style="font-size: 11px; color: #f97316; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">TOP PROVIDER</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 3px;">${topProvider}</div>
+                <div style="font-size: 11px; color: #64748b;">${providers[topProvider] || 0} certifications</div>
               </div>
               <div>
-                <div style="font-size: 12px; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">HIGHEST AVG</div>
-                <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${highestAvg.name}</div>
-                <div style="font-size: 12px; color: #64748b;">${highestAvg.avgHours.toFixed(1)}h per cert</div>
+                <div style="font-size: 11px; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">HIGHEST AVG</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 3px;">${highestAvg.name}</div>
+                <div style="font-size: 11px; color: #64748b;">${highestAvg.avgHours.toFixed(1)}h per cert</div>
               </div>
             </div>
           </div>
