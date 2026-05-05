@@ -7,8 +7,17 @@ import App from './App.jsx'
 const APP_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toString();
 const STORED_VERSION = localStorage.getItem('app_version');
 
-if (STORED_VERSION !== APP_VERSION) {
-  console.log(`[APP] New build detected (${new Date(parseInt(APP_VERSION)).toLocaleString()}) - clearing caches`);
+// Only clear cache if version actually changed AND we haven't just cleared it
+const LAST_CLEAR_TIME = localStorage.getItem('last_cache_clear');
+const NOW = Date.now();
+const CLEAR_COOLDOWN = 10000; // 10 seconds cooldown to prevent loops
+
+if (STORED_VERSION !== APP_VERSION && (!LAST_CLEAR_TIME || (NOW - parseInt(LAST_CLEAR_TIME)) > CLEAR_COOLDOWN)) {
+  console.log(`[APP] New build detected - clearing caches (one time only)`);
+  
+  // Update version FIRST to prevent loops
+  localStorage.setItem('app_version', APP_VERSION);
+  localStorage.setItem('last_cache_clear', NOW.toString());
   
   // Clear all caches
   if ('caches' in window) {
@@ -33,23 +42,15 @@ if (STORED_VERSION !== APP_VERSION) {
     });
   }
   
-  // Clear localStorage except version
-  const keysToKeep = ['app_version'];
-  Object.keys(localStorage).forEach(key => {
-    if (!keysToKeep.includes(key)) {
-      localStorage.removeItem(key);
-    }
-  });
+  console.log('[APP] Cache cleared - reloading once');
   
-  // Update stored version
-  localStorage.setItem('app_version', APP_VERSION);
-  
-  console.log('[APP] Cache cleared - reloading with fresh data');
-  
-  // Force reload to get fresh data
+  // Force reload ONCE
   setTimeout(() => {
     window.location.reload(true);
   }, 500);
+} else if (STORED_VERSION !== APP_VERSION) {
+  // Version changed but we're in cooldown - just update version
+  localStorage.setItem('app_version', APP_VERSION);
 }
 
 createRoot(document.getElementById('root')).render(
