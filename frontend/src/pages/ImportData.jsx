@@ -124,11 +124,11 @@ const ImportData = () => {
             newCertifications.push(result.data);
             successCount++;
           } else {
-            errors.push(`Failed to add: ${row['Certification Name']}`);
+            errors.push(`Failed to add "${row['Certification Name']}": ${result.error?.message || 'Unknown error'}`);
             failCount++;
           }
         } catch (err) {
-          errors.push(`Error: ${err.message}`);
+          errors.push(`Error adding "${row['Certification Name']}": ${err.message}`);
           failCount++;
         }
       }
