@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { useCategories } from '../context/CategoriesContext';
 import { supabase } from '../utils/supabaseClient';
-import { CATS } from '../utils/mockData';
-import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X, ExternalLink, Paperclip } from 'lucide-react';
 import { generateInternReport } from '../utils/pdfGenerator';
 
 const InternProfiles = () => {
   const { profile: authProfile } = useAuth();
   const isAdmin = authProfile?.role === 'admin';
+  const { categories, getCategoryObject } = useCategories();
   const { 
     interns = [], 
     certifications = [], 
@@ -18,6 +19,9 @@ const InternProfiles = () => {
     addIntern,
     updateIntern
   } = useDatabase();
+  
+  // Use dynamic categories
+  const CATS = getCategoryObject();
   
   // SECURITY FIX: For non-admin users, ensure they have an intern_id
   // If not, show error message instead of wrong data
@@ -151,7 +155,10 @@ const InternProfiles = () => {
       provider: cert.provider,
       hours: cert.hours,
       date: cert.date,
-      category: cert.category
+      category: cert.category,
+      certificate_url: cert.certificate_url || '',
+      certificate_file: null,
+      certificate_file_url: cert.certificate_file_url || ''
     });
   };
 
@@ -307,6 +314,32 @@ const InternProfiles = () => {
                                     />
                                   </div>
                                 </div>
+                                <div>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE URL</label>
+                                  <input
+                                    type="url"
+                                    className="form-input"
+                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                    value={editCertForm.certificate_url}
+                                    onChange={(e) => setEditCertForm({ ...editCertForm, certificate_url: e.target.value })}
+                                    placeholder="https://coursera.org/share/abc123"
+                                  />
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE FILE</label>
+                                  <input
+                                    type="file"
+                                    className="form-input"
+                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                    onChange={(e) => setEditCertForm({ ...editCertForm, certificate_file: e.target.files[0] })}
+                                  />
+                                  {editCertForm.certificate_file_url && (
+                                    <div style={{ fontSize: '10px', color: 'var(--gray)', marginTop: '4px' }}>
+                                      Current: <a href={editCertForm.certificate_file_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)' }}>View attachment</a>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                                 <button 
@@ -330,6 +363,31 @@ const InternProfiles = () => {
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.name}</div>
                                 <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{c.provider} · {c.date}</div>
+                                {/* Certificate Links */}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                  {c.certificate_url && (
+                                    <a 
+                                      href={c.certificate_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      style={{ fontSize: '10px', color: 'var(--blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
+                                      title="View Certificate"
+                                    >
+                                      <ExternalLink size={10} /> CERT
+                                    </a>
+                                  )}
+                                  {c.certificate_file_url && (
+                                    <a 
+                                      href={c.certificate_file_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      style={{ fontSize: '10px', color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
+                                      title="View Attachment"
+                                    >
+                                      <Paperclip size={10} /> FILE
+                                    </a>
+                                  )}
+                                </div>
                               </div>
                               <div className="cert-hours">
                                 <div>{c.hours}</div>

@@ -11,14 +11,17 @@ class ApiClient {
     
     const config = {
       headers: {
-        'Content-Type': 'application/json',
         ...options.headers,
       },
       ...options,
     };
 
-    if (config.body && typeof config.body === 'object') {
-      config.body = JSON.stringify(config.body);
+    // Only set Content-Type for non-FormData requests
+    if (!(config.body instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+      if (config.body && typeof config.body === 'object') {
+        config.body = JSON.stringify(config.body);
+      }
     }
 
     try {
@@ -112,11 +115,39 @@ class ApiClient {
   }
 
   async addCertification(certData) {
-    return this.post('/api/certifications', certData);
+    // Handle file upload
+    if (certData.certificate_file) {
+      const formData = new FormData();
+      
+      // Add all fields to FormData
+      Object.keys(certData).forEach(key => {
+        if (certData[key] !== null && certData[key] !== undefined) {
+          formData.append(key, certData[key]);
+        }
+      });
+      
+      return this.post('/api/certifications', formData);
+    } else {
+      return this.post('/api/certifications', certData);
+    }
   }
 
   async updateCertification(id, updates) {
-    return this.put(`/api/certifications/${id}`, updates);
+    // Handle file upload
+    if (updates.certificate_file) {
+      const formData = new FormData();
+      
+      // Add all fields to FormData
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== null && updates[key] !== undefined) {
+          formData.append(key, updates[key]);
+        }
+      });
+      
+      return this.put(`/api/certifications/${id}`, formData);
+    } else {
+      return this.put(`/api/certifications/${id}`, updates);
+    }
   }
 
   async deleteCertification(id) {

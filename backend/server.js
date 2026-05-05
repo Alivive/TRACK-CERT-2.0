@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '@supabase/supabase-js';
 
 // Load environment variables
@@ -21,6 +23,24 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow images and PDFs
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, and PDF files are allowed.'));
+    }
+  }
+});
 
 // Request logging
 app.use((req, res, next) => {
@@ -267,11 +287,50 @@ app.get('/api/certifications', async (req, res, next) => {
   }
 });
 
-app.post('/api/certifications', async (req, res, next) => {
+app.post('/api/certifications', upload.single('certificate_file'), async (req, res, next) => {
   try {
+    let certificateFileUrl = null;
+    
+    // Handle file upload if present
+    if (req.file) {
+      const fileExtension = req.file.originalname.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExtension}`;
+      const filePath = `certificates/${fileName}`;
+      
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('certificate-attachments')
+        .upload(filePath, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('File upload error:', uploadError);
+        throw new Error('Failed to upload certificate file: ' + uploadError.message);
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('certificate-attachments')
+        .getPublicUrl(filePath);
+      
+      certificateFileUrl = urlData.publicUrl;
+    }
+    
+    // Prepare certification data
+    const certificationData = {
+      ...req.body,
+      certificate_file_url: certificateFileUrl
+    };
+    
+    // Remove fields that are not database columns
+    delete certificationData.certificate_file;
+    delete certificationData.verification_url;
+    
     const { data, error } = await supabase
       .from('certifications')
-      .insert([req.body])
+      .insert([certificationData])
       .select()
       .single();
     
@@ -282,11 +341,63 @@ app.post('/api/certifications', async (req, res, next) => {
   }
 });
 
-app.put('/api/certifications/:id', async (req, res, next) => {
+app.put('/api/certifications/:id', upload.single('certificate_file'), async (req, res, next) => {
   try {
+    let updateData = { ...req.body };
+    
+    // Handle file upload if present
+    if (req.file) {
+      // Get existing certification to potentially delete old file
+      const { data: existingCert } = await supabase
+        .from('certifications')
+        .select('certificate_file_url')
+        .eq('id', req.params.id)
+        .single();
+      
+      const fileExtension = req.file.originalname.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExtension}`;
+      const filePath = `certificates/${fileName}`;
+      
+      // Upload new file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('certificate-attachments')
+        .upload(filePath, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('File upload error:', uploadError);
+        throw new Error('Failed to upload certificate file: ' + uploadError.message);
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('certificate-attachments')
+        .getPublicUrl(filePath);
+      
+      updateData.certificate_file_url = urlData.publicUrl;
+      
+      // Delete old file if it exists
+      if (existingCert?.certificate_file_url) {
+        try {
+          const oldFilePath = existingCert.certificate_file_url.split('/').pop();
+          await supabase.storage
+            .from('certificate-attachments')
+            .remove([`certificates/${oldFilePath}`]);
+        } catch (deleteError) {
+          console.warn('Could not delete old certificate file:', deleteError);
+        }
+      }
+    }
+    
+    // Remove fields that are not database columns
+    delete updateData.certificate_file;
+    delete updateData.verification_url;
+    
     const { data, error } = await supabase
       .from('certifications')
-      .update(req.body)
+      .update(updateData)
       .eq('id', req.params.id)
       .select()
       .single();
@@ -300,12 +411,33 @@ app.put('/api/certifications/:id', async (req, res, next) => {
 
 app.delete('/api/certifications/:id', async (req, res, next) => {
   try {
+    // Get certification to delete associated file
+    const { data: cert } = await supabase
+      .from('certifications')
+      .select('certificate_file_url')
+      .eq('id', req.params.id)
+      .single();
+    
+    // Delete the certification record
     const { error } = await supabase
       .from('certifications')
       .delete()
       .eq('id', req.params.id);
     
     if (error) throw error;
+    
+    // Delete associated file if it exists
+    if (cert?.certificate_file_url) {
+      try {
+        const filePath = cert.certificate_file_url.split('/').pop();
+        await supabase.storage
+          .from('certificate-attachments')
+          .remove([`certificates/${filePath}`]);
+      } catch (deleteError) {
+        console.warn('Could not delete certificate file:', deleteError);
+      }
+    }
+    
     res.json({ success: true });
   } catch (error) {
     next(error);

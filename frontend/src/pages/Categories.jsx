@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square, ExternalLink, Eye } from 'lucide-react';
+import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square, ExternalLink, Paperclip } from 'lucide-react';
 
 const Categories = () => {
   const { profile } = useAuth();
@@ -641,19 +641,19 @@ const Categories = () => {
                             <ExternalLink size={12} />
                           </a>
                         )}
-                        {c.verification_url && (
+                        {c.certificate_file_url && (
                           <a 
-                            href={c.verification_url} 
+                            href={c.certificate_file_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="btn btn-ghost"
-                            style={{ padding: '4px', color: 'var(--green)', fontSize: '10px' }}
-                            title="Verify Certificate"
+                            style={{ padding: '4px', color: 'var(--orange)', fontSize: '10px' }}
+                            title="View Certificate File"
                           >
-                            <Eye size={12} />
+                            <Paperclip size={12} />
                           </a>
                         )}
-                        {!c.certificate_url && !c.verification_url && (
+                        {!c.certificate_url && !c.certificate_file_url && (
                           <span style={{ fontSize: '10px', color: 'var(--gray)' }}>—</span>
                         )}
                       </div>

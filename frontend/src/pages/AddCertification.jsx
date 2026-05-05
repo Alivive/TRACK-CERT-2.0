@@ -24,8 +24,8 @@ const AddCertification = () => {
     hours: '',
     date: new Date().toISOString().split('T')[0],
     certificate_url: '',
-    verification_url: '',
-    certificate_file: null
+    certificate_file: null,
+    certificate_file_url: ''
   });
 
   // Derive intern_id at submit time so we always have the latest profile value
@@ -65,8 +65,8 @@ const AddCertification = () => {
         hours: '',
         date: new Date().toISOString().split('T')[0],
         certificate_url: '',
-        verification_url: '',
-        certificate_file: null
+        certificate_file: null,
+        certificate_file_url: ''
       });
       setTimeout(() => setSuccess(false), 3000);
     } else {
@@ -176,37 +176,21 @@ const AddCertification = () => {
             {/* Certificate Attachments Section */}
             <div style={{ marginTop: '20px', padding: '20px', background: 'var(--black4)', borderRadius: '8px' }}>
               <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', color: 'var(--white)', fontWeight: '600' }}>
-                📎 CERTIFICATE PROOF (Required)
+                📎 CERTIFICATE DATA
               </h4>
               
-              <div className="grid-2" style={{ gap: '20px' }}>
-                <div className="form-group">
-                  <label className="form-label">Certificate Image/PDF *</label>
-                  <input 
-                    type="file" 
-                    className="form-input" 
-                    accept=".pdf,.jpg,.jpeg,.png,.webp"
-                    required
-                    onChange={(e) => setFormData({...formData, certificate_file: e.target.files[0]})}
-                    style={{ padding: '8px' }}
-                  />
-                  <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '5px' }}>
-                    Upload certificate image or PDF (Max 5MB) - Required
-                  </div>
-                </div>
-                
-                <div className="form-group">
-                  <label className="form-label">Verification URL</label>
-                  <input 
-                    type="url" 
-                    className="form-input" 
-                    placeholder="https://verify.provider.com/cert/123456" 
-                    value={formData.verification_url}
-                    onChange={(e) => setFormData({...formData, verification_url: e.target.value})}
-                  />
-                  <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '5px' }}>
-                    Link to verify certificate authenticity
-                  </div>
+              <div className="form-group">
+                <label className="form-label">Certificate Image/PDF *</label>
+                <input 
+                  type="file" 
+                  className="form-input" 
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  required
+                  onChange={(e) => setFormData({...formData, certificate_file: e.target.files[0]})}
+                  style={{ padding: '8px' }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '5px' }}>
+                  Upload certificate image or PDF (Max 5MB) - Required
                 </div>
               </div>
               
