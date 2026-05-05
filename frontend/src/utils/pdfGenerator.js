@@ -369,7 +369,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
               const totalHours = getTH(ic);
               
               return `
-                <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; ${idx > 0 && idx % 15 === 0 ? 'page-break-before: always;' : ''}">
+                <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                     <div style="width: 22px; height: 22px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;">
                       ${idx + 1}
