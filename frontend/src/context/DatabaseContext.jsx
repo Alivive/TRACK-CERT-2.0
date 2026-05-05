@@ -161,9 +161,20 @@ export const DatabaseProvider = ({ children }) => {
 
   const deleteCertification = async (id) => {
     try {
-      // Note: Backend doesn't have delete endpoint yet, keeping for future
-      setCertifications(prev => prev.filter(c => c.id !== id));
-      return { data: true };
+      if (navigator.onLine) {
+        // Online: Delete via API
+        const response = await apiClient.deleteCertification(id);
+        if (response.success) {
+          setCertifications(prev => prev.filter(c => c.id !== id));
+          return { data: true };
+        }
+        return { error: response.error };
+      } else {
+        // Offline: Mark for deletion and remove from local state
+        setCertifications(prev => prev.filter(c => c.id !== id));
+        // TODO: Queue for deletion when back online
+        return { data: true };
+      }
     } catch (error) {
       return { error };
     }
@@ -172,13 +183,16 @@ export const DatabaseProvider = ({ children }) => {
   const updateCertification = async (id, updates) => {
     try {
       if (navigator.onLine) {
-        // Online: Update via API (when backend supports it)
-        // const response = await apiClient.updateCertification(id, updates);
-        // For now, update locally
-        setCertifications(prev => prev.map(c => 
-          c.id === id ? { ...c, ...updates } : c
-        ));
-        return { data: { ...updates, id }, error: null };
+        // Online: Update via API
+        const response = await apiClient.updateCertification(id, updates);
+        if (response.success) {
+          const data = response.data;
+          setCertifications(prev => prev.map(c => 
+            c.id === id ? data : c
+          ));
+          return { data, error: null };
+        }
+        return { data: null, error: response.error };
       } else {
         // Offline: Update locally and queue for sync
         setCertifications(prev => prev.map(c => 

@@ -36,8 +36,14 @@ const Categories = () => {
   };
 
   const handleDeleteCert = async (certId) => {
-    if (window.confirm('Are you sure you want to delete this certification?')) {
-      await deleteCertification(certId);
+    const cert = certifications.find(c => c.id === certId);
+    const certName = cert ? cert.name : 'this certification';
+    
+    if (window.confirm(`Are you sure you want to delete "${certName}"? This action cannot be undone.`)) {
+      const { error } = await deleteCertification(certId);
+      if (error) {
+        alert('Failed to delete certification: ' + error.message);
+      }
     }
   };
 

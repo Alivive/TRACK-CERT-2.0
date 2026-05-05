@@ -115,6 +115,14 @@ class ApiClient {
     return this.post('/api/certifications', certData);
   }
 
+  async updateCertification(id, updates) {
+    return this.put(`/api/certifications/${id}`, updates);
+  }
+
+  async deleteCertification(id) {
+    return this.delete(`/api/certifications/${id}`);
+  }
+
   // Categories
   async getCategories() {
     return this.get('/api/categories');
