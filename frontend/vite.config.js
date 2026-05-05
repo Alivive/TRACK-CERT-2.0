@@ -15,7 +15,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        // Check for updates every 60 seconds
+        // NetworkFirst for all API calls - always try network first
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -24,7 +24,7 @@ export default defineConfig({
               cacheName: 'supabase-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 // 1 hour
+                maxAgeSeconds: 5 * 60 // 5 minutes only
               },
               networkTimeoutSeconds: 10
             }
@@ -36,7 +36,7 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 5 * 60 // 5 minutes - short cache for API
+                maxAgeSeconds: 5 * 60 // 5 minutes only
               },
               networkTimeoutSeconds: 10,
               cacheableResponse: {
@@ -75,13 +75,6 @@ export default defineConfig({
       }
     })
   ],
-  // Inject build timestamp automatically
-  define: {
-    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(Date.now().toString())
-  },
-  optimizeDeps: {
-    force: true
-  },
   server: {
     hmr: {
       protocol: 'ws',
