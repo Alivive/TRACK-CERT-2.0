@@ -36,27 +36,32 @@ const BulkAttachCertificates = () => {
     loadData();
   }, [refreshData]);
 
-  // Get unique interns with their names for filter
+  // Get all interns for admin filter (not just those with certifications)
   const internsForFilter = useMemo(() => {
     if (!isAdmin) return [];
     
-    // Get unique intern IDs from certifications
-    const certInternIds = new Set();
-    certifications.forEach(c => {
-      if (c.intern_id) {
-        certInternIds.add(c.intern_id);
+    // Return ALL interns, not just those with certifications
+    return interns.map(intern => {
+      // Build name from available fields
+      let name = '';
+      if (intern.first && intern.last) {
+        name = `${intern.first} ${intern.last}`;
+      } else if (intern.full_name) {
+        name = intern.full_name;
+      } else if (intern.name) {
+        name = intern.name;
+      } else if (intern.email) {
+        name = intern.email;
+      } else {
+        name = intern.id;
       }
-    });
-    
-    // Map to intern objects with names
-    return Array.from(certInternIds).map(internId => {
-      const internData = interns.find(i => i.id === internId);
+      
       return {
-        id: internId,
-        name: internData?.full_name || internData?.name || internId
+        id: intern.id,
+        name: name
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [certifications, interns, isAdmin]);
+  }, [interns, isAdmin]);
 
   // Filter certifications without attachments
   const certsWithoutFiles = useMemo(() => {
@@ -65,7 +70,7 @@ const BulkAttachCertificates = () => {
       // For admins: show based on filter (all or specific intern)
       const matchesIntern = isAdmin 
         ? (filterIntern === 'all' || c.intern_id === filterIntern)
-        : c.intern_id === profile?.id;
+        : c.intern_id === profile?.intern_id;
       
       const matchesSearch = !searchTerm || 
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,7 +78,7 @@ const BulkAttachCertificates = () => {
       
       return matchesIntern && matchesSearch;
     });
-  }, [certifications, filterIntern, searchTerm, isAdmin, profile?.id]);
+  }, [certifications, filterIntern, searchTerm, isAdmin, profile?.intern_id]);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);

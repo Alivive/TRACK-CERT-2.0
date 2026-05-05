@@ -240,14 +240,14 @@ export const generateInternReport = async (intern, certifications, categories = 
                           <div style="font-size: 12px; color: #6366f1; font-weight: 500; margin-bottom: 4px;">${c.provider}</div>
                           ${c.certificate_url ? `
                             <div style="font-size: 10px; margin-bottom: 2px;">
-                              <span style="color: #64748b;">🔗 Certificate: </span>
-                              <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none;">${c.certificate_url.length > 40 ? c.certificate_url.substring(0, 40) + '...' : c.certificate_url}</a>
+                              <span style="color: #64748b;">🔗 </span>
+                              <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none; font-weight: 600;">View Certificate</a>
                             </div>
                           ` : ''}
                           ${c.certificate_file_url ? `
                             <div style="font-size: 10px;">
-                              <span style="color: #64748b;">📎 File: </span>
-                              <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none;">${c.certificate_file_url.length > 40 ? c.certificate_file_url.substring(0, 40) + '...' : c.certificate_file_url}</a>
+                              <span style="color: #64748b;">📎 </span>
+                              <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none; font-weight: 600;">View File</a>
                             </div>
                           ` : ''}
                         </div>
