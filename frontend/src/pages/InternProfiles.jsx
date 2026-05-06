@@ -184,7 +184,6 @@ const InternProfiles = () => {
       hours: cert.hours,
       date: cert.date,
       category: cert.category,
-      certificate_url: cert.certificate_url || '',
       certificate_file: null,
       certificate_file_url: cert.certificate_file_url || ''
     });
@@ -403,17 +402,6 @@ const InternProfiles = () => {
                                       onChange={(e) => setEditCertForm({ ...editCertForm, date: e.target.value })}
                                     />
                                   </div>
-                                </div>
-                                <div>
-                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE WEBSITE URL</label>
-                                  <input
-                                    type="url"
-                                    className="form-input"
-                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
-                                    value={editCertForm.certificate_url}
-                                    onChange={(e) => setEditCertForm({ ...editCertForm, certificate_url: e.target.value })}
-                                    placeholder="https://coursera.org/share/abc123"
-                                  />
                                 </div>
                                 <div style={{ gridColumn: '1 / -1' }}>
                                   <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE FILE</label>
