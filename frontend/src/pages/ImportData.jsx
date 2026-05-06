@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { useCategories } from '../context/CategoriesContext';
 import { Upload, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -8,6 +9,7 @@ const ImportData = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns, addCertification, refreshData } = useDatabase();
+  const { categories } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -119,8 +121,7 @@ const ImportData = () => {
             category: categoryCode,
             hours: hours,
             date: row['Completion Date'],
-            certificate_url: row['Course Source URL'] || row['Certificate URL'] || row['Certificate Source'] || '',
-            certificate_file_url: row['Certificate File URL'] || row['Certificate File'] || ''
+            certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || ''
           };
 
           const result = await addCertification(certData);
@@ -195,9 +196,8 @@ const ImportData = () => {
               <span className="badge badge-purple">Hours</span>
               <span className="badge badge-green">Completion Date</span>
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '10px' }}>OPTIONAL COLUMNS (NEW!):</div>
+            <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '10px' }}>OPTIONAL COLUMN:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              <span className="badge badge-cyber">Course Source URL</span>
               <span className="badge badge-cloud">Certificate File URL</span>
             </div>
             {!isAdmin && (
@@ -218,18 +218,14 @@ const ImportData = () => {
               <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--green)', marginBottom: '8px' }}>
                 SIMPLIFIED WORKFLOW - ONE UPLOAD DOES IT ALL!
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '11px' }}>
-                <div style={{ padding: '10px', background: 'var(--black4)', borderRadius: '6px', border: '1px solid var(--border2)' }}>
-                  <div style={{ color: 'var(--white)', fontWeight: '600', marginBottom: '4px' }}>🌐 Course Source URL</div>
-                  <div style={{ color: 'var(--gray2)' }}>Link to the exact course page on the platform (Coursera, Udemy, AWS, etc.)</div>
-                </div>
+              <div style={{ fontSize: '11px' }}>
                 <div style={{ padding: '10px', background: 'var(--black4)', borderRadius: '6px', border: '1px solid var(--border2)' }}>
                   <div style={{ color: 'var(--white)', fontWeight: '600', marginBottom: '4px' }}>📎 Certificate File URL</div>
-                  <div style={{ color: 'var(--gray2)' }}>Direct link to your certificate PDF/image (Google Drive, Dropbox, etc.)</div>
+                  <div style={{ color: 'var(--gray2)' }}>Direct link to your certificate PDF/image (Google Drive, Dropbox, Coursera share link, etc.)</div>
                 </div>
               </div>
               <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '4px', fontSize: '11px', color: 'var(--green)', fontWeight: '600' }}>
-                ✓ Both columns are optional - leave blank if you don't have URLs yet
+                ✓ This column is optional - leave blank if you don't have a certificate URL yet
               </div>
             </div>
           </div>
