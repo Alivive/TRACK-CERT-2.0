@@ -25,6 +25,7 @@ const AdminPanel = () => {
   const [showAddLinkForm, setShowAddLinkForm] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState(null);
+  const [selectedProviders, setSelectedProviders] = useState(new Set());
 
   const [settings, setSettings] = useState({
     admin_code: '',
@@ -877,9 +878,48 @@ const AdminPanel = () => {
 
             {/* Provider Links List */}
             <div style={{ overflowX: 'auto' }}>
+              {selectedProviders.size > 0 && (
+                <div style={{ padding: '12px', background: 'var(--black4)', borderRadius: '6px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--white)' }}>
+                    {selectedProviders.size} provider{selectedProviders.size > 1 ? 's' : ''} selected
+                  </span>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ color: 'var(--red-light)', fontSize: '12px', padding: '6px 12px' }}
+                    onClick={async () => {
+                      if (window.confirm(`Delete ${selectedProviders.size} selected provider(s)?`)) {
+                        let deleted = 0;
+                        for (const id of selectedProviders) {
+                          const result = await providerLinksClient.deleteProviderLink(id);
+                          if (result.success) deleted++;
+                        }
+                        setProviderLinks(providerLinks.filter(l => !selectedProviders.has(l.id)));
+                        setSelectedProviders(new Set());
+                        alert(`${deleted} provider(s) deleted successfully`);
+                      }
+                    }}
+                  >
+                    <Trash2 size={14} /> DELETE SELECTED
+                  </button>
+                </div>
+              )}
               <table>
                 <thead>
                   <tr>
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={providerLinks.length > 0 && selectedProviders.size === providerLinks.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedProviders(new Set(providerLinks.map(l => l.id)));
+                          } else {
+                            setSelectedProviders(new Set());
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     <th>PROVIDER</th>
                     <th>BASE URL</th>
                     <th>DESCRIPTION</th>
@@ -887,35 +927,142 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {providerLinks.map(link => (
-                    <tr key={link.id}>
-                      <td style={{ fontWeight: '600' }}>{link.provider_name}</td>
-                      <td style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--blue)' }}>
-                        {link.base_url}
-                      </td>
-                      <td style={{ fontSize: '12px', color: 'var(--gray)' }}>
-                        {link.description || '—'}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '5px' }}>
-                          <button
-                            className="btn btn-ghost"
-                            style={{ padding: '5px', color: 'var(--red-light)' }}
-                            onClick={async () => {
-                              if (window.confirm(`Delete ${link.provider_name}?`)) {
-                                const result = await providerLinksClient.deleteProviderLink(link.id);
-                                if (result.success) {
-                                  setProviderLinks(providerLinks.filter(l => l.id !== link.id));
-                                }
+                  {providerLinks.map(link => {
+                    const isEditing = editingLinkId === link.id;
+                    return (
+                      <tr key={link.id} style={{ background: isEditing ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedProviders.has(link.id)}
+                            onChange={(e) => {
+                              const newSelected = new Set(selectedProviders);
+                              if (e.target.checked) {
+                                newSelected.add(link.id);
+                              } else {
+                                newSelected.delete(link.id);
                               }
+                              setSelectedProviders(newSelected);
                             }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ fontWeight: '600' }}>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ fontSize: '13px', padding: '6px 10px', width: '100%' }}
+                              value={linkForm.provider_name}
+                              onChange={(e) => setLinkForm({ ...linkForm, provider_name: e.target.value })}
+                            />
+                          ) : (
+                            link.provider_name
+                          )}
+                        </td>
+                        <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                          {isEditing ? (
+                            <input
+                              type="url"
+                              className="form-input"
+                              style={{ fontSize: '11px', padding: '6px 10px', width: '100%' }}
+                              value={linkForm.base_url}
+                              onChange={(e) => setLinkForm({ ...linkForm, base_url: e.target.value })}
+                            />
+                          ) : (
+                            <a 
+                              href={link.base_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--blue)', textDecoration: 'none' }}
+                              onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                              onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                            >
+                              {link.base_url}
+                            </a>
+                          )}
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                              value={linkForm.description}
+                              onChange={(e) => setLinkForm({ ...linkForm, description: e.target.value })}
+                            />
+                          ) : (
+                            link.description || '—'
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            {isEditing ? (
+                              <>
+                                <button
+                                  className="btn btn-ghost"
+                                  style={{ padding: '5px', color: 'var(--green)', fontSize: '11px' }}
+                                  onClick={async () => {
+                                    const result = await providerLinksClient.updateProviderLink(link.id, linkForm);
+                                    if (result.success) {
+                                      setProviderLinks(providerLinks.map(l => l.id === link.id ? result.data : l));
+                                      setEditingLinkId(null);
+                                      setLinkForm({ provider_name: '', base_url: '', description: '' });
+                                    } else {
+                                      alert('Failed to update provider link');
+                                    }
+                                  }}
+                                >
+                                  <Save size={12} />
+                                </button>
+                                <button
+                                  className="btn btn-ghost"
+                                  style={{ padding: '5px', color: 'var(--gray)', fontSize: '11px' }}
+                                  onClick={() => {
+                                    setEditingLinkId(null);
+                                    setLinkForm({ provider_name: '', base_url: '', description: '' });
+                                  }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className="btn btn-ghost"
+                                  style={{ padding: '5px', color: 'var(--blue)' }}
+                                  onClick={() => {
+                                    setEditingLinkId(link.id);
+                                    setLinkForm({
+                                      provider_name: link.provider_name,
+                                      base_url: link.base_url,
+                                      description: link.description || ''
+                                    });
+                                  }}
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button
+                                  className="btn btn-ghost"
+                                  style={{ padding: '5px', color: 'var(--red-light)' }}
+                                  onClick={async () => {
+                                    if (window.confirm(`Delete ${link.provider_name}?`)) {
+                                      const result = await providerLinksClient.deleteProviderLink(link.id);
+                                      if (result.success) {
+                                        setProviderLinks(providerLinks.filter(l => l.id !== link.id));
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
