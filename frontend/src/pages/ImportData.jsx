@@ -106,6 +106,22 @@ const ImportData = () => {
           }
           // If no match, use as-is (for custom categories)
 
+          // Parse and validate date - handle both DD/MM/YYYY and YYYY-MM-DD formats
+          let completionDate = row['Completion Date'] || '';
+          if (completionDate) {
+            // Check if date is in DD/MM/YYYY format
+            if (completionDate.includes('/')) {
+              const parts = completionDate.split('/');
+              if (parts.length === 3) {
+                // Convert DD/MM/YYYY to YYYY-MM-DD
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                const year = parts[2];
+                completionDate = `${year}-${month}-${day}`;
+              }
+            }
+          }
+
           // Validate hours
           const hours = parseFloat(row['Hours']) || 0;
           if (hours <= 0) {
@@ -120,7 +136,7 @@ const ImportData = () => {
             provider: row['Provider'],
             category: categoryCode,
             hours: hours,
-            date: row['Completion Date'],
+            date: completionDate,
             certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || ''
           };
 

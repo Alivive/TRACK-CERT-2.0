@@ -404,7 +404,21 @@ const InternProfiles = () => {
                                   </div>
                                 </div>
                                 <div style={{ gridColumn: '1 / -1' }}>
-                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE FILE</label>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>CERTIFICATE FILE URL</label>
+                                  <input
+                                    type="url"
+                                    className="form-input"
+                                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
+                                    value={editCertForm.certificate_file_url || ''}
+                                    onChange={(e) => setEditCertForm({ ...editCertForm, certificate_file_url: e.target.value })}
+                                    placeholder="https://drive.google.com/file/d/abc123 or https://example.com/cert.pdf"
+                                  />
+                                  <div style={{ fontSize: '10px', color: 'var(--gray2)', marginTop: '4px' }}>
+                                    Enter a direct link to your certificate (Google Drive, Dropbox, etc.) OR upload a file below
+                                  </div>
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                  <label style={{ fontSize: '10px', color: 'var(--gray2)', display: 'block', marginBottom: '4px' }}>OR UPLOAD CERTIFICATE FILE</label>
                                   <input
                                     type="file"
                                     className="form-input"

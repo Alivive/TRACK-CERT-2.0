@@ -723,23 +723,34 @@ const Categories = () => {
                       )}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        {/* Show certificate link if user provided any URL or uploaded file */}
-                        {c.certificate_file_url ? (
-                          <a 
-                            href={c.certificate_file_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="btn btn-ghost"
-                            style={{ padding: '4px', color: 'var(--blue)', fontSize: '10px' }}
-                            title="View Certificate"
-                          >
-                            <ExternalLink size={12} />
-                          </a>
-                        ) : (
-                          <span style={{ fontSize: '10px', color: 'var(--gray)' }}>—</span>
-                        )}
-                      </div>
+                      {isEditing ? (
+                        <input
+                          type="url"
+                          className="form-input"
+                          style={{ fontSize: '11px', padding: '4px 8px', width: '150px' }}
+                          value={editingCert.certificate_file_url || ''}
+                          onChange={(e) => setEditingCert({ ...editingCert, certificate_file_url: e.target.value })}
+                          placeholder="Certificate URL"
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {/* Show certificate link if user provided any URL or uploaded file */}
+                          {c.certificate_file_url ? (
+                            <a 
+                              href={c.certificate_file_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-ghost"
+                              style={{ padding: '4px', color: 'var(--blue)', fontSize: '10px' }}
+                              title="View Certificate"
+                            >
+                              <ExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: '10px', color: 'var(--gray)' }}>—</span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     {(isAdmin || profile?.role === 'intern') && (
                       <td>
