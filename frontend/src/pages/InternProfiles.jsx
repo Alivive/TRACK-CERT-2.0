@@ -6,6 +6,20 @@ import { supabase } from '../utils/supabaseClient';
 import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X, ExternalLink, Search } from 'lucide-react';
 import { generateInternReport } from '../utils/pdfGenerator';
 
+// Highlight search term in text
+const highlightText = (text, searchTerm) => {
+  if (!searchTerm || !text) return text;
+  
+  const parts = text.toString().split(new RegExp(`(${searchTerm})`, 'gi'));
+  return parts.map((part, index) => 
+    part.toLowerCase() === searchTerm.toLowerCase() ? (
+      <mark key={index} style={{ background: 'transparent', color: 'var(--white)', fontWeight: '700' }}>
+        {part}
+      </mark>
+    ) : part
+  );
+};
+
 const InternProfiles = () => {
   const { profile: authProfile } = useAuth();
   const isAdmin = authProfile?.role === 'admin';
@@ -437,11 +451,11 @@ const InternProfiles = () => {
                           ) : (
                             <>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.name}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{c.provider} · {c.date}</div>
-                                {/* Certificate Link - Only show if user provided URL (not uploaded to Supabase) */}
+                                <div style={{ fontSize: '13px', fontWeight: 600 }}>{highlightText(c.name, profileSearchTerm)}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{highlightText(c.provider, profileSearchTerm)} · {c.date}</div>
+                                {/* Certificate Link - Show if user provided any URL or uploaded file */}
                                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                                  {c.certificate_file_url && !c.certificate_file_url.includes('supabase') && (
+                                  {c.certificate_file_url && (
                                     <a 
                                       href={c.certificate_file_url} 
                                       target="_blank" 
@@ -558,7 +572,7 @@ const InternProfiles = () => {
                       ) : (
                         <div className="intern-name-cell">
                           <div className="avatar">{getInit(i.first_name, i.last_name)}</div>
-                          <div className="intern-name">{i.first_name} {i.last_name}</div>
+                          <div className="intern-name">{highlightText(`${i.first_name} ${i.last_name}`, searchTerm)}</div>
                         </div>
                       )}
                     </td>
@@ -573,7 +587,7 @@ const InternProfiles = () => {
                           placeholder="Email"
                         />
                       ) : (
-                        i.email
+                        highlightText(i.email, searchTerm)
                       )}
                     </td>
                     <td>{getIC(i.id).length}</td>

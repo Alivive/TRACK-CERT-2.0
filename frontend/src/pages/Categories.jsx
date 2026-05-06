@@ -4,6 +4,20 @@ import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
 import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square, ExternalLink, Search } from 'lucide-react';
 
+// Highlight search term in text
+const highlightText = (text, searchTerm) => {
+  if (!searchTerm || !text) return text;
+  
+  const parts = text.toString().split(new RegExp(`(${searchTerm})`, 'gi'));
+  return parts.map((part, index) => 
+    part.toLowerCase() === searchTerm.toLowerCase() ? (
+      <mark key={index} style={{ background: 'transparent', color: 'var(--white)', fontWeight: '700' }}>
+        {part}
+      </mark>
+    ) : part
+  );
+};
+
 const Categories = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
@@ -497,7 +511,11 @@ const Categories = () => {
             {filter === 'all' ? 'ALL CERTIFICATIONS' : CATS[filter].name.toUpperCase()}
           </span>
           <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>
-            {filteredCerts.length} total · {getTH(filteredCerts)}h total
+            {searchTerm ? (
+              <>Showing {filteredCerts.length} of {displayCertifications.length} · {getTH(filteredCerts)}h</>
+            ) : (
+              <>{filteredCerts.length} total · {getTH(filteredCerts)}h total</>
+            )}
           </span>
         </div>
         
@@ -632,7 +650,7 @@ const Categories = () => {
                       <td>
                         <div className="intern-name-cell">
                           <div className="avatar">{intern ? getInit(intern.first_name, intern.last_name) : '??'}</div>
-                          <div className="intern-name">{intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown'}</div>
+                          <div className="intern-name">{intern ? highlightText(`${intern.first_name} ${intern.last_name}`, searchTerm) : 'Unknown'}</div>
                         </div>
                       </td>
                     )}
@@ -646,7 +664,7 @@ const Categories = () => {
                           onChange={(e) => setEditingCert({ ...editingCert, name: e.target.value })}
                         />
                       ) : (
-                        c.name
+                        highlightText(c.name, searchTerm)
                       )}
                     </td>
                     <td>
@@ -675,7 +693,7 @@ const Categories = () => {
                           onChange={(e) => setEditingCert({ ...editingCert, provider: e.target.value })}
                         />
                       ) : (
-                        c.provider
+                        highlightText(c.provider, searchTerm)
                       )}
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
@@ -706,8 +724,8 @@ const Categories = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        {/* Only show certificate link if user provided URL (not uploaded to Supabase) */}
-                        {c.certificate_file_url && !c.certificate_file_url.includes('supabase') && (
+                        {/* Show certificate link if user provided any URL or uploaded file */}
+                        {c.certificate_file_url ? (
                           <a 
                             href={c.certificate_file_url} 
                             target="_blank" 
@@ -718,8 +736,7 @@ const Categories = () => {
                           >
                             <ExternalLink size={12} />
                           </a>
-                        )}
-                        {(!c.certificate_file_url || c.certificate_file_url.includes('supabase')) && (
+                        ) : (
                           <span style={{ fontSize: '10px', color: 'var(--gray)' }}>—</span>
                         )}
                       </div>

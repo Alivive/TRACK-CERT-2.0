@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { useCategories } from '../context/CategoriesContext';
 import { Plus, CheckCircle } from 'lucide-react';
 
 const AddCertification = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns, certifications, addCertification, loading: dbLoading } = useDatabase();
+  const { categories } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   
@@ -146,14 +148,19 @@ const AddCertification = () => {
             <div className="grid-3" style={{ gap: '20px' }}>
               <div className="form-group">
                 <label className="form-label">Category</label>
-                <input 
-                  type="text" 
+                <select 
                   className="form-input" 
-                  placeholder="e.g. Cloud Computing, AI, Web Development"
                   required
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
-                />
+                >
+                  <option value="">Select category...</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Hours</label>
@@ -163,13 +170,9 @@ const AddCertification = () => {
                   placeholder="0.5" 
                   required 
                   min="0.1"
-                  step="0.5"
+                  step="any"
                   value={formData.hours}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (value < 0) return; // Prevent negative values
-                    setFormData({...formData, hours: e.target.value});
-                  }}
+                  onChange={(e) => setFormData({...formData, hours: e.target.value})}
                 />
               </div>
               <div className="form-group">

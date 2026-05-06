@@ -193,8 +193,8 @@ export const generateInternReport = async (intern, certifications, categories = 
                 </div>
                 <div style="margin-left: 16px;">
                   ${catCerts.map(c => {
-                    // Only show "View Certificate" if it's a user-provided URL (not uploaded to Supabase)
-                    const isUserProvidedUrl = c.certificate_file_url && !c.certificate_file_url.includes('supabase');
+                    // Show "View Certificate" if user provided any URL or uploaded file
+                    const isUserProvidedUrl = c.certificate_file_url;
                     
                     return `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">

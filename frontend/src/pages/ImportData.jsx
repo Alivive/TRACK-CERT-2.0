@@ -90,8 +90,19 @@ const ImportData = () => {
             }
           }
 
-          // Category is now free-text, no validation needed
-          const category = row['Category'] || '';
+          // Map category name to code
+          let categoryCode = row['Category'] || '';
+          
+          // Try to match by name or by ID
+          const matchedCategory = categories.find(cat => 
+            cat.name.toLowerCase() === categoryCode.toLowerCase() || 
+            cat.id.toLowerCase() === categoryCode.toLowerCase()
+          );
+          
+          if (matchedCategory) {
+            categoryCode = matchedCategory.id;
+          }
+          // If no match, use as-is (for custom categories)
 
           // Validate hours
           const hours = parseFloat(row['Hours']) || 0;
@@ -105,7 +116,7 @@ const ImportData = () => {
             intern_id: intern.id,
             name: row['Certification Name'],
             provider: row['Provider'],
-            category: category,
+            category: categoryCode,
             hours: hours,
             date: row['Completion Date'],
             certificate_url: row['Course Source URL'] || row['Certificate URL'] || row['Certificate Source'] || '',

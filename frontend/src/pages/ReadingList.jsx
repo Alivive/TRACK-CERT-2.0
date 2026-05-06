@@ -3,6 +3,20 @@ import { useAuth } from '../context/AuthContext';
 import { booksClient } from '../utils/booksClient';
 import { Book, BookOpen, CheckCircle, Clock, Plus, Trash2, Edit2, Save, X, User, Search } from 'lucide-react';
 
+// Highlight search term in text
+const highlightText = (text, searchTerm) => {
+  if (!searchTerm || !text) return text;
+  
+  const parts = text.toString().split(new RegExp(`(${searchTerm})`, 'gi'));
+  return parts.map((part, index) => 
+    part.toLowerCase() === searchTerm.toLowerCase() ? (
+      <mark key={index} style={{ background: 'transparent', color: 'var(--white)', fontWeight: '700' }}>
+        {part}
+      </mark>
+    ) : part
+  );
+};
+
 const ReadingList = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
@@ -434,11 +448,11 @@ const ReadingList = () => {
                         <Trash2 size={14} />
                       </button>
                     </div>
-                    <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px', lineHeight: '1.3' }}>{book.title}</h3>
-                    <p style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '8px' }}>{book.author}</p>
+                    <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px', lineHeight: '1.3' }}>{highlightText(book.title, searchTerm)}</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '8px' }}>{highlightText(book.author, searchTerm)}</p>
                     {book.description && (
                       <p style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '12px', lineHeight: '1.4' }}>
-                        {book.description.substring(0, 100)}{book.description.length > 100 ? '...' : ''}
+                        {highlightText(book.description.substring(0, 100) + (book.description.length > 100 ? '...' : ''), searchTerm)}
                       </p>
                     )}
                     {book.pages && (
@@ -489,17 +503,17 @@ const ReadingList = () => {
                     {isAdmin && (
                       <td>
                         <div style={{ fontSize: '12px', fontWeight: '600' }}>
-                          {assignment.intern_first_name} {assignment.intern_last_name}
+                          {highlightText(`${assignment.intern_first_name} ${assignment.intern_last_name}`, searchTerm)}
                         </div>
                       </td>
                     )}
                     <td>
-                      <div style={{ fontSize: '13px', fontWeight: '600' }}>{assignment.book_title}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600' }}>{highlightText(assignment.book_title, searchTerm)}</div>
                       {assignment.book_pages && (
                         <div style={{ fontSize: '10px', color: 'var(--gray2)' }}>{assignment.book_pages} pages</div>
                       )}
                     </td>
-                    <td style={{ fontSize: '12px', color: 'var(--gray)' }}>{assignment.book_author}</td>
+                    <td style={{ fontSize: '12px', color: 'var(--gray)' }}>{highlightText(assignment.book_author, searchTerm)}</td>
                     <td>{getStatusBadge(assignment.status)}</td>
                     <td style={{ fontSize: '11px', color: 'var(--gray2)', fontFamily: 'var(--font-mono)' }}>
                       {new Date(assignment.assigned_at).toLocaleDateString()}
