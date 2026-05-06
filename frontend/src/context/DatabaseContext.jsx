@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useCallback, useMemo, useEffect } 
 import { apiClient } from '../utils/apiClient';
 import { offlineManager } from '../utils/offlineManager';
 import { useAuth } from './AuthContext';
+import { supabase } from '../utils/supabaseClient';
+import { supabase } from '../utils/supabaseClient';
 
 const DatabaseContext = createContext({});
 
@@ -26,6 +28,190 @@ export const DatabaseProvider = ({ children }) => {
       refreshData();
     }
   }, [user]);
+
+  // Real-time subscription for certifications (INSERT)
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('[DB] Setting up real-time subscription for certifications');
+    
+    const channel = supabase
+      .channel('db-certifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'certifications'
+        },
+        (payload) => {
+          console.log('[DB] New certification detected:', payload.new);
+          const newCert = payload.new;
+          
+          setCertifications(prev => {
+            // Check if already exists
+            if (prev.some(c => c.id === newCert.id)) {
+              return prev;
+            }
+            return [newCert, ...prev].sort((a, b) => 
+              new Date(b.date || 0) - new Date(a.date || 0)
+            );
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'certifications'
+        },
+        (payload) => {
+          console.log('[DB] Certification updated:', payload.new);
+          const updatedCert = payload.new;
+          
+          setCertifications(prev => 
+            prev.map(c => c.id === updatedCert.id ? updatedCert : c)
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'certifications'
+        },
+        (payload) => {
+          console.log('[DB] Certification deleted:', payload.old);
+          const deletedId = payload.old.id;
+          
+          setCertifications(prev => prev.filter(c => c.id !== deletedId));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[DB] Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Real-time subscription for interns
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('[DB] Setting up real-time subscription for interns');
+    
+    const channel = supabase
+      .channel('db-interns-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'interns'
+        },
+        (payload) => {
+          console.log('[DB] New intern detected:', payload.new);
+          const newIntern = payload.new;
+          
+          setInterns(prev => {
+            if (prev.some(i => i.id === newIntern.id)) {
+              return prev;
+            }
+            return [...prev, newIntern].sort((a, b) => 
+              (a.first_name || '').localeCompare(b.first_name || '')
+            );
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'interns'
+        },
+        (payload) => {
+          console.log('[DB] Intern updated:', payload.new);
+          const updatedIntern = payload.new;
+          
+          setInterns(prev => 
+            prev.map(i => i.id === updatedIntern.id ? updatedIntern : i)
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'interns'
+        },
+        (payload) => {
+          console.log('[DB] Intern deleted:', payload.old);
+          const deletedId = payload.old.id;
+          
+          setInterns(prev => prev.filter(i => i.id !== deletedId));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Real-time subscription for users (admin only)
+  useEffect(() => {
+    if (!user || profile?.role !== 'admin') return;
+
+    console.log('[DB] Setting up real-time subscription for users');
+    
+    const channel = supabase
+      .channel('db-users-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'users'
+        },
+        (payload) => {
+          console.log('[DB] New user detected:', payload.new);
+          const newUser = payload.new;
+          
+          setAllProfiles(prev => {
+            if (prev.some(u => u.id === newUser.id)) {
+              return prev;
+            }
+            return [...prev, newUser];
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users'
+        },
+        (payload) => {
+          console.log('[DB] User updated:', payload.new);
+          const updatedUser = payload.new;
+          
+          setAllProfiles(prev => 
+            prev.map(u => u.id === updatedUser.id ? updatedUser : u)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, profile?.role]);
 
   const refreshData = useCallback(async () => {
     if (!user) return;

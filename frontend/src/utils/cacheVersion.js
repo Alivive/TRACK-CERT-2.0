@@ -5,8 +5,8 @@
 // This value is automatically set during build time
 export const CACHE_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toString();
 
-// Check for updates every 5 minutes (300 seconds)
-export const UPDATE_CHECK_INTERVAL = 300000;
+// Check for updates every 30 seconds
+export const UPDATE_CHECK_INTERVAL = 30000; // Changed from 300000 (5 min) to 30000 (30 sec)
 
 // Keys to preserve during cache clear (authentication and critical user data)
 const PRESERVE_KEYS = [

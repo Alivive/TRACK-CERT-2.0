@@ -4,7 +4,7 @@ import { RefreshCw, X } from 'lucide-react';
 const PWAUpdatePrompt = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState(null);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5); // Reduced from 10 to 5 seconds
 
   useEffect(() => {
     // Check if service worker is supported
@@ -35,12 +35,12 @@ const PWAUpdatePrompt = () => {
         });
       });
 
-      // Check for updates every 60 seconds
+      // Check for updates every 30 seconds (more frequent)
       setInterval(() => {
         navigator.serviceWorker.ready.then((registration) => {
           registration.update();
         });
-      }, 60000);
+      }, 30000); // Changed from 60000 to 30000
     }
   }, []);
 
@@ -70,7 +70,7 @@ const PWAUpdatePrompt = () => {
 
   const handleDismiss = () => {
     setShowUpdatePrompt(false);
-    setCountdown(10); // Reset countdown
+    setCountdown(5); // Reset countdown to 5 seconds
   };
 
   if (!showUpdatePrompt) {
