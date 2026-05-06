@@ -79,13 +79,21 @@ export const NotificationsProvider = ({ children }) => {
         },
         (payload) => {
           const newNotification = payload.new;
-          addNotification({
+          console.log('[NOTIFICATIONS] New notification received:', newNotification);
+          
+          // Add notification with database ID
+          const notification = {
+            id: newNotification.id.toString(),
             type: newNotification.type,
             title: newNotification.title,
             message: newNotification.message,
+            read: false,
             data: {},
             timestamp: newNotification.created_at
-          });
+          };
+          
+          setNotifications(prev => [notification, ...prev]);
+          setUnreadCount(prev => prev + 1);
         }
       )
       .subscribe();
@@ -95,9 +103,9 @@ export const NotificationsProvider = ({ children }) => {
     };
   }, [profile?.intern_id]);
 
-  // Listen for new certifications
+  // Listen for new certifications (for interns to see their own certs)
   useEffect(() => {
-    if (!profile?.intern_id) return;
+    if (!profile?.intern_id || profile?.role === 'admin') return;
 
     const channel = supabase
       .channel('certification-changes')
@@ -125,11 +133,80 @@ export const NotificationsProvider = ({ children }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.intern_id]);
+  }, [profile?.intern_id, profile?.role]);
 
-  // Listen for new book assignments
+  // Listen for ALL certification changes (for admins)
   useEffect(() => {
-    if (!profile?.intern_id) return;
+    if (profile?.role !== 'admin') return;
+
+    const channel = supabase
+      .channel('admin-certification-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'certifications'
+        },
+        async (payload) => {
+          const newCert = payload.new;
+          
+          // Get intern name
+          const { data: intern } = await supabase
+            .from('interns')
+            .select('first_name, last_name')
+            .eq('id', newCert.intern_id)
+            .single();
+          
+          const internName = intern ? `${intern.first_name} ${intern.last_name}` : 'An intern';
+          
+          addNotification({
+            type: 'certification',
+            title: 'New Certification Added',
+            message: `${internName} added: ${newCert.name}`,
+            data: newCert,
+            timestamp: new Date().toISOString()
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'certifications'
+        },
+        async (payload) => {
+          const updatedCert = payload.new;
+          
+          // Get intern name
+          const { data: intern } = await supabase
+            .from('interns')
+            .select('first_name, last_name')
+            .eq('id', updatedCert.intern_id)
+            .single();
+          
+          const internName = intern ? `${intern.first_name} ${intern.last_name}` : 'An intern';
+          
+          addNotification({
+            type: 'certification',
+            title: 'Certification Updated',
+            message: `${internName} updated: ${updatedCert.name}`,
+            data: updatedCert,
+            timestamp: new Date().toISOString()
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.role]);
+
+  // Listen for new book assignments (for interns)
+  useEffect(() => {
+    if (!profile?.intern_id || profile?.role === 'admin') return;
 
     const channel = supabase
       .channel('book-assignments')
@@ -167,7 +244,7 @@ export const NotificationsProvider = ({ children }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.intern_id]);
+  }, [profile?.intern_id, profile?.role]);
 
   const addNotification = (notification) => {
     const newNotification = {

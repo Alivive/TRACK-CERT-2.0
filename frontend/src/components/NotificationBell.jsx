@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Check, CheckCheck } from 'lucide-react';
+import { Bell, X, Check, CheckCheck, Reply } from 'lucide-react';
 import { useNotifications } from '../context/NotificationsContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../utils/supabaseClient';
 
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification } = useNotifications();
+  const { profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [replyModal, setReplyModal] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -55,6 +61,51 @@ const NotificationBell = () => {
   const handleNotificationClick = (notification) => {
     if (!notification.read) {
       markAsRead(notification.id);
+    }
+  };
+
+  const handleReply = async () => {
+    if (!replyText.trim() || !replyModal) return;
+
+    setSending(true);
+    try {
+      // Get all admin users
+      const { data: admins, error: adminsError } = await supabase
+        .from('users')
+        .select('intern_id')
+        .eq('role', 'admin');
+
+      if (adminsError) throw adminsError;
+
+      // Create notifications for all admins
+      const notifications = admins
+        .filter(admin => admin.intern_id) // Only admins with intern_id
+        .map(admin => ({
+          intern_id: admin.intern_id,
+          type: 'admin_message',
+          title: `Reply from ${profile?.full_name || 'Intern'}`,
+          message: `Re: "${replyModal.title}" - ${replyText}`,
+          read: false,
+          created_at: new Date().toISOString()
+        }));
+
+      if (notifications.length > 0) {
+        const { error: insertError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (insertError) throw insertError;
+      }
+
+      // Close modal and reset
+      setReplyModal(null);
+      setReplyText('');
+      setIsOpen(false);
+    } catch (err) {
+      console.error('Failed to send reply:', err);
+      alert('Failed to send reply. Please try again.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -269,7 +320,33 @@ const NotificationBell = () => {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0, flexDirection: 'column' }}>
+                      {notification.type === 'admin_message' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplyModal(notification);
+                            setIsOpen(false);
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--blue)',
+                            transition: 'background 0.2s'
+                          }}
+                          title="Reply"
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--black4)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <Reply size={14} />
+                        </button>
+                      )}
                       {!notification.read && (
                         <button
                           onClick={(e) => {
@@ -323,6 +400,172 @@ const NotificationBell = () => {
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Reply Modal */}
+      {replyModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '20px'
+          }}
+          onClick={() => {
+            setReplyModal(null);
+            setReplyText('');
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--black2)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.6)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '20px',
+                borderBottom: '1px solid var(--border2)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--white)' }}>
+                  Reply to Admin
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--gray2)', marginTop: '4px' }}>
+                  Re: {replyModal.title}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setReplyModal(null);
+                  setReplyText('');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  color: 'var(--gray)',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px' }}>
+              <div
+                style={{
+                  background: 'var(--black3)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  fontSize: '12px',
+                  color: 'var(--gray)',
+                  lineHeight: '1.5'
+                }}
+              >
+                <div style={{ fontWeight: '600', color: 'var(--white)', marginBottom: '4px' }}>
+                  Original Message:
+                </div>
+                {replyModal.message}
+              </div>
+
+              <textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Type your reply here..."
+                style={{
+                  width: '100%',
+                  minHeight: '120px',
+                  padding: '12px',
+                  background: 'var(--black3)',
+                  border: '1px solid var(--border2)',
+                  borderRadius: '8px',
+                  color: 'var(--white)',
+                  fontSize: '13px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+                maxLength={500}
+                autoFocus
+              />
+              <div style={{ fontSize: '10px', color: 'var(--gray2)', marginTop: '4px', textAlign: 'right' }}>
+                {replyText.length}/500 characters
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderTop: '1px solid var(--border2)',
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end'
+              }}
+            >
+              <button
+                onClick={() => {
+                  setReplyModal(null);
+                  setReplyText('');
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: 'var(--black3)',
+                  border: '1px solid var(--border2)',
+                  borderRadius: '6px',
+                  color: 'var(--white)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReply}
+                disabled={!replyText.trim() || sending}
+                style={{
+                  padding: '8px 16px',
+                  background: replyText.trim() && !sending ? 'var(--blue)' : 'var(--black4)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: 'var(--white)',
+                  fontSize: '13px',
+                  cursor: replyText.trim() && !sending ? 'pointer' : 'not-allowed',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Reply size={14} />
+                {sending ? 'Sending...' : 'Send Reply'}
+              </button>
+            </div>
           </div>
         </div>
       )}

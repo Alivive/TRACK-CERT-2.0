@@ -49,6 +49,9 @@ const SendMessage = () => {
         ? interns.map(i => i.id)
         : [messageData.recipient];
 
+      // Store count before resetting form
+      const sentCount = recipients.length;
+
       // Create notification for each recipient
       const notifications = recipients.map(internId => ({
         intern_id: internId,
@@ -66,7 +69,8 @@ const SendMessage = () => {
 
       if (insertError) throw insertError;
 
-      setSuccess(true);
+      // Show success with actual sent count
+      setSuccess(sentCount);
       setMessageData({
         recipient: 'all',
         title: '',
@@ -180,7 +184,7 @@ const SendMessage = () => {
                   fontSize: '13px'
                 }}>
                   <CheckCircle size={16} />
-                  Message sent successfully to {recipientCount} intern{recipientCount !== 1 ? 's' : ''}!
+                  Message sent successfully to {success} intern{success !== 1 ? 's' : ''}!
                 </div>
               )}
 
