@@ -20,17 +20,32 @@ export const NotificationsProvider = ({ children }) => {
 
   // Load notifications from database on mount
   useEffect(() => {
-    if (!profile?.intern_id) return;
+    if (!profile?.id) return;
     
     const loadNotifications = async () => {
       try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('intern_id', profile.intern_id)
-          .order('created_at', { ascending: false })
-          .limit(50);
+        let query;
+        
+        if (profile.role === 'admin') {
+          // For admins: get notifications where intern_id matches their intern_id OR user_id matches their id
+          query = supabase
+            .from('notifications')
+            .select('*')
+            .or(`intern_id.eq.${profile.intern_id || 'null'},user_id.eq.${profile.id}`)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        } else {
+          // For interns: get notifications for their intern_id
+          if (!profile.intern_id) return;
+          query = supabase
+            .from('notifications')
+            .select('*')
+            .eq('intern_id', profile.intern_id)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        }
 
+        const { data, error } = await query;
         if (error) throw error;
 
         if (data) {
@@ -55,7 +70,7 @@ export const NotificationsProvider = ({ children }) => {
     };
 
     loadNotifications();
-  }, [profile?.intern_id]);
+  }, [profile?.intern_id, profile?.id, profile?.role]);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
@@ -63,19 +78,21 @@ export const NotificationsProvider = ({ children }) => {
     localStorage.setItem(`notifications_${profile.id}`, JSON.stringify(notifications));
   }, [notifications, profile?.id, loading]);
 
-  // Listen for new admin messages
+  // Listen for new admin messages and intern messages
   useEffect(() => {
-    if (!profile?.intern_id) return;
+    if (!profile?.id) return;
 
     const channel = supabase
-      .channel('admin-messages')
+      .channel('user-notifications')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `intern_id=eq.${profile.intern_id}`
+          filter: profile.role === 'admin' 
+            ? `user_id=eq.${profile.id}` 
+            : `intern_id=eq.${profile.intern_id}`
         },
         (payload) => {
           const newNotification = payload.new;
@@ -101,7 +118,7 @@ export const NotificationsProvider = ({ children }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.intern_id]);
+  }, [profile?.id, profile?.intern_id, profile?.role]);
 
   // Listen for new certifications (for interns to see their own certs)
   useEffect(() => {

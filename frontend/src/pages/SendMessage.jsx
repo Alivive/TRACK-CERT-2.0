@@ -54,7 +54,7 @@ const SendMessage = () => {
 
       // Create notification for each recipient
       const notifications = recipients.map(internId => ({
-        intern_id: internId,
+        intern_id: internId, // For interns, use intern_id
         type: 'admin_message',
         title: messageData.title,
         message: messageData.message,

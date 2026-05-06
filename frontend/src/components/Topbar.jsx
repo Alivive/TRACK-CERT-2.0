@@ -20,22 +20,20 @@ const Topbar = ({ title, onPageChange, toggleSidebar }) => {
       // Get all admin users
       const { data: admins, error: adminsError } = await supabase
         .from('users')
-        .select('intern_id')
+        .select('id, intern_id')
         .eq('role', 'admin');
 
       if (adminsError) throw adminsError;
 
-      // Create notifications for all admins
-      const notifications = admins
-        .filter(admin => admin.intern_id)
-        .map(admin => ({
-          intern_id: admin.intern_id,
-          type: 'admin_message',
-          title: `Message from ${profile?.full_name || 'Intern'}`,
-          message: `${messageTitle}: ${messageText}`,
-          read: false,
-          created_at: new Date().toISOString()
-        }));
+      // Create notifications for all admins using user_id
+      const notifications = admins.map(admin => ({
+        user_id: admin.id, // Use user_id for admins
+        type: 'admin_message',
+        title: `Message from ${profile?.full_name || 'Intern'}`,
+        message: `${messageTitle}: ${messageText}`,
+        read: false,
+        created_at: new Date().toISOString()
+      }));
 
       if (notifications.length > 0) {
         const { error: insertError } = await supabase
