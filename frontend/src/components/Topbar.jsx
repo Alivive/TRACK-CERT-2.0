@@ -1,6 +1,7 @@
 
 import { Plus, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Topbar = ({ title, onPageChange, toggleSidebar }) => {
   const { profile } = useAuth();
@@ -14,7 +15,8 @@ const Topbar = ({ title, onPageChange, toggleSidebar }) => {
         </div>
         <div className="page-title">{title}</div>
       </div>
-      <div className="topbar-actions">
+      <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <NotificationBell />
         {isAdmin && (
           <button 
             className="btn btn-primary" 
