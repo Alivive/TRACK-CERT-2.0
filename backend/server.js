@@ -299,9 +299,9 @@ app.get('/api/certifications', async (req, res, next) => {
 
 app.post('/api/certifications', upload.single('certificate_file'), async (req, res, next) => {
   try {
-    let certificateFileUrl = null;
+    let certificateFileUrl = req.body.certificate_file_url || null;
     
-    // Handle file upload if present
+    // Handle file upload if present (overrides URL if both provided)
     if (req.file) {
       const fileExtension = req.file.originalname.split('.').pop();
       const fileName = `${uuidv4()}.${fileExtension}`;

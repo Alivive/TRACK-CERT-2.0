@@ -42,9 +42,13 @@ const BulkAttachCertificates = () => {
     
     // Return ALL interns, not just those with certifications
     return interns.map(intern => {
-      // Build name from available fields
+      // Build name from available fields with better fallback handling
       let name = '';
-      if (intern.first && intern.last) {
+      
+      // Try different field combinations
+      if (intern.first_name && intern.last_name) {
+        name = `${intern.first_name} ${intern.last_name}`;
+      } else if (intern.first && intern.last) {
         name = `${intern.first} ${intern.last}`;
       } else if (intern.full_name) {
         name = intern.full_name;
@@ -53,12 +57,13 @@ const BulkAttachCertificates = () => {
       } else if (intern.email) {
         name = intern.email;
       } else {
-        name = intern.id;
+        name = `Intern ${intern.id.substring(0, 8)}`;
       }
       
       return {
         id: intern.id,
-        name: name
+        name: name,
+        email: intern.email || ''
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [interns, isAdmin]);
@@ -178,7 +183,10 @@ const BulkAttachCertificates = () => {
           const formData = new FormData();
           formData.append('certificate_file', file);
 
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/certifications/${certId}`, {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          console.log('[BULK ATTACH] Uploading to:', `${apiUrl}/api/certifications/${certId}`);
+
+          const response = await fetch(`${apiUrl}/api/certifications/${certId}`, {
             method: 'PUT',
             body: formData
           });
@@ -288,7 +296,7 @@ const BulkAttachCertificates = () => {
               <option value="all">All Interns</option>
               {internsForFilter.map(intern => (
                 <option key={intern.id} value={intern.id}>
-                  {intern.name}
+                  {intern.name} {intern.email ? `(${intern.email})` : ''}
                 </option>
               ))}
             </select>

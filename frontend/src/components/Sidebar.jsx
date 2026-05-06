@@ -1,46 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, LayoutDashboard, User, Layers, PlusCircle, Upload, FileText, Settings, BookOpen, ChevronDown } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, User, Layers, PlusCircle, Upload, FileText, Settings, BookOpen } from 'lucide-react';
 
 const Sidebar = ({ activePage, onPageChange, isOpen }) => {
   const { profile, signOut } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const isAdmin = profile?.role === 'admin';
-  const [expandedMenu, setExpandedMenu] = useState(null);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} />, section: 'OVERVIEW' },
     { id: isAdmin ? 'interns' : 'my_profile', label: isAdmin ? 'Intern Profiles' : 'My Profile', icon: <User size={16} />, section: 'OVERVIEW' },
     { id: 'categories', label: 'Categories', icon: <Layers size={16} />, section: 'OVERVIEW' },
     { id: 'add_cert', label: 'Add Certification', icon: <PlusCircle size={16} />, section: 'DATA' },
-    { 
-      id: 'data_entry', 
-      label: 'Data Entry', 
-      icon: <Upload size={16} />, 
-      section: 'DATA',
-      submenu: [
-        { id: 'import', label: 'Import Data', icon: <Upload size={16} /> },
-        { id: 'bulk_attach', label: 'Attach Files', icon: <Upload size={16} /> }
-      ]
-    },
+    { id: 'import', label: 'Import Data', icon: <Upload size={16} />, section: 'DATA' },
     { id: 'reports', label: 'Reports & PDF', icon: <FileText size={16} />, section: 'DATA' },
     { id: 'reading', label: 'Reading List', icon: <BookOpen size={16} />, section: 'LEARNING' },
     { id: 'admin', label: 'Admin Panel', icon: <Settings size={16} />, section: 'ADMIN', adminOnly: true },
   ];
 
   const handleMenuClick = (item) => {
-    if (item.submenu) {
-      setExpandedMenu(expandedMenu === item.id ? null : item.id);
-    } else {
-      onPageChange(item.id);
-      setExpandedMenu(null);
-    }
-  };
-
-  const handleSubMenuClick = (subItem) => {
-    onPageChange(subItem.id);
-    setExpandedMenu(null);
+    onPageChange(item.id);
   };
 
   return (
@@ -73,63 +53,20 @@ const Sidebar = ({ activePage, onPageChange, isOpen }) => {
           if (item.adminOnly && !isAdmin) return null;
           
           const showLabel = index === 0 || (navItems[index - 1]?.section !== item.section);
-          const isActive = activePage === item.id || (item.submenu && item.submenu.some(sub => activePage === sub.id));
-          const isExpanded = expandedMenu === item.id;
+          const isActive = activePage === item.id;
           
           return (
             <React.Fragment key={item.id}>
               {showLabel && <div className="nav-section-label">{item.section}</div>}
               
-              {/* Main menu item */}
               <div 
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => handleMenuClick(item)}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  cursor: 'pointer'
-                }}
+                style={{ cursor: 'pointer' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="nav-icon">{item.icon}</span>
-                  {item.label}
-                </div>
-                {item.submenu && (
-                  <ChevronDown 
-                    size={14} 
-                    style={{ 
-                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s',
-                      marginRight: '4px'
-                    }} 
-                  />
-                )}
+                <span className="nav-icon">{item.icon}</span>
+                {item.label}
               </div>
-
-              {/* Submenu items */}
-              {item.submenu && isExpanded && (
-                <div style={{ paddingLeft: '24px' }}>
-                  {item.submenu.map(subItem => (
-                    <div
-                      key={subItem.id}
-                      className={`nav-item ${activePage === subItem.id ? 'active' : ''}`}
-                      onClick={() => handleSubMenuClick(subItem)}
-                      style={{
-                        fontSize: '13px',
-                        paddingLeft: '12px',
-                        borderLeft: '2px solid var(--border2)',
-                        marginLeft: '8px',
-                        marginTop: '4px',
-                        marginBottom: '4px'
-                      }}
-                    >
-                      <span className="nav-icon">{subItem.icon}</span>
-                      {subItem.label}
-                    </div>
-                  ))}
-                </div>
-              )}
             </React.Fragment>
           );
         })}

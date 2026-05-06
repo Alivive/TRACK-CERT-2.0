@@ -47,9 +47,12 @@ const AddCertification = () => {
   const handleProviderChange = async (providerName) => {
     setFormData({ ...formData, provider: providerName });
     
-    if (!providerName) return;
+    if (!providerName) {
+      setShowLinkPrompt(false);
+      return;
+    }
     
-    // Check if provider link exists
+    // Check if provider link exists (case-insensitive)
     const providerLink = providerLinks.find(
       pl => pl.provider_name.toLowerCase() === providerName.toLowerCase()
     );
@@ -57,10 +60,22 @@ const AddCertification = () => {
     if (providerLink) {
       // Auto-fill the certificate URL
       setFormData(prev => ({ ...prev, certificate_url: providerLink.base_url }));
+      setShowLinkPrompt(false);
     } else {
-      // Provider not in database - prompt user to add it
-      setNewProviderLink({ provider_name: providerName, base_url: '', description: '' });
-      setShowLinkPrompt(true);
+      // Only show prompt if no providers match at all
+      const hasPartialMatch = providerLinks.some(
+        pl => pl.provider_name.toLowerCase().includes(providerName.toLowerCase()) ||
+              providerName.toLowerCase().includes(pl.provider_name.toLowerCase())
+      );
+      
+      if (!hasPartialMatch) {
+        // No match found - prompt user to add it
+        setNewProviderLink({ provider_name: providerName, base_url: '', description: '' });
+        setShowLinkPrompt(true);
+      } else {
+        // Partial match exists, don't show prompt yet
+        setShowLinkPrompt(false);
+      }
     }
   };
 
@@ -90,6 +105,14 @@ const AddCertification = () => {
     // Validate that at least one certificate option is provided
     if (!formData.certificate_file && !formData.certificate_file_url) {
       alert('⚠️ CERTIFICATE REQUIRED\n\nPlease provide either:\n• Upload a certificate file, OR\n• Provide a URL to an existing certificate');
+      setLoading(false);
+      return;
+    }
+
+    // Validate hours
+    const hours = parseFloat(formData.hours);
+    if (isNaN(hours) || hours <= 0) {
+      alert('⚠️ INVALID HOURS\n\nHours must be greater than 0. Decimals like 0.5 are allowed.');
       setLoading(false);
       return;
     }
@@ -238,10 +261,16 @@ const AddCertification = () => {
                 <input 
                   type="number" 
                   className="form-input" 
-                  placeholder="0" 
+                  placeholder="0.5" 
                   required 
+                  min="0.1"
+                  step="0.5"
                   value={formData.hours}
-                  onChange={(e) => setFormData({...formData, hours: e.target.value})}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (value < 0) return; // Prevent negative values
+                    setFormData({...formData, hours: e.target.value});
+                  }}
                 />
               </div>
               <div className="form-group">

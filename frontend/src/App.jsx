@@ -10,7 +10,6 @@ import InternProfiles from './pages/InternProfiles';
 import Categories from './pages/Categories';
 import AddCertification from './pages/AddCertification';
 import ImportData from './pages/ImportData';
-import BulkAttachCertificates from './pages/BulkAttachCertificates';
 import Reports from './pages/Reports';
 import AdminPanel from './pages/AdminPanel';
 import ReadingList from './pages/ReadingList';
@@ -110,7 +109,6 @@ const AppContent = () => {
       case 'categories': return <Categories />;
       case 'add_cert': return <AddCertification />;
       case 'import': return <ImportData />;
-      case 'bulk_attach': return <BulkAttachCertificates />;
       case 'reports': return <Reports />;
       case 'reading': return <ReadingList />;
       case 'admin': return <AdminPanel />;

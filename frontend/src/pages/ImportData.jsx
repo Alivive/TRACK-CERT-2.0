@@ -85,19 +85,13 @@ const ImportData = () => {
               continue;
             }
           } else {
+            // For regular users, always use their own profile - ignore "Intern Name" column
             intern = interns.find(i => i.id === profile?.intern_id);
             
             if (!intern) {
               errors.push(`Your intern profile not found. Please contact administrator.`);
               failCount++;
-              continue;
-            }
-            
-            const internName = row['Intern Name'] || row['Employee Name'];
-            if (internName && `${intern.first_name} ${intern.last_name}`.toLowerCase() !== internName.toLowerCase()) {
-              errors.push(`Row skipped: You can only upload certifications for yourself (${intern.first_name} ${intern.last_name})`);
-              failCount++;
-              continue;
+              break; // Stop processing if profile not found
             }
           }
 
@@ -126,13 +120,23 @@ const ImportData = () => {
             continue;
           }
 
+          // Validate hours
+          const hours = parseFloat(row['Hours']) || 0;
+          if (hours <= 0) {
+            errors.push(`Invalid hours "${row['Hours']}" for "${row['Certification Name']}". Hours must be greater than 0.`);
+            failCount++;
+            continue;
+          }
+
           const certData = {
             intern_id: intern.id,
             name: row['Certification Name'],
             provider: row['Provider'],
             category: mappedCategory,  // Use mapped category
-            hours: parseInt(row['Hours']) || 0,
-            date: row['Completion Date']
+            hours: hours,
+            date: row['Completion Date'],
+            certificate_url: row['Course Source URL'] || row['Certificate URL'] || row['Certificate Source'] || '',
+            certificate_file_url: row['Certificate File URL'] || row['Certificate File'] || ''
           };
 
           const result = await addCertification(certData);
@@ -199,7 +203,7 @@ const ImportData = () => {
           <div className="card-header"><span className="card-title">TEMPLATE FORMAT</span></div>
           <div className="card-body">
             <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '10px' }}>REQUIRED COLUMNS:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
               {isAdmin && <span className="badge badge-red">Intern Name</span>}
               <span className="badge badge-teal">Certification Name</span>
               <span className="badge badge-blue">Provider</span>
@@ -207,11 +211,43 @@ const ImportData = () => {
               <span className="badge badge-purple">Hours</span>
               <span className="badge badge-green">Completion Date</span>
             </div>
+            <div style={{ fontSize: '11px', color: 'var(--gray2)', marginBottom: '10px' }}>OPTIONAL COLUMNS (NEW!):</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <span className="badge badge-cyber">Course Source URL</span>
+              <span className="badge badge-cloud">Certificate File URL</span>
+            </div>
             {!isAdmin && (
               <div style={{ marginTop: '12px', padding: '10px', background: 'var(--black4)', borderRadius: '4px', fontSize: '12px', color: 'var(--gray)' }}>
                 <strong>Note:</strong> You don't need to include "Intern Name" - all certifications will be automatically added to your profile.
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* NEW: Simplified Workflow Info */}
+      <div className="card" style={{ marginBottom: '20px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+        <div className="card-body" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
+            <div style={{ fontSize: '32px' }}>✨</div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--green)', marginBottom: '8px' }}>
+                SIMPLIFIED WORKFLOW - ONE UPLOAD DOES IT ALL!
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '11px' }}>
+                <div style={{ padding: '10px', background: 'var(--black4)', borderRadius: '6px', border: '1px solid var(--border2)' }}>
+                  <div style={{ color: 'var(--white)', fontWeight: '600', marginBottom: '4px' }}>🌐 Course Source URL</div>
+                  <div style={{ color: 'var(--gray2)' }}>Link to the exact course page on the platform (Coursera, Udemy, AWS, etc.)</div>
+                </div>
+                <div style={{ padding: '10px', background: 'var(--black4)', borderRadius: '6px', border: '1px solid var(--border2)' }}>
+                  <div style={{ color: 'var(--white)', fontWeight: '600', marginBottom: '4px' }}>📎 Certificate File URL</div>
+                  <div style={{ color: 'var(--gray2)' }}>Direct link to your certificate PDF/image (Google Drive, Dropbox, etc.)</div>
+                </div>
+              </div>
+              <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '4px', fontSize: '11px', color: 'var(--green)', fontWeight: '600' }}>
+                ✓ Both columns are optional - leave blank if you don't have URLs yet
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -225,8 +261,8 @@ const ImportData = () => {
           <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>Upload Certification Records</h2>
           <p style={{ color: 'var(--gray)', fontSize: '14px', maxWidth: '500px', margin: '0 auto 24px' }}>
             {isAdmin 
-              ? 'Upload CSV file with certification data for any intern. Make sure intern names match exactly with existing records.'
-              : 'Upload CSV file with your certification data. All rows must have your name as the intern.'}
+              ? 'Upload CSV/Excel file with certification data including certificate URLs. Include "Intern Name" column to specify which intern each certification belongs to.'
+              : 'Upload CSV/Excel file with your certification data. No need to include your name - all certifications will be automatically added to your profile!'}
           </p>
 
           {results && (
