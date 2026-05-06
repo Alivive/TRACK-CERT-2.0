@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../utils/apiClient';
 import { useDatabase } from '../utils/useDatabase';
 import { useAuth } from '../context/AuthContext';
-import { Settings, Shield, Key, CheckCircle, Users, Search, UserCheck, UserMinus, ShieldCheck, UserPlus, Plus, Edit2, Save, X } from 'lucide-react';
+import { providerLinksClient } from '../utils/providerLinksClient';
+import * as XLSX from 'xlsx';
+import { Settings, Shield, Key, CheckCircle, Users, Search, UserCheck, UserMinus, ShieldCheck, UserPlus, Plus, Edit2, Save, X, Trash2, Link } from 'lucide-react';
 
 const AdminPanel = () => {
   const { allProfiles, updateProfileRole, addIntern, interns, updateProfile } = useDatabase();
@@ -14,6 +16,13 @@ const AdminPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  // Provider Links state
+  const [providerLinks, setProviderLinks] = useState([]);
+  const [providerLinksLoading, setProviderLinksLoading] = useState(false);
+  const [editingLinkId, setEditingLinkId] = useState(null);
+  const [linkForm, setLinkForm] = useState({ provider_name: '', base_url: '', description: '' });
+  const [showAddLinkForm, setShowAddLinkForm] = useState(false);
 
   const [settings, setSettings] = useState({
     admin_code: '',
@@ -56,6 +65,21 @@ const AdminPanel = () => {
     
     loadSettings();
   }, []);
+
+  // Load provider links when tab is opened
+  useEffect(() => {
+    if (activeTab === 'provider_links' && providerLinks.length === 0) {
+      const loadProviderLinks = async () => {
+        setProviderLinksLoading(true);
+        const result = await providerLinksClient.getProviderLinks();
+        if (result.success) {
+          setProviderLinks(result.data || []);
+        }
+        setProviderLinksLoading(false);
+      };
+      loadProviderLinks();
+    }
+  }, [activeTab]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -216,6 +240,12 @@ const AdminPanel = () => {
             onClick={() => setActiveTab('add_intern')}
           >
             <UserPlus size={14} /> ADD INTERN
+          </button>
+          <button
+            className={`admin-tab ${activeTab === 'provider_links' ? 'active' : ''}`}
+            onClick={() => setActiveTab('provider_links')}
+          >
+            <Key size={14} /> PROVIDER LINKS
           </button>
         </div>
       </div>
@@ -541,6 +571,305 @@ const AdminPanel = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── PROVIDER LINKS TAB ── */}
+      {activeTab === 'provider_links' && (
+        <div className="card animate-in">
+          <div className="card-header">
+            <Link size={18} style={{ marginRight: '10px', color: 'var(--red-light)' }} />
+            <span className="card-title">PROVIDER LINKS MANAGEMENT</span>
+            <button 
+              className="btn btn-primary"
+              style={{ marginLeft: 'auto', padding: '8px 16px', fontSize: '12px' }}
+              onClick={() => {
+                setShowAddLinkForm(!showAddLinkForm);
+                setLinkForm({ provider_name: '', base_url: '', description: '' });
+              }}
+            >
+              <Plus size={14} /> ADD PROVIDER
+            </button>
+          </div>
+          <div className="card-body">
+            <p style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '20px' }}>
+              Manage provider certificate links. When users add certifications, the system will auto-fill the certificate URL based on the provider.
+            </p>
+
+            {/* Bulk Import Section */}
+            <div style={{ background: 'var(--black3)', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border2)' }}>
+              <h4 style={{ fontSize: '13px', marginBottom: '10px', color: 'var(--white)' }}>📥 Bulk Import from CSV/XLSX</h4>
+              <p style={{ fontSize: '12px', color: 'var(--gray2)', marginBottom: '10px' }}>
+                Upload a CSV or Excel file with columns: <code style={{ background: 'var(--black4)', padding: '2px 6px', borderRadius: '3px' }}>Provider, Official Link, Category</code>
+              </p>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+
+                  try {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                      try {
+                        let rows = [];
+
+                        if (file.name.endsWith('.csv')) {
+                          // Parse CSV
+                          const text = event.target.result;
+                          const lines = text.split('\n').filter(line => line.trim());
+                          rows = lines.slice(1).map(line => {
+                            const [provider_name, base_url, description] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+                            return { provider_name, base_url, description };
+                          });
+                        } else {
+                          // Parse XLSX
+                          const data = new Uint8Array(event.target.result);
+                          const workbook = XLSX.read(data, { type: 'array' });
+                          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false });
+                          
+                          console.log('=== EXCEL IMPORT DEBUG ===');
+                          console.log('Total rows:', jsonData.length);
+                          console.log('First row keys:', jsonData[0] ? Object.keys(jsonData[0]) : 'No data');
+                          console.log('First row data:', jsonData[0]);
+                          console.log('Second row data:', jsonData[1]);
+                          
+                          rows = jsonData.map((row, index) => {
+                            // Get all keys from the row to help debug
+                            const keys = Object.keys(row);
+                            
+                            // Try multiple possible column names (case-insensitive)
+                            let provider_name = null;
+                            let base_url = null;
+                            let description = null;
+                            
+                            // Find provider name column
+                            for (const key of keys) {
+                              const lowerKey = key.toLowerCase().trim();
+                              if (!provider_name && (
+                                lowerKey === 'provider' || 
+                                lowerKey === 'provider name' || 
+                                lowerKey === 'provider_name' ||
+                                lowerKey.includes('certification provider') ||
+                                lowerKey.includes('certifier')
+                              )) {
+                                provider_name = row[key];
+                              }
+                              
+                              if (!base_url && (
+                                lowerKey === 'official link' || 
+                                lowerKey === 'base url' || 
+                                lowerKey === 'base_url' ||
+                                lowerKey === 'url' ||
+                                lowerKey === 'link' ||
+                                lowerKey.includes('official')
+                              )) {
+                                base_url = row[key];
+                              }
+                              
+                              if (!description && (
+                                lowerKey === 'category' || 
+                                lowerKey === 'description' ||
+                                lowerKey === 'desc' ||
+                                lowerKey === 'type'
+                              )) {
+                                description = row[key];
+                              }
+                            }
+                            
+                            console.log(`Row ${index + 1}:`, { provider_name, base_url, description });
+                            
+                            return { 
+                              provider_name: provider_name ? String(provider_name).trim() : null, 
+                              base_url: base_url ? String(base_url).trim() : null, 
+                              description: description ? String(description).trim() : '' 
+                            };
+                          }).filter(row => {
+                            const isValid = row.provider_name && row.base_url;
+                            if (!isValid) {
+                              console.log('Filtered out invalid row:', row);
+                            }
+                            return isValid;
+                          });
+                          
+                          console.log('Valid rows after filtering:', rows.length);
+                          console.log('=== END DEBUG ===');
+                        }
+
+                        console.log('Parsed rows:', rows);
+
+                        if (rows.length === 0) {
+                          alert('No valid rows found in file!\n\nPlease check:\n1. File has columns named "Provider" and "Official Link" (or similar)\n2. Rows contain actual data\n3. Check browser console (F12) for detailed debug info');
+                          e.target.value = '';
+                          return;
+                        }
+
+                        let successCount = 0;
+                        let failCount = 0;
+                        const errors = [];
+
+                        for (const row of rows) {
+                          if (row.provider_name && row.base_url) {
+                            console.log('Attempting to add:', row);
+                            const result = await providerLinksClient.addProviderLink({
+                              provider_name: row.provider_name.trim(),
+                              base_url: row.base_url.trim(),
+                              description: row.description ? row.description.trim() : ''
+                            });
+                            
+                            console.log('Result:', result);
+                            
+                            if (result.success) {
+                              successCount++;
+                              setProviderLinks(prev => [...prev, result.data]);
+                            } else {
+                              failCount++;
+                              const errorMsg = result.error?.message || result.error || result.message || 'Unknown error';
+                              console.error('Failed to add provider:', row.provider_name, errorMsg);
+                              errors.push(`${row.provider_name}: ${errorMsg}`);
+                            }
+                          }
+                        }
+
+                        if (successCount > 0) {
+                          alert(`Import complete!\n✓ ${successCount} providers added${failCount > 0 ? `\n✗ ${failCount} failed (duplicates or errors)\n\nFailed:\n${errors.join('\n')}` : ''}`);
+                        } else {
+                          alert(`Import failed!\n✗ 0 providers added\n✗ ${failCount} failed\n\nErrors:\n${errors.join('\n')}\n\nCheck browser console (F12) for details.`);
+                        }
+                        e.target.value = ''; // Reset file input
+                      } catch (error) {
+                        console.error('Parse error:', error);
+                        alert('Failed to parse file: ' + error.message);
+                      }
+                    };
+
+                    if (file.name.endsWith('.csv')) {
+                      reader.readAsText(file);
+                    } else {
+                      reader.readAsArrayBuffer(file);
+                    }
+                  } catch (error) {
+                    alert('Failed to read file: ' + error.message);
+                  }
+                }}
+                style={{ fontSize: '12px' }}
+              />
+            </div>
+
+            {/* Add Provider Form */}
+            {showAddLinkForm && (
+              <div style={{ background: 'var(--black3)', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border2)' }}>
+                <h4 style={{ fontSize: '14px', marginBottom: '15px', color: 'var(--white)' }}>Add New Provider Link</h4>
+                <div className="form-group">
+                  <label className="form-label">Provider Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., Coursera, Udemy, AWS"
+                    value={linkForm.provider_name}
+                    onChange={(e) => setLinkForm({ ...linkForm, provider_name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Base URL</label>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="e.g., https://www.coursera.org/account/accomplishments/verify/"
+                    value={linkForm.base_url}
+                    onChange={(e) => setLinkForm({ ...linkForm, base_url: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., Coursera certificate verification"
+                    value={linkForm.description}
+                    onChange={(e) => setLinkForm({ ...linkForm, description: e.target.value })}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      if (!linkForm.provider_name || !linkForm.base_url) {
+                        alert('Provider name and base URL are required');
+                        return;
+                      }
+                      const result = await providerLinksClient.addProviderLink(linkForm);
+                      if (result.success) {
+                        setProviderLinks([...providerLinks, result.data]);
+                        setShowAddLinkForm(false);
+                        setLinkForm({ provider_name: '', base_url: '', description: '' });
+                      } else {
+                        alert('Failed to add provider link');
+                      }
+                    }}
+                  >
+                    <Save size={14} /> SAVE
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setShowAddLinkForm(false);
+                      setLinkForm({ provider_name: '', base_url: '', description: '' });
+                    }}
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Provider Links List */}
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>PROVIDER</th>
+                    <th>BASE URL</th>
+                    <th>DESCRIPTION</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {providerLinks.map(link => (
+                    <tr key={link.id}>
+                      <td style={{ fontWeight: '600' }}>{link.provider_name}</td>
+                      <td style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--blue)' }}>
+                        {link.base_url}
+                      </td>
+                      <td style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                        {link.description || '—'}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: '5px', color: 'var(--red-light)' }}
+                            onClick={async () => {
+                              if (window.confirm(`Delete ${link.provider_name}?`)) {
+                                const result = await providerLinksClient.deleteProviderLink(link.id);
+                                if (result.success) {
+                                  setProviderLinks(providerLinks.filter(l => l.id !== link.id));
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

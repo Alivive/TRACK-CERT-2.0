@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Plus, CheckCircle } from 'lucide-react';
+import { providerLinksClient } from '../utils/providerLinksClient';
+import { Plus, CheckCircle, Link, AlertCircle } from 'lucide-react';
 
 const AddCertification = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const { interns, addCertification, loading: dbLoading } = useDatabase();
+  const { interns, certifications, addCertification, loading: dbLoading } = useDatabase();
   const { categories, getCategoryObject } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [providerLinks, setProviderLinks] = useState([]);
+  const [showLinkPrompt, setShowLinkPrompt] = useState(false);
+  const [newProviderLink, setNewProviderLink] = useState({ provider_name: '', base_url: '', description: '' });
   
   // Use dynamic categories
   const CATS = getCategoryObject();
@@ -28,6 +32,54 @@ const AddCertification = () => {
     certificate_file_url: ''
   });
 
+  // Load provider links on mount
+  useEffect(() => {
+    const loadProviderLinks = async () => {
+      const result = await providerLinksClient.getProviderLinks();
+      if (result.success) {
+        setProviderLinks(result.data || []);
+      }
+    };
+    loadProviderLinks();
+  }, []);
+
+  // Auto-fill certificate URL when provider changes
+  const handleProviderChange = async (providerName) => {
+    setFormData({ ...formData, provider: providerName });
+    
+    if (!providerName) return;
+    
+    // Check if provider link exists
+    const providerLink = providerLinks.find(
+      pl => pl.provider_name.toLowerCase() === providerName.toLowerCase()
+    );
+    
+    if (providerLink) {
+      // Auto-fill the certificate URL
+      setFormData(prev => ({ ...prev, certificate_url: providerLink.base_url }));
+    } else {
+      // Provider not in database - prompt user to add it
+      setNewProviderLink({ provider_name: providerName, base_url: '', description: '' });
+      setShowLinkPrompt(true);
+    }
+  };
+
+  const handleSaveProviderLink = async () => {
+    if (!newProviderLink.base_url) {
+      alert('Please enter a base URL');
+      return;
+    }
+    
+    const result = await providerLinksClient.addProviderLink(newProviderLink);
+    if (result.success) {
+      setProviderLinks([...providerLinks, result.data]);
+      setFormData(prev => ({ ...prev, certificate_url: newProviderLink.base_url }));
+      setShowLinkPrompt(false);
+    } else {
+      alert('Failed to save provider link');
+    }
+  };
+
   // Derive intern_id at submit time so we always have the latest profile value
 
   const handleSubmit = async (e) => {
@@ -37,6 +89,19 @@ const AddCertification = () => {
 
     // For interns, always resolve intern_id from profile at submit time
     const resolvedInternId = isAdmin ? formData.intern_id : (profile?.intern_id || '');
+
+    // Check for duplicates (same name AND same provider for same intern)
+    const duplicate = certifications.find(c => 
+      c.intern_id === resolvedInternId &&
+      c.name.toLowerCase().trim() === formData.name.toLowerCase().trim() &&
+      c.provider.toLowerCase().trim() === formData.provider.toLowerCase().trim()
+    );
+
+    if (duplicate) {
+      alert(`⚠️ DUPLICATE DETECTED\n\nThis certification already exists:\n• ${duplicate.name}\n• Provider: ${duplicate.provider}\n• Added on: ${duplicate.date}\n\nYou cannot add the same certification twice.`);
+      setLoading(false);
+      return;
+    }
 
     // Map problematic categories to allowed ones temporarily
     const categoryMapping = {
@@ -131,8 +196,19 @@ const AddCertification = () => {
                   placeholder="e.g. Coursera, Google" 
                   required 
                   value={formData.provider}
-                  onChange={(e) => setFormData({...formData, provider: e.target.value})}
+                  onChange={(e) => handleProviderChange(e.target.value)}
+                  list="provider-suggestions"
                 />
+                <datalist id="provider-suggestions">
+                  {providerLinks.map(pl => (
+                    <option key={pl.id} value={pl.provider_name} />
+                  ))}
+                </datalist>
+                {formData.provider && providerLinks.find(pl => pl.provider_name.toLowerCase() === formData.provider.toLowerCase()) && (
+                  <small style={{ fontSize: '11px', color: 'var(--green)', marginTop: '5px', display: 'block' }}>
+                    ✓ Certificate URL auto-filled
+                  </small>
+                )}
               </div>
             </div>
 
@@ -218,6 +294,92 @@ const AddCertification = () => {
           </form>
         </div>
       </div>
+
+      {/* Provider Link Prompt Modal */}
+      {showLinkPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
+            <div className="card-header">
+              <AlertCircle size={18} style={{ marginRight: '10px', color: 'var(--yellow)' }} />
+              <span className="card-title">PROVIDER LINK NOT FOUND</span>
+            </div>
+            <div className="card-body">
+              <p style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '20px' }}>
+                The provider "<strong>{newProviderLink.provider_name}</strong>" is not in our database. 
+                Please add the certificate base URL to help future users.
+              </p>
+              
+              <div className="form-group">
+                <label className="form-label">Provider Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={newProviderLink.provider_name}
+                  disabled
+                  style={{ background: 'var(--black4)', cursor: 'not-allowed' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Base URL (Required)</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="e.g., https://www.coursera.org/account/accomplishments/verify/"
+                  value={newProviderLink.base_url}
+                  onChange={(e) => setNewProviderLink({ ...newProviderLink, base_url: e.target.value })}
+                  autoFocus
+                />
+                <small style={{ fontSize: '11px', color: 'var(--gray2)', marginTop: '5px', display: 'block' }}>
+                  Enter the base URL where certificates can be verified
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description (Optional)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g., Certificate verification page"
+                  value={newProviderLink.description}
+                  onChange={(e) => setNewProviderLink({ ...newProviderLink, description: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveProviderLink}
+                  style={{ flex: 1 }}
+                >
+                  <Link size={14} /> SAVE & CONTINUE
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowLinkPrompt(false);
+                    setFormData(prev => ({ ...prev, certificate_url: '' }));
+                  }}
+                >
+                  SKIP
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

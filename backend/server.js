@@ -840,6 +840,112 @@ app.post('/api/admin/fix-category-constraint', async (req, res, next) => {
   }
 });
 
+// ========== PROVIDER LINKS API ==========
+
+// Get all provider links
+app.get('/api/provider-links', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('provider_links')
+      .select('*')
+      .order('provider_name');
+    
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get provider link by name
+app.get('/api/provider-links/:name', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('provider_links')
+      .select('*')
+      .ilike('provider_name', req.params.name)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    res.json({ success: true, data: data || null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Add new provider link (admin only)
+app.post('/api/provider-links', async (req, res, next) => {
+  try {
+    console.log('[API] POST /api/provider-links - Body:', req.body);
+    const { provider_name, base_url, description } = req.body;
+    
+    if (!provider_name || !base_url) {
+      console.log('[API] Missing required fields');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Provider name and base URL are required' 
+      });
+    }
+
+    console.log('[API] Inserting provider link:', { provider_name, base_url, description });
+    const { data, error } = await supabase
+      .from('provider_links')
+      .insert([{ provider_name, base_url, description }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[API] Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('[API] Successfully added provider link:', data);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[API] Error in POST /api/provider-links:', error);
+    next(error);
+  }
+});
+
+// Update provider link (admin only)
+app.put('/api/provider-links/:id', async (req, res, next) => {
+  try {
+    const { provider_name, base_url, description } = req.body;
+    
+    const { data, error } = await supabase
+      .from('provider_links')
+      .update({ 
+        provider_name, 
+        base_url, 
+        description,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete provider link (admin only)
+app.delete('/api/provider-links/:id', async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from('provider_links')
+      .delete()
+      .eq('id', req.params.id);
+    
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ========== ERROR HANDLERS ==========
 
 // 404 handler
