@@ -15,15 +15,21 @@ const Topbar = ({ title, onPageChange, toggleSidebar }) => {
   const handleSendMessage = async () => {
     if (!messageTitle.trim() || !messageText.trim()) return;
 
+    console.log('[TOPBAR] Sending message from intern to admin');
     setSending(true);
     try {
       // Get all admin users
       const { data: admins, error: adminsError } = await supabase
         .from('users')
-        .select('id, intern_id')
+        .select('id, intern_id, full_name, role')
         .eq('role', 'admin');
 
       if (adminsError) throw adminsError;
+      console.log('[TOPBAR] Found admins:', admins);
+
+      if (admins.length === 0) {
+        throw new Error('No admin users found');
+      }
 
       // Create notifications for all admins using user_id
       const notifications = admins.map(admin => ({
@@ -35,21 +41,29 @@ const Topbar = ({ title, onPageChange, toggleSidebar }) => {
         created_at: new Date().toISOString()
       }));
 
-      if (notifications.length > 0) {
-        const { error: insertError } = await supabase
-          .from('notifications')
-          .insert(notifications);
+      console.log('[TOPBAR] Creating notifications:', notifications);
 
-        if (insertError) throw insertError;
+      const { data: insertData, error: insertError } = await supabase
+        .from('notifications')
+        .insert(notifications)
+        .select();
+
+      if (insertError) {
+        console.error('[TOPBAR] Insert error:', insertError);
+        throw insertError;
       }
+
+      console.log('[TOPBAR] Notifications created successfully:', insertData);
 
       // Close modal and reset
       setShowMessageModal(false);
       setMessageTitle('');
       setMessageText('');
+      
+      alert(`Message sent successfully to ${admins.length} admin(s)!`);
     } catch (err) {
       console.error('Failed to send message:', err);
-      alert('Failed to send message. Please try again.');
+      alert(`Failed to send message: ${err.message}`);
     } finally {
       setSending(false);
     }

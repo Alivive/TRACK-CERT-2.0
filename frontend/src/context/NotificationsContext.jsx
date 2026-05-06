@@ -20,41 +20,55 @@ export const NotificationsProvider = ({ children }) => {
 
   // Load notifications from database on mount
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id) {
+      setLoading(false);
+      return;
+    }
     
     const loadNotifications = async () => {
       try {
         let query;
         
         if (profile.role === 'admin') {
-          // For admins: get notifications where intern_id matches their intern_id OR user_id matches their id
+          // For admins: get notifications where user_id matches their id
+          // If table doesn't support nullable intern_id, we'll handle this gracefully
           query = supabase
             .from('notifications')
             .select('*')
-            .or(`intern_id.eq.${profile.intern_id || 'null'},user_id.eq.${profile.id}`)
+            .eq('user_id', profile.id)
             .order('created_at', { ascending: false })
             .limit(50);
-        } else {
+        } else if (profile.intern_id) {
           // For interns: get notifications for their intern_id
-          if (!profile.intern_id) return;
           query = supabase
             .from('notifications')
             .select('*')
             .eq('intern_id', profile.intern_id)
             .order('created_at', { ascending: false })
             .limit(50);
+        } else {
+          console.warn('[NOTIFICATIONS] No valid ID for loading notifications');
+          setLoading(false);
+          return;
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error('[NOTIFICATIONS] Database error:', error);
+          // If table doesn't exist or has schema issues, use empty array
+          setNotifications([]);
+          setUnreadCount(0);
+          setLoading(false);
+          return;
+        }
 
         if (data) {
           const formattedNotifications = data.map(n => ({
             id: n.id.toString(),
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            read: n.read,
+            type: n.type || 'unknown',
+            title: n.title || 'No title',
+            message: n.message || 'No message',
+            read: n.read || false,
             timestamp: n.created_at,
             data: {}
           }));
@@ -64,6 +78,9 @@ export const NotificationsProvider = ({ children }) => {
         }
       } catch (e) {
         console.error('Failed to load notifications:', e);
+        // Graceful fallback - use empty notifications
+        setNotifications([]);
+        setUnreadCount(0);
       } finally {
         setLoading(false);
       }
@@ -82,42 +99,73 @@ export const NotificationsProvider = ({ children }) => {
   useEffect(() => {
     if (!profile?.id) return;
 
-    const channel = supabase
-      .channel('user-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: profile.role === 'admin' 
-            ? `user_id=eq.${profile.id}` 
-            : `intern_id=eq.${profile.intern_id}`
-        },
-        (payload) => {
-          const newNotification = payload.new;
-          console.log('[NOTIFICATIONS] New notification received:', newNotification);
-          
-          // Add notification with database ID
-          const notification = {
-            id: newNotification.id.toString(),
-            type: newNotification.type,
-            title: newNotification.title,
-            message: newNotification.message,
-            read: false,
-            data: {},
-            timestamp: newNotification.created_at
-          };
-          
-          setNotifications(prev => [notification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-        }
-      )
-      .subscribe();
+    console.log('[NOTIFICATIONS] Setting up real-time subscription for user:', profile.id, 'role:', profile.role);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    try {
+      let filter;
+      if (profile.role === 'admin') {
+        filter = `user_id=eq.${profile.id}`;
+        console.log('[NOTIFICATIONS] Admin filter:', filter);
+      } else if (profile.intern_id) {
+        filter = `intern_id=eq.${profile.intern_id}`;
+        console.log('[NOTIFICATIONS] Intern filter:', filter);
+      } else {
+        console.warn('[NOTIFICATIONS] No valid ID for notifications');
+        return;
+      }
+
+      const channel = supabase
+        .channel(`user-notifications-${profile.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: filter
+          },
+          (payload) => {
+            try {
+              console.log('[NOTIFICATIONS] Real-time notification received:', payload);
+              const newNotification = payload.new;
+              
+              // Add notification with database ID
+              const notification = {
+                id: newNotification.id.toString(),
+                type: newNotification.type || 'unknown',
+                title: newNotification.title || 'No title',
+                message: newNotification.message || 'No message',
+                read: false,
+                data: {},
+                timestamp: newNotification.created_at
+              };
+              
+              console.log('[NOTIFICATIONS] Adding notification to state:', notification);
+              setNotifications(prev => [notification, ...prev]);
+              setUnreadCount(prev => prev + 1);
+            } catch (err) {
+              console.error('[NOTIFICATIONS] Error processing real-time notification:', err);
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('[NOTIFICATIONS] Subscription status:', status);
+          if (status === 'SUBSCRIPTION_ERROR') {
+            console.error('[NOTIFICATIONS] Subscription failed - notifications table may not exist');
+          }
+        });
+
+      return () => {
+        console.log('[NOTIFICATIONS] Cleaning up subscription');
+        try {
+          supabase.removeChannel(channel);
+        } catch (err) {
+          console.error('[NOTIFICATIONS] Error cleaning up subscription:', err);
+        }
+      };
+    } catch (err) {
+      console.error('[NOTIFICATIONS] Error setting up real-time subscription:', err);
+    }
   }, [profile?.id, profile?.intern_id, profile?.role]);
 
   // Listen for new certifications (for interns to see their own certs)
@@ -290,6 +338,7 @@ export const NotificationsProvider = ({ children }) => {
         .eq('id', parseInt(notificationId));
     } catch (e) {
       console.error('Failed to mark notification as read:', e);
+      // Don't revert UI state - user experience is more important
     }
   };
 
@@ -310,6 +359,7 @@ export const NotificationsProvider = ({ children }) => {
       }
     } catch (e) {
       console.error('Failed to mark all notifications as read:', e);
+      // Don't revert UI state
     }
   };
 
@@ -330,6 +380,7 @@ export const NotificationsProvider = ({ children }) => {
         .eq('id', parseInt(notificationId));
     } catch (e) {
       console.error('Failed to delete notification:', e);
+      // Don't revert UI state
     }
   };
 
@@ -339,12 +390,20 @@ export const NotificationsProvider = ({ children }) => {
 
     // Delete from database
     try {
-      await supabase
-        .from('notifications')
-        .delete()
-        .eq('intern_id', profile?.intern_id);
+      if (profile?.role === 'admin') {
+        await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', profile.id);
+      } else if (profile?.intern_id) {
+        await supabase
+          .from('notifications')
+          .delete()
+          .eq('intern_id', profile.intern_id);
+      }
     } catch (e) {
       console.error('Failed to clear all notifications:', e);
+      // Don't revert UI state
     }
   };
 

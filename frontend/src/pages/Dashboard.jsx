@@ -5,7 +5,7 @@ import { useCategories } from '../context/CategoriesContext';
 import { Users, Award, Clock, TrendingUp } from 'lucide-react';
 
 const Dashboard = ({ onPageChange }) => {
-  const { profile } = useAuth();
+  const { profile, loading: profileLoading } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { categories, getCategoryObject, getCategoryBadges } = useCategories();
   
@@ -20,6 +20,34 @@ const Dashboard = ({ onPageChange }) => {
     certifications = [], 
     loading 
   } = useDatabase();
+
+  // Don't render anything until profile is loaded
+  if (profileLoading || !profile) {
+    return (
+      <div id="page-dashboard" className="page active">
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '400px',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid var(--border2)', 
+            borderTop: '3px solid var(--red-light)', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite' 
+          }} />
+          <div style={{ color: 'var(--gray)', fontSize: '14px' }}>
+            Loading your profile...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Filter certifications based on role
   const displayCertifications = useMemo(() => {
@@ -61,7 +89,9 @@ const Dashboard = ({ onPageChange }) => {
           Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}!
         </h1>
         <p style={{ color: 'var(--gray)', fontSize: '13px' }}>
-          You are logged in as a system <span style={{ color: 'var(--red-light)', fontWeight: '600' }}>{(profile?.role || 'intern').toUpperCase()}</span>
+          You are logged in as a system <span style={{ color: 'var(--red-light)', fontWeight: '600' }}>
+            {profile?.role ? profile.role.toUpperCase() : 'LOADING...'}
+          </span>
         </p>
       </div>
       

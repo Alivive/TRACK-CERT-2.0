@@ -41,6 +41,8 @@ const SendMessage = () => {
     setError('');
     setSuccess(false);
 
+    console.log('[SENDMESSAGE] Sending admin message:', messageData);
+
     try {
       const timestamp = new Date().toISOString();
       
@@ -48,6 +50,8 @@ const SendMessage = () => {
       const recipients = messageData.recipient === 'all' 
         ? interns.map(i => i.id)
         : [messageData.recipient];
+
+      console.log('[SENDMESSAGE] Recipients:', recipients);
 
       // Store count before resetting form
       const sentCount = recipients.length;
@@ -62,12 +66,20 @@ const SendMessage = () => {
         created_at: timestamp
       }));
 
-      // Insert notifications into database
-      const { error: insertError } = await supabase
-        .from('notifications')
-        .insert(notifications);
+      console.log('[SENDMESSAGE] Creating notifications:', notifications);
 
-      if (insertError) throw insertError;
+      // Insert notifications into database
+      const { data: insertData, error: insertError } = await supabase
+        .from('notifications')
+        .insert(notifications)
+        .select();
+
+      if (insertError) {
+        console.error('[SENDMESSAGE] Insert error:', insertError);
+        throw insertError;
+      }
+
+      console.log('[SENDMESSAGE] Notifications created successfully:', insertData);
 
       // Show success with actual sent count
       setSuccess(sentCount);

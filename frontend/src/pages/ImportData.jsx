@@ -137,7 +137,7 @@ const ImportData = () => {
             category: categoryCode,
             hours: hours,
             date: completionDate,
-            certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || ''
+            certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || row['link'] || ''
           };
 
           const result = await addCertification(certData);

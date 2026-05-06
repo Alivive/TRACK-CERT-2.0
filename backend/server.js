@@ -850,6 +850,135 @@ app.post('/api/admin/fix-category-constraint', async (req, res, next) => {
   }
 });
 
+// ========== NOTIFICATIONS API ==========
+
+app.get('/api/notifications', async (req, res, next) => {
+  try {
+    let query = supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    // Filter by user_id or intern_id based on query params
+    if (req.query.user_id) {
+      query = query.eq('user_id', req.query.user_id);
+    }
+    if (req.query.intern_id) {
+      query = query.eq('intern_id', req.query.intern_id);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/notifications', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([req.body])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/notifications/:id', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/notifications/:id', async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', req.params.id);
+    
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Bulk operations for notifications
+app.put('/api/notifications/mark-all-read', async (req, res, next) => {
+  try {
+    const { user_id, intern_id } = req.body;
+    
+    let query = supabase
+      .from('notifications')
+      .update({ read: true });
+    
+    if (user_id) {
+      query = query.eq('user_id', user_id);
+    } else if (intern_id) {
+      query = query.eq('intern_id', intern_id);
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'user_id or intern_id is required' 
+      });
+    }
+    
+    const { data, error } = await query.select();
+    
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/notifications/clear-all', async (req, res, next) => {
+  try {
+    const { user_id, intern_id } = req.body;
+    
+    let query = supabase
+      .from('notifications')
+      .delete();
+    
+    if (user_id) {
+      query = query.eq('user_id', user_id);
+    } else if (intern_id) {
+      query = query.eq('intern_id', intern_id);
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'user_id or intern_id is required' 
+      });
+    }
+    
+    const { error } = await query;
+    
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ========== PROVIDER LINKS API ==========
 
 // Backfill existing certifications with provider links (must be before /:name route)

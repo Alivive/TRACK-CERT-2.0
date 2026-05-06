@@ -3,7 +3,6 @@ import { apiClient } from '../utils/apiClient';
 import { offlineManager } from '../utils/offlineManager';
 import { useAuth } from './AuthContext';
 import { supabase } from '../utils/supabaseClient';
-import { supabase } from '../utils/supabaseClient';
 
 const DatabaseContext = createContext({});
 
