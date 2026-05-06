@@ -177,12 +177,12 @@ export const generateInternReport = async (intern, certifications, categories = 
             <span style="font-size: 10px; color: #94a3b8;">${certifications.length} total certifications</span>
           </div>
           <div style="background: white; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none;">
-            ${Object.keys(CATS).map(key => {
+            ${Object.keys(CATS).filter(key => certsByCategory[key].length > 0).map(key => {
               const catCerts = certsByCategory[key];
               const catHours = getTH(catCerts);
               return `
               <div style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${catCerts.length > 0 ? '8px' : '0'};">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <div style="width: 8px; height: 8px; border-radius: 50%; background: ${categoryColors[key] || '#6366f1'};"></div>
                     <h4 style="margin: 0; font-size: 12px; font-weight: 700; color: #0f172a;">${CATS[key].name}</h4>
@@ -191,34 +191,32 @@ export const generateInternReport = async (intern, certifications, categories = 
                     ${catCerts.length} certs · ${catHours}h
                   </div>
                 </div>
-                ${catCerts.length > 0 ? `
-                  <div style="margin-left: 16px;">
-                    ${catCerts.map(c => `
-                      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
-                        <div style="flex: 1;">
-                          <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 1px;">${c.name}</div>
-                          <div style="font-size: 10px; color: #6366f1; font-weight: 500; margin-bottom: 2px;">${c.provider}</div>
-                          ${c.certificate_url ? `
-                            <div style="font-size: 8px; margin-bottom: 1px;">
-                              <span style="color: #64748b;">🔗 </span>
-                              <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none; font-weight: 600;">Certificate Source</a>
-                            </div>
-                          ` : ''}
-                          ${c.certificate_file_url ? `
-                            <div style="font-size: 8px;">
-                              <span style="color: #64748b;">📎 </span>
-                              <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none; font-weight: 600;">View Certificate</a>
-                            </div>
-                          ` : ''}
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                          <div style="background: #f1f5f9; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #0f172a;">${c.hours}h</div>
-                          <div style="font-size: 9px; color: #64748b; min-width: 70px; text-align: right;">${c.date}</div>
-                        </div>
+                <div style="margin-left: 16px;">
+                  ${catCerts.map(c => `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
+                      <div style="flex: 1;">
+                        <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 1px;">${c.name}</div>
+                        <div style="font-size: 10px; color: #6366f1; font-weight: 500; margin-bottom: 2px;">${c.provider}</div>
+                        ${c.certificate_url ? `
+                          <div style="font-size: 8px; margin-bottom: 1px;">
+                            <span style="color: #64748b;">🔗 </span>
+                            <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none; font-weight: 600;">Certificate Source</a>
+                          </div>
+                        ` : ''}
+                        ${c.certificate_file_url ? `
+                          <div style="font-size: 8px;">
+                            <span style="color: #64748b;">📎 </span>
+                            <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none; font-weight: 600;">View Certificate</a>
+                          </div>
+                        ` : ''}
                       </div>
-                    `).join('')}
-                  </div>
-                ` : ''}
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="background: #f1f5f9; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #0f172a;">${c.hours}h</div>
+                        <div style="font-size: 9px; color: #64748b; min-width: 70px; text-align: right;">${c.date}</div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
               `;
             }).join('')}
