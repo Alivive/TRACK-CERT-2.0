@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square, ExternalLink, Paperclip } from 'lucide-react';
+import { Trash2, Plus, Edit2, Save, X, CheckSquare, Square, ExternalLink, Search } from 'lucide-react';
 
 const Categories = () => {
   const { profile } = useAuth();
@@ -15,6 +15,7 @@ const Categories = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
   const [editingCert, setEditingCert] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Bulk delete state
   const [selectedCerts, setSelectedCerts] = useState(new Set());
@@ -215,9 +216,22 @@ const Categories = () => {
     return certifications.filter(c => c.intern_id === profile?.intern_id);
   }, [certifications, isAdmin, profile?.intern_id]);
 
-  const filteredCerts = useMemo(() => (
-    filter === 'all' ? displayCertifications : displayCertifications.filter(c => c.category === filter)
-  ), [filter, displayCertifications]);
+  const filteredCerts = useMemo(() => {
+    let certs = filter === 'all' ? displayCertifications : displayCertifications.filter(c => c.category === filter);
+    
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      certs = certs.filter(c => 
+        c.name?.toLowerCase().includes(term) ||
+        c.provider?.toLowerCase().includes(term) ||
+        internDict[c.intern_id]?.first_name?.toLowerCase().includes(term) ||
+        internDict[c.intern_id]?.last_name?.toLowerCase().includes(term)
+      );
+    }
+    
+    return certs;
+  }, [filter, displayCertifications, searchTerm, internDict]);
 
   // Calculate stats per category using displayCertifications
   const categoryStats = useMemo(() => {
@@ -458,12 +472,23 @@ const Categories = () => {
 
       <div className="section-header">
         <span className="section-title">{isAdmin ? 'CERTIFICATIONS BY CATEGORY' : 'MY CERTIFICATIONS BY CATEGORY'}</span>
-        <select className="form-input" style={{ width: '200px' }} value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="all">All Categories</option>
-          {Object.keys(CATS).map(key => (
-            <option key={key} value={key}>{CATS[key].name}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="search-bar" style={{ width: '250px' }}>
+            <Search size={14} color="var(--gray2)" />
+            <input 
+              type="text" 
+              placeholder="Search certifications..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <select className="form-input" style={{ width: '200px' }} value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="all">All Categories</option>
+            {Object.keys(CATS).map(key => (
+              <option key={key} value={key}>{CATS[key].name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="card">
@@ -681,9 +706,10 @@ const Categories = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        {c.certificate_url && (
+                        {/* Only show certificate link if user provided URL (not uploaded to Supabase) */}
+                        {c.certificate_file_url && !c.certificate_file_url.includes('supabase') && (
                           <a 
-                            href={c.certificate_url} 
+                            href={c.certificate_file_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="btn btn-ghost"
@@ -693,19 +719,7 @@ const Categories = () => {
                             <ExternalLink size={12} />
                           </a>
                         )}
-                        {c.certificate_file_url && (
-                          <a 
-                            href={c.certificate_file_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="btn btn-ghost"
-                            style={{ padding: '4px', color: 'var(--orange)', fontSize: '10px' }}
-                            title="View Certificate File"
-                          >
-                            <Paperclip size={12} />
-                          </a>
-                        )}
-                        {!c.certificate_url && !c.certificate_file_url && (
+                        {(!c.certificate_file_url || c.certificate_file_url.includes('supabase')) && (
                           <span style={{ fontSize: '10px', color: 'var(--gray)' }}>—</span>
                         )}
                       </div>

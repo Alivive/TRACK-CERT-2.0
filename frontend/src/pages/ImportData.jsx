@@ -1,22 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
-import { useCategories } from '../context/CategoriesContext';
-import { Upload, CheckCircle, AlertCircle, Download, FileText } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const ImportData = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns, addCertification, refreshData } = useDatabase();
-  const { categories, getCategoryObject } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
-  
-
-  const CATS = getCategoryObject();
 
   const parseFile = async (file) => {
     const fileExtension = file.name.split('.').pop().toLowerCase();
@@ -95,30 +90,8 @@ const ImportData = () => {
             }
           }
 
-          const categoryMap = {};
-          categories.forEach(cat => {
-            categoryMap[cat.name] = cat.id;
-            categoryMap[cat.id] = cat.id;
-          });
-
-          const categoryKey = categoryMap[row['Category']] || row['Category'];
-          
-          // Map problematic categories to allowed ones temporarily
-          const categoryMapping = {
-            'BS': 'SOFT',    // Business and Finance → Soft Skills
-            'SD': 'BE',      // Software Dev. Essentials → Back End Web Dev
-            'DA': 'AI',      // Data & Analytics → Artificial Intelligence  
-            'GD': 'FE'       // Graphics Design → Front End Web Dev
-          };
-          
-          const mappedCategory = categoryMapping[categoryKey] || categoryKey;
-          
-          // Validate category exists (check mapped category)
-          if (!categories.find(c => c.id === mappedCategory)) {
-            errors.push(`Invalid category "${row['Category']}" for "${row['Certification Name']}". Valid: ${categories.map(c => c.id).join(', ')}`);
-            failCount++;
-            continue;
-          }
+          // Category is now free-text, no validation needed
+          const category = row['Category'] || '';
 
           // Validate hours
           const hours = parseFloat(row['Hours']) || 0;
@@ -132,7 +105,7 @@ const ImportData = () => {
             intern_id: intern.id,
             name: row['Certification Name'],
             provider: row['Provider'],
-            category: mappedCategory,  // Use mapped category
+            category: category,
             hours: hours,
             date: row['Completion Date'],
             certificate_url: row['Course Source URL'] || row['Certificate URL'] || row['Certificate Source'] || '',

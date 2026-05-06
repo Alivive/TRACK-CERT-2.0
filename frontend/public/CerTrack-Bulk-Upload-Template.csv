@@ -1,6 +1,7 @@
 Intern Name,Certification Name,Provider,Category,Hours,Completion Date,Course Source URL,Certificate File URL
-John Doe,AWS Cloud Practitioner,Amazon Web Services,CLOUD,40,2024-01-15,https://aws.amazon.com/training/,https://drive.google.com/file/d/abc123/view
-Jane Smith,Python for Data Science,Coursera,AI,30.5,2024-02-20,https://coursera.org/learn/python-data-science,https://example.com/certificates/python-cert.pdf
-John Doe,Introduction to Cybersecurity,Cisco,CYBER,25,2024-03-10,https://skillsforall.com/course/introduction-cybersecurity,
+John Doe,AWS Cloud Practitioner,Amazon Web Services,Cloud Computing,40,2024-01-15,https://aws.amazon.com/training/,https://drive.google.com/file/d/abc123/view
+Jane Smith,Python for Data Science,Coursera,Artificial Intelligence,30.5,2024-02-20,https://coursera.org/learn/python-data-science,https://example.com/certificates/python-cert.pdf
+John Doe,Introduction to Cybersecurity,Cisco,Cybersecurity,25,2024-03-10,https://skillsforall.com/course/introduction-cybersecurity,
 
 NOTE: Regular users (interns) do NOT need to include "Intern Name" column - all certifications will be automatically added to your profile. Only admins need the "Intern Name" column to specify which intern the certification belongs to.
+NOTE: Category is free-text - you can enter any category name you want (e.g., "Cloud Computing", "Web Development", "Data Science", etc.).

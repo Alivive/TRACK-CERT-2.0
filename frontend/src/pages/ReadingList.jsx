@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { booksClient } from '../utils/booksClient';
-import { Book, BookOpen, CheckCircle, Clock, Plus, Trash2, Edit2, Save, X, User } from 'lucide-react';
+import { Book, BookOpen, CheckCircle, Clock, Plus, Trash2, Edit2, Save, X, User, Search } from 'lucide-react';
 
 const ReadingList = () => {
   const { profile } = useAuth();
@@ -12,6 +12,7 @@ const ReadingList = () => {
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(isAdmin ? 'library' : 'my-books');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Modals
   const [showAddBookModal, setShowAddBookModal] = useState(false);
@@ -236,6 +237,33 @@ const ReadingList = () => {
     return assignments.filter(a => a.intern_id === profile?.intern_id);
   }, [assignments, isAdmin, profile]);
 
+  // Filter books based on search
+  const filteredBooks = useMemo(() => {
+    if (!searchTerm) return books;
+    const term = searchTerm.toLowerCase();
+    return books.filter(b => 
+      b.title?.toLowerCase().includes(term) ||
+      b.author?.toLowerCase().includes(term) ||
+      b.description?.toLowerCase().includes(term)
+    );
+  }, [books, searchTerm]);
+
+  // Filter assignments based on search
+  const filteredAssignments = useMemo(() => {
+    if (!searchTerm) return myAssignments;
+    const term = searchTerm.toLowerCase();
+    return myAssignments.filter(a => {
+      const book = books.find(b => b.id === a.book_id);
+      const intern = interns.find(i => i.id === a.intern_id);
+      return (
+        book?.title?.toLowerCase().includes(term) ||
+        book?.author?.toLowerCase().includes(term) ||
+        intern?.first_name?.toLowerCase().includes(term) ||
+        intern?.last_name?.toLowerCase().includes(term)
+      );
+    });
+  }, [myAssignments, searchTerm, books, interns]);
+
   // Stats
   const stats = useMemo(() => {
     const assigned = myAssignments.filter(a => a.status === 'assigned').length;
@@ -277,20 +305,31 @@ const ReadingList = () => {
     <div id="page-reading" className="page active">
       <div className="section-header">
         <span className="section-title">READING LIST</span>
-        {isAdmin && (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn btn-ghost" onClick={() => setShowAssignModal(true)} disabled={loading}>
-              <User size={14} /> ASSIGN BOOK
-            </button>
-            <button className="btn btn-primary" onClick={() => {
-              setEditingBook(null);
-              setBookForm({ title: '', author: '', description: '', pages: '' });
-              setShowAddBookModal(true);
-            }}>
-              <Plus size={14} /> ADD BOOK
-            </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="search-bar" style={{ width: '250px' }}>
+            <Search size={14} color="var(--gray2)" />
+            <input 
+              type="text" 
+              placeholder="Search books..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        )}
+          {isAdmin && (
+            <>
+              <button className="btn btn-ghost" onClick={() => setShowAssignModal(true)} disabled={loading}>
+                <User size={14} /> ASSIGN BOOK
+              </button>
+              <button className="btn btn-primary" onClick={() => {
+                setEditingBook(null);
+                setBookForm({ title: '', author: '', description: '', pages: '' });
+                setShowAddBookModal(true);
+              }}>
+                <Plus size={14} /> ADD BOOK
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -372,11 +411,11 @@ const ReadingList = () => {
         <div className="card">
           <div className="card-header">
             <span className="card-title">BOOK LIBRARY</span>
-            <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>{books.length} books</span>
+            <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>{filteredBooks.length} books</span>
           </div>
           <div className="card-body">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-              {books.map(book => (
+              {filteredBooks.map(book => (
                 <div key={book.id} className="card" style={{ background: 'var(--black3)', border: '1px solid var(--border2)' }}>
                   <div className="card-body">
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '5px', marginBottom: '12px' }}>
@@ -430,7 +469,7 @@ const ReadingList = () => {
         <div className="card">
           <div className="card-header">
             <span className="card-title">{isAdmin ? 'ALL ASSIGNMENTS' : 'MY READING LIST'}</span>
-            <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>{myAssignments.length} assignments</span>
+            <span style={{ fontSize: '12px', color: 'var(--gray2)' }}>{filteredAssignments.length} assignments</span>
           </div>
           <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
             <table style={{ minWidth: '700px' }}>
@@ -445,7 +484,7 @@ const ReadingList = () => {
                 </tr>
               </thead>
               <tbody>
-                {myAssignments.length > 0 ? myAssignments.map(assignment => (
+                {filteredAssignments.length > 0 ? filteredAssignments.map(assignment => (
                   <tr key={assignment.id}>
                     {isAdmin && (
                       <td>

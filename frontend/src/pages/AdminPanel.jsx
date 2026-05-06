@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { apiClient } from '../utils/apiClient';
 import { useDatabase } from '../utils/useDatabase';
 import { useAuth } from '../context/AuthContext';
-import { providerLinksClient } from '../utils/providerLinksClient';
-import * as XLSX from 'xlsx';
-import { Settings, Shield, Key, CheckCircle, Users, Search, UserCheck, UserMinus, ShieldCheck, UserPlus, Plus, Edit2, Save, X, Trash2, Link } from 'lucide-react';
+import { Settings, Shield, CheckCircle, Users, Search, UserCheck, ShieldCheck, UserPlus, Plus, Edit2, Save, X, Key } from 'lucide-react';
 
 const AdminPanel = () => {
   const { allProfiles, updateProfileRole, addIntern, interns, updateProfile } = useDatabase();
@@ -16,16 +14,6 @@ const AdminPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
-
-  // Provider Links state
-  const [providerLinks, setProviderLinks] = useState([]);
-  const [providerLinksLoading, setProviderLinksLoading] = useState(false);
-  const [editingLinkId, setEditingLinkId] = useState(null);
-  const [linkForm, setLinkForm] = useState({ provider_name: '', base_url: '', description: '' });
-  const [showAddLinkForm, setShowAddLinkForm] = useState(false);
-  const [backfilling, setBackfilling] = useState(false);
-  const [backfillResult, setBackfillResult] = useState(null);
-  const [selectedProviders, setSelectedProviders] = useState(new Set());
 
   const [settings, setSettings] = useState({
     admin_code: '',
@@ -68,21 +56,6 @@ const AdminPanel = () => {
     
     loadSettings();
   }, []);
-
-  // Load provider links when tab is opened
-  useEffect(() => {
-    if (activeTab === 'provider_links' && providerLinks.length === 0) {
-      const loadProviderLinks = async () => {
-        setProviderLinksLoading(true);
-        const result = await providerLinksClient.getProviderLinks();
-        if (result.success) {
-          setProviderLinks(result.data || []);
-        }
-        setProviderLinksLoading(false);
-      };
-      loadProviderLinks();
-    }
-  }, [activeTab]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -243,16 +216,10 @@ const AdminPanel = () => {
           >
             <UserPlus size={14} /> ADD INTERN
           </button>
-          <button
-            className={`admin-tab ${activeTab === 'provider_links' ? 'active' : ''}`}
-            onClick={() => setActiveTab('provider_links')}
-          >
-            <Key size={14} /> PROVIDER LINKS
-          </button>
         </div>
       </div>
 
-      {/* ── CONFIGURATION TAB ESTABLISHMENT── */}
+      {/* â”€â”€ CONFIGURATION TAB ESTABLISHMENTâ”€â”€ */}
       {activeTab === 'config' && (
         <div className="card animate-in" style={{ maxWidth: '600px' }}>
           <div className="card-header">
@@ -306,7 +273,7 @@ const AdminPanel = () => {
               </div>
               <div style={{ marginTop: '20px', borderTop: '1px solid var(--border2)', paddingTop: '20px' }}>
                 <button className="btn btn-primary" type="submit" disabled={saving} style={{ width: '100%', justifyContent: 'center' }}>
-                  {saving ? 'SAVING...' : 'COMMIT CHANGES →'}
+                  {saving ? 'SAVING...' : 'COMMIT CHANGES â†’'}
                 </button>
               </div>
             </form>
@@ -314,7 +281,7 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* ── USER MANAGEMENT TAB ESTABLISHMENT── */}
+      {/* â”€â”€ USER MANAGEMENT TAB ESTABLISHMENTâ”€â”€ */}
       {activeTab === 'users' && (
         <div className="card animate-in">
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -402,7 +369,7 @@ const AdminPanel = () => {
                               {(p.full_name || 'U')[0].toUpperCase()}
                             </div>
                             <div>
-                              <div style={{ fontSize: '14px', fontWeight: 600 }}>{p.full_name || '—'}</div>
+                              <div style={{ fontSize: '14px', fontWeight: 600 }}>{p.full_name || 'â€”'}</div>
                               <div style={{ fontSize: '11px', color: 'var(--gray)' }}>Registered user</div>
                             </div>
                           </div>
@@ -420,7 +387,7 @@ const AdminPanel = () => {
                           />
                         ) : (
                           <div style={{ fontSize: '12px', color: 'var(--gray2)' }}>
-                            {p.email || '—'}
+                            {p.email || 'â€”'}
                           </div>
                         )}
                       </td>
@@ -492,7 +459,7 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* ── ADDING AN INTERN  INTO THE SYSTEM  TAB SETUP── */}
+      {/* â”€â”€ ADDING AN INTERN  INTO THE SYSTEM  TAB SETUPâ”€â”€ */}
       {activeTab === 'add_intern' && (
         <div className="card animate-in" style={{ maxWidth: '600px' }}>
           <div className="card-header">
@@ -577,555 +544,6 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* ── PROVIDER LINKS TAB ── */}
-      {activeTab === 'provider_links' && (
-        <div className="card animate-in">
-          <div className="card-header">
-            <Link size={18} style={{ marginRight: '10px', color: 'var(--red-light)' }} />
-            <span className="card-title">PROVIDER LINKS MANAGEMENT</span>
-            <button 
-              className="btn btn-primary"
-              style={{ marginLeft: 'auto', padding: '8px 16px', fontSize: '12px' }}
-              onClick={() => {
-                setShowAddLinkForm(!showAddLinkForm);
-                setLinkForm({ provider_name: '', base_url: '', description: '' });
-              }}
-            >
-              <Plus size={14} /> ADD PROVIDER
-            </button>
-          </div>
-          <div className="card-body">
-            <p style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '20px' }}>
-              Manage provider certificate links. When users add certifications, the system will auto-fill the certificate URL based on the provider.
-            </p>
-
-            {/* Bulk Import Section */}
-            <div style={{ background: 'var(--black3)', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border2)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <div>
-                  <h4 style={{ fontSize: '13px', color: 'var(--white)', marginBottom: '5px' }}>📥 Bulk Import from CSV/XLSX</h4>
-                  <p style={{ fontSize: '12px', color: 'var(--gray2)', margin: 0 }}>
-                    Upload a CSV or Excel file with columns: <code style={{ background: 'var(--black4)', padding: '2px 6px', borderRadius: '3px' }}>Provider, Official Link, Category</code>
-                  </p>
-                </div>
-                <button
-                  className="btn btn-outline"
-                  style={{ fontSize: '11px', padding: '8px 16px', whiteSpace: 'nowrap' }}
-                  onClick={async () => {
-                    if (!window.confirm('This will update ALL existing certifications with matching provider links. Continue?')) {
-                      return;
-                    }
-                    
-                    setBackfilling(true);
-                    setBackfillResult(null);
-                    
-                    try {
-                      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/provider-links/backfill`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
-                      
-                      const result = await response.json();
-                      
-                      if (result.success) {
-                        setBackfillResult(result.data);
-                        alert(`Backfill complete!\n✓ ${result.data.updated} certifications updated\n⊘ ${result.data.skipped} skipped (no matching provider)\n${result.data.errors > 0 ? `✗ ${result.data.errors} errors` : ''}`);
-                      } else {
-                        alert('Backfill failed: ' + (result.error || 'Unknown error'));
-                      }
-                    } catch (error) {
-                      alert('Backfill failed: ' + error.message);
-                    } finally {
-                      setBackfilling(false);
-                    }
-                  }}
-                  disabled={backfilling}
-                >
-                  <Link size={14} /> {backfilling ? 'UPDATING...' : 'UPDATE EXISTING CERTS'}
-                </button>
-              </div>
-              
-              {backfillResult && (
-                <div style={{ background: 'var(--black4)', padding: '10px', borderRadius: '6px', marginTop: '10px', fontSize: '12px', color: 'var(--gray2)' }}>
-                  <div>✓ Updated: {backfillResult.updated} certifications</div>
-                  <div>⊘ Skipped: {backfillResult.skipped} (no matching provider)</div>
-                  {backfillResult.errors > 0 && <div style={{ color: 'var(--red-light)' }}>✗ Errors: {backfillResult.errors}</div>}
-                </div>
-              )}
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={async (e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-
-                  try {
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                      try {
-                        let rows = [];
-
-                        if (file.name.endsWith('.csv')) {
-                          // Parse CSV
-                          const text = event.target.result;
-                          const lines = text.split('\n').filter(line => line.trim());
-                          rows = lines.slice(1).map(line => {
-                            const [provider_name, base_url, description] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-                            return { provider_name, base_url, description };
-                          });
-                        } else {
-                          // Parse XLSX
-                          const data = new Uint8Array(event.target.result);
-                          const workbook = XLSX.read(data, { type: 'array' });
-                          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false });
-                          
-                          console.log('=== EXCEL IMPORT DEBUG ===');
-                          console.log('Total rows:', jsonData.length);
-                          console.log('First row keys:', jsonData[0] ? Object.keys(jsonData[0]) : 'No data');
-                          console.log('First row data:', jsonData[0]);
-                          console.log('Second row data:', jsonData[1]);
-                          
-                          rows = jsonData.map((row, index) => {
-                            // Get all keys from the row to help debug
-                            const keys = Object.keys(row);
-                            
-                            // Try multiple possible column names (case-insensitive)
-                            let provider_name = null;
-                            let base_url = null;
-                            let description = null;
-                            
-                            // Find provider name column
-                            for (const key of keys) {
-                              const lowerKey = key.toLowerCase().trim();
-                              if (!provider_name && (
-                                lowerKey === 'provider' || 
-                                lowerKey === 'provider name' || 
-                                lowerKey === 'provider_name' ||
-                                lowerKey.includes('certification provider') ||
-                                lowerKey.includes('certifier')
-                              )) {
-                                provider_name = row[key];
-                              }
-                              
-                              if (!base_url && (
-                                lowerKey === 'official link' || 
-                                lowerKey === 'base url' || 
-                                lowerKey === 'base_url' ||
-                                lowerKey === 'url' ||
-                                lowerKey === 'link' ||
-                                lowerKey.includes('official')
-                              )) {
-                                base_url = row[key];
-                              }
-                              
-                              if (!description && (
-                                lowerKey === 'category' || 
-                                lowerKey === 'description' ||
-                                lowerKey === 'desc' ||
-                                lowerKey === 'type'
-                              )) {
-                                description = row[key];
-                              }
-                            }
-                            
-                            console.log(`Row ${index + 1}:`, { provider_name, base_url, description });
-                            
-                            return { 
-                              provider_name: provider_name ? String(provider_name).trim() : null, 
-                              base_url: base_url ? String(base_url).trim() : null, 
-                              description: description ? String(description).trim() : '' 
-                            };
-                          }).filter(row => {
-                            const isValid = row.provider_name && row.base_url;
-                            if (!isValid) {
-                              console.log('Filtered out invalid row:', row);
-                            }
-                            return isValid;
-                          });
-                          
-                          console.log('Valid rows after filtering:', rows.length);
-                          console.log('=== END DEBUG ===');
-                        }
-
-                        console.log('Parsed rows:', rows);
-
-                        if (rows.length === 0) {
-                          alert('No valid rows found in file!\n\nPlease check:\n1. File has columns named "Provider" and "Official Link" (or similar)\n2. Rows contain actual data\n3. Check browser console (F12) for detailed debug info');
-                          e.target.value = '';
-                          return;
-                        }
-
-                        let successCount = 0;
-                        let failCount = 0;
-                        const errors = [];
-
-                        for (const row of rows) {
-                          if (row.provider_name && row.base_url) {
-                            console.log('Attempting to add:', row);
-                            const result = await providerLinksClient.addProviderLink({
-                              provider_name: row.provider_name.trim(),
-                              base_url: row.base_url.trim(),
-                              description: row.description ? row.description.trim() : ''
-                            });
-                            
-                            console.log('Result:', result);
-                            
-                            if (result.success) {
-                              successCount++;
-                              setProviderLinks(prev => [...prev, result.data]);
-                            } else {
-                              failCount++;
-                              const errorMsg = result.error?.message || result.error || result.message || 'Unknown error';
-                              console.error('Failed to add provider:', row.provider_name, errorMsg);
-                              errors.push(`${row.provider_name}: ${errorMsg}`);
-                            }
-                          }
-                        }
-
-                        if (successCount > 0) {
-                          // Clear certification cache so users see updated provider links
-                          try {
-                            const cacheKeys = [];
-                            for (let i = 0; i < localStorage.length; i++) {
-                              const key = localStorage.key(i);
-                              if (key && key.includes('_certifications')) {
-                                cacheKeys.push(key);
-                              }
-                            }
-                            cacheKeys.forEach(key => localStorage.removeItem(key));
-                            console.log('[ADMIN] Cleared certification cache after bulk import');
-                          } catch (e) {
-                            console.warn('[ADMIN] Could not clear cache:', e);
-                          }
-                          
-                          alert(`Import complete!\n✓ ${successCount} providers added${failCount > 0 ? `\n✗ ${failCount} failed (duplicates or errors)\n\nFailed:\n${errors.join('\n')}` : ''}\n\nNote: Users may need to refresh to see updated data.`);
-                        } else {
-                          alert(`Import failed!\n✗ 0 providers added\n✗ ${failCount} failed\n\nErrors:\n${errors.join('\n')}\n\nCheck browser console (F12) for details.`);
-                        }
-                        e.target.value = ''; // Reset file input
-                      } catch (error) {
-                        console.error('Parse error:', error);
-                        alert('Failed to parse file: ' + error.message);
-                      }
-                    };
-
-                    if (file.name.endsWith('.csv')) {
-                      reader.readAsText(file);
-                    } else {
-                      reader.readAsArrayBuffer(file);
-                    }
-                  } catch (error) {
-                    alert('Failed to read file: ' + error.message);
-                  }
-                }}
-                style={{ fontSize: '12px' }}
-              />
-            </div>
-
-            {/* Add Provider Form */}
-            {showAddLinkForm && (
-              <div style={{ background: 'var(--black3)', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border2)' }}>
-                <h4 style={{ fontSize: '14px', marginBottom: '15px', color: 'var(--white)' }}>Add New Provider Link</h4>
-                <div className="form-group">
-                  <label className="form-label">Provider Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g., Coursera, Udemy, AWS"
-                    value={linkForm.provider_name}
-                    onChange={(e) => setLinkForm({ ...linkForm, provider_name: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Base URL</label>
-                  <input
-                    type="url"
-                    className="form-input"
-                    placeholder="e.g., https://www.coursera.org/account/accomplishments/verify/"
-                    value={linkForm.base_url}
-                    onChange={(e) => setLinkForm({ ...linkForm, base_url: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Description (Optional)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g., Coursera certificate verification"
-                    value={linkForm.description}
-                    onChange={(e) => setLinkForm({ ...linkForm, description: e.target.value })}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    className="btn btn-primary"
-                    onClick={async () => {
-                      if (!linkForm.provider_name || !linkForm.base_url) {
-                        alert('Provider name and base URL are required');
-                        return;
-                      }
-                      const result = await providerLinksClient.addProviderLink(linkForm);
-                      if (result.success) {
-                        setProviderLinks([...providerLinks, result.data]);
-                        setShowAddLinkForm(false);
-                        setLinkForm({ provider_name: '', base_url: '', description: '' });
-                      } else {
-                        alert('Failed to add provider link');
-                      }
-                    }}
-                  >
-                    <Save size={14} /> SAVE
-                  </button>
-                  <button
-                    className="btn btn-ghost"
-                    onClick={() => {
-                      setShowAddLinkForm(false);
-                      setLinkForm({ provider_name: '', base_url: '', description: '' });
-                    }}
-                  >
-                    CANCEL
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Provider Links List */}
-            <div style={{ overflowX: 'auto' }}>
-              {selectedProviders.size > 0 && (
-                <div style={{ padding: '12px', background: 'var(--black4)', borderRadius: '6px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--white)' }}>
-                    {selectedProviders.size} provider{selectedProviders.size > 1 ? 's' : ''} selected
-                  </span>
-                  <button
-                    className="btn btn-ghost"
-                    style={{ color: 'var(--red-light)', fontSize: '12px', padding: '6px 12px' }}
-                    onClick={async () => {
-                      if (!window.confirm(`Delete ${selectedProviders.size} selected provider(s)?`)) {
-                        return;
-                      }
-                      
-                      const idsToDelete = Array.from(selectedProviders);
-                      
-                      // Delete all in parallel for speed
-                      const deletePromises = idsToDelete.map(id => 
-                        providerLinksClient.deleteProviderLink(id)
-                      );
-                      
-                      const results = await Promise.all(deletePromises);
-                      const deleted = results.filter(r => r.success).length;
-                      const failed = results.length - deleted;
-                      
-                      // Update the UI by filtering out deleted providers
-                      setProviderLinks(providerLinks.filter(l => !selectedProviders.has(l.id)));
-                      setSelectedProviders(new Set());
-                      
-                      // Clear certification cache so users see updated data
-                      try {
-                        const cacheKeys = [];
-                        for (let i = 0; i < localStorage.length; i++) {
-                          const key = localStorage.key(i);
-                          if (key && key.includes('_certifications')) {
-                            cacheKeys.push(key);
-                          }
-                        }
-                        cacheKeys.forEach(key => localStorage.removeItem(key));
-                        console.log('[ADMIN] Cleared certification cache after provider deletion');
-                      } catch (e) {
-                        console.warn('[ADMIN] Could not clear cache:', e);
-                      }
-                      
-                      if (failed > 0) {
-                        alert(`Deleted ${deleted} provider(s)\n${failed} failed to delete\n\nNote: Users may need to refresh to see updated data.`);
-                      } else {
-                        alert(`✓ Successfully deleted ${deleted} provider(s)\n\nNote: Users may need to refresh to see updated data.`);
-                      }
-                    }}
-                  >
-                    <Trash2 size={14} /> DELETE SELECTED
-                  </button>
-                </div>
-              )}
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: '40px' }}>
-                      <input
-                        type="checkbox"
-                        checked={providerLinks.length > 0 && selectedProviders.size === providerLinks.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedProviders(new Set(providerLinks.map(l => l.id)));
-                          } else {
-                            setSelectedProviders(new Set());
-                          }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      />
-                    </th>
-                    <th>PROVIDER</th>
-                    <th>BASE URL</th>
-                    <th>DESCRIPTION</th>
-                    <th>ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {providerLinks.map(link => {
-                    const isEditing = editingLinkId === link.id;
-                    return (
-                      <tr key={link.id} style={{ background: isEditing ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedProviders.has(link.id)}
-                            onChange={(e) => {
-                              const newSelected = new Set(selectedProviders);
-                              if (e.target.checked) {
-                                newSelected.add(link.id);
-                              } else {
-                                newSelected.delete(link.id);
-                              }
-                              setSelectedProviders(newSelected);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          />
-                        </td>
-                        <td style={{ fontWeight: '600' }}>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className="form-input"
-                              style={{ fontSize: '13px', padding: '6px 10px', width: '100%' }}
-                              value={linkForm.provider_name}
-                              onChange={(e) => setLinkForm({ ...linkForm, provider_name: e.target.value })}
-                            />
-                          ) : (
-                            link.provider_name
-                          )}
-                        </td>
-                        <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>
-                          {isEditing ? (
-                            <input
-                              type="url"
-                              className="form-input"
-                              style={{ fontSize: '11px', padding: '6px 10px', width: '100%' }}
-                              value={linkForm.base_url}
-                              onChange={(e) => setLinkForm({ ...linkForm, base_url: e.target.value })}
-                            />
-                          ) : (
-                            <a 
-                              href={link.base_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              style={{ color: 'var(--blue)', textDecoration: 'none' }}
-                              onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                              onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                            >
-                              {link.base_url}
-                            </a>
-                          )}
-                        </td>
-                        <td style={{ fontSize: '12px', color: 'var(--gray)' }}>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className="form-input"
-                              style={{ fontSize: '12px', padding: '6px 10px', width: '100%' }}
-                              value={linkForm.description}
-                              onChange={(e) => setLinkForm({ ...linkForm, description: e.target.value })}
-                            />
-                          ) : (
-                            link.description || '—'
-                          )}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '5px' }}>
-                            {isEditing ? (
-                              <>
-                                <button
-                                  className="btn btn-ghost"
-                                  style={{ padding: '5px', color: 'var(--green)', fontSize: '11px' }}
-                                  onClick={async () => {
-                                    const result = await providerLinksClient.updateProviderLink(link.id, linkForm);
-                                    if (result.success) {
-                                      setProviderLinks(providerLinks.map(l => l.id === link.id ? result.data : l));
-                                      setEditingLinkId(null);
-                                      setLinkForm({ provider_name: '', base_url: '', description: '' });
-                                    } else {
-                                      alert('Failed to update provider link');
-                                    }
-                                  }}
-                                >
-                                  <Save size={12} />
-                                </button>
-                                <button
-                                  className="btn btn-ghost"
-                                  style={{ padding: '5px', color: 'var(--gray)', fontSize: '11px' }}
-                                  onClick={() => {
-                                    setEditingLinkId(null);
-                                    setLinkForm({ provider_name: '', base_url: '', description: '' });
-                                  }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  className="btn btn-ghost"
-                                  style={{ padding: '5px', color: 'var(--blue)' }}
-                                  onClick={() => {
-                                    setEditingLinkId(link.id);
-                                    setLinkForm({
-                                      provider_name: link.provider_name,
-                                      base_url: link.base_url,
-                                      description: link.description || ''
-                                    });
-                                  }}
-                                >
-                                  <Edit2 size={12} />
-                                </button>
-                                <button
-                                  className="btn btn-ghost"
-                                  style={{ padding: '5px', color: 'var(--red-light)' }}
-                                  onClick={async () => {
-                                    if (window.confirm(`Delete ${link.provider_name}?`)) {
-                                      const result = await providerLinksClient.deleteProviderLink(link.id);
-                                      if (result.success) {
-                                        setProviderLinks(providerLinks.filter(l => l.id !== link.id));
-                                        
-                                        // Clear certification cache
-                                        try {
-                                          const cacheKeys = [];
-                                          for (let i = 0; i < localStorage.length; i++) {
-                                            const key = localStorage.key(i);
-                                            if (key && key.includes('_certifications')) {
-                                              cacheKeys.push(key);
-                                            }
-                                          }
-                                          cacheKeys.forEach(key => localStorage.removeItem(key));
-                                        } catch (e) {
-                                          console.warn('[ADMIN] Could not clear cache:', e);
-                                        }
-                                      }
-                                    }
-                                  }}
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

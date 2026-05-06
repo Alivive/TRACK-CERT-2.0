@@ -192,18 +192,16 @@ export const generateInternReport = async (intern, certifications, categories = 
                   </div>
                 </div>
                 <div style="margin-left: 16px;">
-                  ${catCerts.map(c => `
+                  ${catCerts.map(c => {
+                    // Only show "View Certificate" if it's a user-provided URL (not uploaded to Supabase)
+                    const isUserProvidedUrl = c.certificate_file_url && !c.certificate_file_url.includes('supabase');
+                    
+                    return `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
                       <div style="flex: 1;">
                         <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 1px;">${c.name}</div>
                         <div style="font-size: 10px; color: #6366f1; font-weight: 500; margin-bottom: 2px;">${c.provider}</div>
-                        ${c.certificate_url ? `
-                          <div style="font-size: 8px; margin-bottom: 1px;">
-                            <span style="color: #64748b;">🔗 </span>
-                            <a href="${c.certificate_url}" style="color: #2563eb; text-decoration: none; font-weight: 600;">Certificate Source</a>
-                          </div>
-                        ` : ''}
-                        ${c.certificate_file_url ? `
+                        ${isUserProvidedUrl ? `
                           <div style="font-size: 8px;">
                             <span style="color: #64748b;">📎 </span>
                             <a href="${c.certificate_file_url}" style="color: #059669; text-decoration: none; font-weight: 600;">View Certificate</a>
@@ -215,7 +213,8 @@ export const generateInternReport = async (intern, certifications, categories = 
                         <div style="font-size: 9px; color: #64748b; min-width: 70px; text-align: right;">${c.date}</div>
                       </div>
                     </div>
-                  `).join('')}
+                  `;
+                  }).join('')}
                 </div>
               </div>
               `;

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
 import { supabase } from '../utils/supabaseClient';
-import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X, ExternalLink, Paperclip } from 'lucide-react';
+import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X, ExternalLink, Search } from 'lucide-react';
 import { generateInternReport } from '../utils/pdfGenerator';
 
 const InternProfiles = () => {
@@ -49,6 +49,9 @@ const InternProfiles = () => {
   const [editForm, setEditForm] = useState({});
   const [editingCertId, setEditingCertId] = useState(null);
   const [editCertForm, setEditCertForm] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [profileSearchTerm, setProfileSearchTerm] = useState('');
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [newIntern, setNewIntern] = useState({ 
     first_name: '', 
     last_name: '', 
@@ -68,6 +71,17 @@ const InternProfiles = () => {
   const getIC = (id) => certsByIntern[id] || [];
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
   const getInit = (first, last) => ((first?.[0] || '?') + (last?.[0] || '')).toUpperCase();
+
+  // Filter interns based on search term
+  const filteredInterns = useMemo(() => {
+    if (!searchTerm) return interns;
+    const term = searchTerm.toLowerCase();
+    return interns.filter(i => 
+      i.first_name?.toLowerCase().includes(term) ||
+      i.last_name?.toLowerCase().includes(term) ||
+      i.email?.toLowerCase().includes(term)
+    );
+  }, [interns, searchTerm]);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -193,10 +207,61 @@ const InternProfiles = () => {
     }
   };
 
+  const handleDownloadAllReports = async () => {
+    if (!window.confirm(`Download PDF reports for all ${interns.length} interns? This may take a moment.`)) {
+      return;
+    }
+
+    setDownloadingAll(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const intern of interns) {
+      try {
+        const internCerts = getIC(intern.id);
+        const mappedIntern = {
+          first: intern.first_name,
+          last: intern.last_name,
+          email: intern.email,
+          intern_id: intern.id
+        };
+        const mappedCerts = internCerts.map(c => ({ ...c, cat: c.category }));
+        
+        await generateInternReport(mappedIntern, mappedCerts, CATS);
+        successCount++;
+        
+        // Small delay between downloads to prevent browser blocking
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`Failed to generate PDF for ${intern.first_name} ${intern.last_name}:`, error);
+        failCount++;
+      }
+    }
+
+    setDownloadingAll(false);
+    
+    if (failCount > 0) {
+      alert(`Downloaded ${successCount} reports successfully. ${failCount} failed.`);
+    } else {
+      alert(`✓ Successfully downloaded all ${successCount} intern reports!`);
+    }
+  };
+
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Profiles...</div>;
 
   const selectedIntern = interns.find(i => i.id === selectedInternId);
   const internCerts = selectedIntern ? getIC(selectedIntern.id) : [];
+
+  // Filter certifications in profile view based on search
+  const filteredProfileCerts = useMemo(() => {
+    if (!profileSearchTerm) return internCerts;
+    const term = profileSearchTerm.toLowerCase();
+    return internCerts.filter(c => 
+      c.name?.toLowerCase().includes(term) ||
+      c.provider?.toLowerCase().includes(term) ||
+      CATS[c.category]?.name?.toLowerCase().includes(term)
+    );
+  }, [internCerts, profileSearchTerm, CATS]);
 
   if (selectedIntern) {
     return (
@@ -240,10 +305,21 @@ const InternProfiles = () => {
           </div>
 
           <div className="card">
-            <div className="card-header"><span className="card-title">CERTIFICATION TRACK</span></div>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <span className="card-title">CERTIFICATION TRACK</span>
+              <div className="search-bar" style={{ width: '250px' }}>
+                <Search size={14} color="var(--gray2)" />
+                <input 
+                  type="text" 
+                  placeholder="Search my certifications..." 
+                  value={profileSearchTerm}
+                  onChange={(e) => setProfileSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="card-body">
               {Object.keys(CATS).map(key => {
-                const catCerts = internCerts.filter(c => c.category === key);
+                const catCerts = filteredProfileCerts.filter(c => c.category === key);
                 return (
                   <div key={key} style={{ marginBottom: '25px', borderBottom: '1px solid var(--border2)', paddingBottom: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -363,28 +439,17 @@ const InternProfiles = () => {
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.name}</div>
                                 <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{c.provider} · {c.date}</div>
-                                {/* Certificate Links */}
+                                {/* Certificate Link - Only show if user provided URL (not uploaded to Supabase) */}
                                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                                  {c.certificate_url && (
+                                  {c.certificate_file_url && !c.certificate_file_url.includes('supabase') && (
                                     <a 
-                                      href={c.certificate_url} 
+                                      href={c.certificate_file_url} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
                                       style={{ fontSize: '10px', color: 'var(--blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
                                       title="View Certificate"
                                     >
                                       <ExternalLink size={10} /> CERT
-                                    </a>
-                                  )}
-                                  {c.certificate_file_url && (
-                                    <a 
-                                      href={c.certificate_file_url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      style={{ fontSize: '10px', color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
-                                      title="View Attachment"
-                                    >
-                                      <Paperclip size={10} /> FILE
                                     </a>
                                   )}
                                 </div>
@@ -434,15 +499,32 @@ const InternProfiles = () => {
     <div id="page-interns" className="page active">
       <div className="section-header">
         <span className="section-title">INTERN PROFILES</span>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {isAdmin && (
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-              <Plus size={16} /> ADD INTERN
-            </button>
-          )}
-          <div className="search-bar">
-            <input type="text" placeholder="Search interns..." />
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="search-bar" style={{ width: '250px' }}>
+            <Search size={14} color="var(--gray2)" />
+            <input 
+              type="text" 
+              placeholder="Search interns..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+          {isAdmin && (
+            <>
+              <button 
+                className="btn btn-outline" 
+                onClick={handleDownloadAllReports}
+                disabled={downloadingAll || interns.length === 0}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Download size={16} /> 
+                {downloadingAll ? 'DOWNLOADING...' : `DOWNLOAD ALL (${interns.length})`}
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                <Plus size={16} /> ADD INTERN
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -461,7 +543,7 @@ const InternProfiles = () => {
                 </tr>
               </thead>
               <tbody>
-                {interns.map(i => (
+                {filteredInterns.map(i => (
                   <tr key={i.id}>
                     <td>
                       {editingInternId === i.id ? (

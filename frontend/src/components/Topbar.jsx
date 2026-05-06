@@ -1,5 +1,5 @@
 
-import { Search, Plus, Menu } from 'lucide-react';
+import { Plus, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Topbar = ({ title, onPageChange, toggleSidebar }) => {
@@ -15,10 +15,6 @@ const Topbar = ({ title, onPageChange, toggleSidebar }) => {
         <div className="page-title">{title}</div>
       </div>
       <div className="topbar-actions">
-        <div className="search-bar">
-          <Search size={14} color="var(--gray2)" />
-          <input type="text" placeholder="Search..." id="globalSearch" />
-        </div>
         {isAdmin && (
           <button 
             className="btn btn-primary" 
