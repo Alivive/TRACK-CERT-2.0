@@ -23,6 +23,8 @@ const AdminPanel = () => {
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [linkForm, setLinkForm] = useState({ provider_name: '', base_url: '', description: '' });
   const [showAddLinkForm, setShowAddLinkForm] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
 
   const [settings, setSettings] = useState({
     admin_code: '',
@@ -599,10 +601,57 @@ const AdminPanel = () => {
 
             {/* Bulk Import Section */}
             <div style={{ background: 'var(--black3)', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border2)' }}>
-              <h4 style={{ fontSize: '13px', marginBottom: '10px', color: 'var(--white)' }}>📥 Bulk Import from CSV/XLSX</h4>
-              <p style={{ fontSize: '12px', color: 'var(--gray2)', marginBottom: '10px' }}>
-                Upload a CSV or Excel file with columns: <code style={{ background: 'var(--black4)', padding: '2px 6px', borderRadius: '3px' }}>Provider, Official Link, Category</code>
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div>
+                  <h4 style={{ fontSize: '13px', color: 'var(--white)', marginBottom: '5px' }}>📥 Bulk Import from CSV/XLSX</h4>
+                  <p style={{ fontSize: '12px', color: 'var(--gray2)', margin: 0 }}>
+                    Upload a CSV or Excel file with columns: <code style={{ background: 'var(--black4)', padding: '2px 6px', borderRadius: '3px' }}>Provider, Official Link, Category</code>
+                  </p>
+                </div>
+                <button
+                  className="btn btn-outline"
+                  style={{ fontSize: '11px', padding: '8px 16px', whiteSpace: 'nowrap' }}
+                  onClick={async () => {
+                    if (!window.confirm('This will update ALL existing certifications with matching provider links. Continue?')) {
+                      return;
+                    }
+                    
+                    setBackfilling(true);
+                    setBackfillResult(null);
+                    
+                    try {
+                      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/provider-links/backfill`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      
+                      const result = await response.json();
+                      
+                      if (result.success) {
+                        setBackfillResult(result.data);
+                        alert(`Backfill complete!\n✓ ${result.data.updated} certifications updated\n⊘ ${result.data.skipped} skipped (no matching provider)\n${result.data.errors > 0 ? `✗ ${result.data.errors} errors` : ''}`);
+                      } else {
+                        alert('Backfill failed: ' + (result.error || 'Unknown error'));
+                      }
+                    } catch (error) {
+                      alert('Backfill failed: ' + error.message);
+                    } finally {
+                      setBackfilling(false);
+                    }
+                  }}
+                  disabled={backfilling}
+                >
+                  <Link size={14} /> {backfilling ? 'UPDATING...' : 'UPDATE EXISTING CERTS'}
+                </button>
+              </div>
+              
+              {backfillResult && (
+                <div style={{ background: 'var(--black4)', padding: '10px', borderRadius: '6px', marginTop: '10px', fontSize: '12px', color: 'var(--gray2)' }}>
+                  <div>✓ Updated: {backfillResult.updated} certifications</div>
+                  <div>⊘ Skipped: {backfillResult.skipped} (no matching provider)</div>
+                  {backfillResult.errors > 0 && <div style={{ color: 'var(--red-light)' }}>✗ Errors: {backfillResult.errors}</div>}
+                </div>
+              )}
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls"

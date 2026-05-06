@@ -842,6 +842,92 @@ app.post('/api/admin/fix-category-constraint', async (req, res, next) => {
 
 // ========== PROVIDER LINKS API ==========
 
+// Backfill existing certifications with provider links (must be before /:name route)
+app.post('/api/provider-links/backfill', async (req, res, next) => {
+  try {
+    console.log('[API] Starting provider links backfill...');
+    
+    // Get all provider links
+    const { data: providerLinks, error: linksError } = await supabase
+      .from('provider_links')
+      .select('*');
+    
+    if (linksError) throw linksError;
+    
+    // Create a map of provider names to base URLs (case-insensitive)
+    const providerMap = new Map();
+    providerLinks.forEach(link => {
+      providerMap.set(link.provider_name.toLowerCase().trim(), link.base_url);
+    });
+    
+    console.log('[API] Found', providerLinks.length, 'provider links');
+    
+    // Get all certifications that are missing certificate_url
+    const { data: certifications, error: certsError } = await supabase
+      .from('certifications')
+      .select('*')
+      .or('certificate_url.is.null,certificate_url.eq.');
+    
+    if (certsError) throw certsError;
+    
+    console.log('[API] Found', certifications.length, 'certifications without URLs');
+    
+    let updated = 0;
+    let skipped = 0;
+    const errors = [];
+    
+    // Update each certification
+    for (const cert of certifications) {
+      if (!cert.provider) {
+        skipped++;
+        continue;
+      }
+      
+      const providerKey = cert.provider.toLowerCase().trim();
+      const baseUrl = providerMap.get(providerKey);
+      
+      if (baseUrl) {
+        try {
+          const { error: updateError } = await supabase
+            .from('certifications')
+            .update({ certificate_url: baseUrl })
+            .eq('id', cert.id);
+          
+          if (updateError) {
+            console.error('[API] Failed to update cert:', cert.id, updateError);
+            errors.push({ id: cert.id, name: cert.name, error: updateError.message });
+          } else {
+            updated++;
+            console.log('[API] Updated cert:', cert.id, 'with provider:', cert.provider);
+          }
+        } catch (err) {
+          console.error('[API] Exception updating cert:', cert.id, err);
+          errors.push({ id: cert.id, name: cert.name, error: err.message });
+        }
+      } else {
+        skipped++;
+        console.log('[API] No provider link found for:', cert.provider);
+      }
+    }
+    
+    console.log('[API] Backfill complete. Updated:', updated, 'Skipped:', skipped, 'Errors:', errors.length);
+    
+    res.json({ 
+      success: true, 
+      data: {
+        total: certifications.length,
+        updated,
+        skipped,
+        errors: errors.length,
+        errorDetails: errors
+      }
+    });
+  } catch (error) {
+    console.error('[API] Error in backfill:', error);
+    next(error);
+  }
+});
+
 // Get all provider links
 app.get('/api/provider-links', async (req, res, next) => {
   try {
