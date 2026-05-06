@@ -19,6 +19,9 @@ const Categories = () => {
   // Bulk delete state
   const [selectedCerts, setSelectedCerts] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkCategoryModal, setShowBulkCategoryModal] = useState(false);
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   
   const [newCategory, setNewCategory] = useState({
     id: '',
@@ -120,6 +123,42 @@ const Categories = () => {
       alert(`Deleted ${successCount} certifications successfully. ${errorCount} failed to delete.`);
     } else {
       alert(`Successfully deleted ${successCount} certification(s).`);
+    }
+  };
+
+  const handleBulkCategoryChange = async () => {
+    if (!bulkCategory) {
+      alert('Please select a category');
+      return;
+    }
+    
+    setBulkUpdating(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Update all in parallel for speed
+    const updatePromises = Array.from(selectedCerts).map(certId =>
+      updateCertification(certId, { category: bulkCategory })
+    );
+    
+    const results = await Promise.all(updatePromises);
+    results.forEach(result => {
+      if (result.error) {
+        errorCount++;
+      } else {
+        successCount++;
+      }
+    });
+    
+    setBulkUpdating(false);
+    setShowBulkCategoryModal(false);
+    setSelectedCerts(new Set());
+    setBulkCategory('');
+    
+    if (errorCount > 0) {
+      alert(`Updated ${successCount} certifications successfully. ${errorCount} failed.`);
+    } else {
+      alert(`✓ Successfully updated ${successCount} certification(s) to ${CATS[bulkCategory]?.name}`);
     }
   };
 
@@ -473,6 +512,19 @@ const Categories = () => {
             
             {selectedCerts.size > 0 && (
               <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setShowBulkCategoryModal(true)}
+                  style={{ 
+                    fontSize: '11px', 
+                    padding: '6px 16px',
+                    color: 'var(--blue)',
+                    borderColor: 'var(--blue)'
+                  }}
+                >
+                  <Edit2 size={14} /> CHANGE CATEGORY
+                </button>
+                
                 <button
                   className="btn btn-outline"
                   onClick={handleBulkDelete}
@@ -868,6 +920,79 @@ const Categories = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Category Change Modal */}
+      {showBulkCategoryModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="card" style={{ maxWidth: '400px', width: '90%', margin: '20px' }}>
+            <div className="card-header">
+              <span className="card-title">CHANGE CATEGORY</span>
+              <button 
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowBulkCategoryModal(false);
+                  setBulkCategory('');
+                }}
+                style={{ padding: '5px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="card-body">
+              <p style={{ fontSize: '13px', color: 'var(--gray2)', marginBottom: '20px' }}>
+                Change category for {selectedCerts.size} selected certification(s)
+              </p>
+              
+              <div className="form-group">
+                <label className="form-label">New Category</label>
+                <select
+                  className="form-input"
+                  value={bulkCategory}
+                  onChange={(e) => setBulkCategory(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">Select category...</option>
+                  {Object.keys(CATS).map(key => (
+                    <option key={key} value={key}>{CATS[key].name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleBulkCategoryChange}
+                  disabled={bulkUpdating || !bulkCategory}
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  <Save size={16} /> {bulkUpdating ? 'UPDATING...' : 'UPDATE CATEGORY'}
+                </button>
+                <button 
+                  className="btn btn-ghost" 
+                  onClick={() => {
+                    setShowBulkCategoryModal(false);
+                    setBulkCategory('');
+                  }}
+                  disabled={bulkUpdating}
+                >
+                  CANCEL
+                </button>
+              </div>
             </div>
           </div>
         </div>

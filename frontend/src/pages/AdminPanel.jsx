@@ -157,8 +157,7 @@ const AdminPanel = () => {
       
       if (result.success) {
         setSyncResult(result.data);
-        // Refresh data
-        window.location.reload();
+        // No page reload - just show the result
       } else {
         alert('Sync failed: ' + (result.error || 'Unknown error'));
       }
@@ -785,7 +784,22 @@ const AdminPanel = () => {
                         }
 
                         if (successCount > 0) {
-                          alert(`Import complete!\n✓ ${successCount} providers added${failCount > 0 ? `\n✗ ${failCount} failed (duplicates or errors)\n\nFailed:\n${errors.join('\n')}` : ''}`);
+                          // Clear certification cache so users see updated provider links
+                          try {
+                            const cacheKeys = [];
+                            for (let i = 0; i < localStorage.length; i++) {
+                              const key = localStorage.key(i);
+                              if (key && key.includes('_certifications')) {
+                                cacheKeys.push(key);
+                              }
+                            }
+                            cacheKeys.forEach(key => localStorage.removeItem(key));
+                            console.log('[ADMIN] Cleared certification cache after bulk import');
+                          } catch (e) {
+                            console.warn('[ADMIN] Could not clear cache:', e);
+                          }
+                          
+                          alert(`Import complete!\n✓ ${successCount} providers added${failCount > 0 ? `\n✗ ${failCount} failed (duplicates or errors)\n\nFailed:\n${errors.join('\n')}` : ''}\n\nNote: Users may need to refresh to see updated data.`);
                         } else {
                           alert(`Import failed!\n✗ 0 providers added\n✗ ${failCount} failed\n\nErrors:\n${errors.join('\n')}\n\nCheck browser console (F12) for details.`);
                         }
@@ -887,15 +901,44 @@ const AdminPanel = () => {
                     className="btn btn-ghost"
                     style={{ color: 'var(--red-light)', fontSize: '12px', padding: '6px 12px' }}
                     onClick={async () => {
-                      if (window.confirm(`Delete ${selectedProviders.size} selected provider(s)?`)) {
-                        let deleted = 0;
-                        for (const id of selectedProviders) {
-                          const result = await providerLinksClient.deleteProviderLink(id);
-                          if (result.success) deleted++;
+                      if (!window.confirm(`Delete ${selectedProviders.size} selected provider(s)?`)) {
+                        return;
+                      }
+                      
+                      const idsToDelete = Array.from(selectedProviders);
+                      
+                      // Delete all in parallel for speed
+                      const deletePromises = idsToDelete.map(id => 
+                        providerLinksClient.deleteProviderLink(id)
+                      );
+                      
+                      const results = await Promise.all(deletePromises);
+                      const deleted = results.filter(r => r.success).length;
+                      const failed = results.length - deleted;
+                      
+                      // Update the UI by filtering out deleted providers
+                      setProviderLinks(providerLinks.filter(l => !selectedProviders.has(l.id)));
+                      setSelectedProviders(new Set());
+                      
+                      // Clear certification cache so users see updated data
+                      try {
+                        const cacheKeys = [];
+                        for (let i = 0; i < localStorage.length; i++) {
+                          const key = localStorage.key(i);
+                          if (key && key.includes('_certifications')) {
+                            cacheKeys.push(key);
+                          }
                         }
-                        setProviderLinks(providerLinks.filter(l => !selectedProviders.has(l.id)));
-                        setSelectedProviders(new Set());
-                        alert(`${deleted} provider(s) deleted successfully`);
+                        cacheKeys.forEach(key => localStorage.removeItem(key));
+                        console.log('[ADMIN] Cleared certification cache after provider deletion');
+                      } catch (e) {
+                        console.warn('[ADMIN] Could not clear cache:', e);
+                      }
+                      
+                      if (failed > 0) {
+                        alert(`Deleted ${deleted} provider(s)\n${failed} failed to delete\n\nNote: Users may need to refresh to see updated data.`);
+                      } else {
+                        alert(`✓ Successfully deleted ${deleted} provider(s)\n\nNote: Users may need to refresh to see updated data.`);
                       }
                     }}
                   >
@@ -1050,6 +1093,20 @@ const AdminPanel = () => {
                                       const result = await providerLinksClient.deleteProviderLink(link.id);
                                       if (result.success) {
                                         setProviderLinks(providerLinks.filter(l => l.id !== link.id));
+                                        
+                                        // Clear certification cache
+                                        try {
+                                          const cacheKeys = [];
+                                          for (let i = 0; i < localStorage.length; i++) {
+                                            const key = localStorage.key(i);
+                                            if (key && key.includes('_certifications')) {
+                                              cacheKeys.push(key);
+                                            }
+                                          }
+                                          cacheKeys.forEach(key => localStorage.removeItem(key));
+                                        } catch (e) {
+                                          console.warn('[ADMIN] Could not clear cache:', e);
+                                        }
                                       }
                                     }
                                   }}

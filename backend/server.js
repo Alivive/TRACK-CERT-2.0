@@ -33,11 +33,21 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Allow images and PDFs
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    const allowedTypes = [
+      'image/jpeg', 
+      'image/jpg', 
+      'image/png', 
+      'image/webp', 
+      'image/gif', 
+      'image/bmp', 
+      'image/tiff', 
+      'image/svg+xml',
+      'application/pdf'
+    ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, and PDF files are allowed.'));
+      cb(new Error('Invalid file type. Only images (JPEG, PNG, WEBP, GIF, BMP, TIFF, SVG) and PDF files are allowed.'));
     }
   }
 });
@@ -854,23 +864,47 @@ app.post('/api/provider-links/backfill', async (req, res, next) => {
     
     if (linksError) throw linksError;
     
-    // Create a map of provider names to base URLs (case-insensitive)
+    // Create a map of provider names to base URLs (case-insensitive + aliases)
     const providerMap = new Map();
+    
+    // Define aliases for common provider name variations
+    const aliases = {
+      'ibm skillsbuild': 'ibm',
+      'linkedin': 'linkedin learning',
+      'microsoft': 'microsoft learn',
+      'hubspot': 'hubspot academy',
+      'google': 'google (grow)',
+      'hp': 'hp life',
+      'free code camp': 'freecodecamp',
+      'simpilearn': 'simplilearn',
+      'udemy': 'udemy',
+      'canva': 'canva',
+      'databricks': 'databricks'
+    };
+    
     providerLinks.forEach(link => {
-      providerMap.set(link.provider_name.toLowerCase().trim(), link.base_url);
+      const key = link.provider_name.toLowerCase().trim();
+      providerMap.set(key, link.base_url);
+    });
+    
+    // Add aliases to the map
+    Object.entries(aliases).forEach(([alias, canonical]) => {
+      const canonicalKey = canonical.toLowerCase();
+      if (providerMap.has(canonicalKey)) {
+        providerMap.set(alias.toLowerCase(), providerMap.get(canonicalKey));
+      }
     });
     
     console.log('[API] Found', providerLinks.length, 'provider links');
     
-    // Get all certifications that are missing certificate_url
+    // Get ALL certifications (not just ones missing URLs)
     const { data: certifications, error: certsError } = await supabase
       .from('certifications')
-      .select('*')
-      .or('certificate_url.is.null,certificate_url.eq.');
+      .select('*');
     
     if (certsError) throw certsError;
     
-    console.log('[API] Found', certifications.length, 'certifications without URLs');
+    console.log('[API] Found', certifications.length, 'certifications to check');
     
     let updated = 0;
     let skipped = 0;
@@ -884,25 +918,36 @@ app.post('/api/provider-links/backfill', async (req, res, next) => {
       }
       
       const providerKey = cert.provider.toLowerCase().trim();
-      const baseUrl = providerMap.get(providerKey);
+      const correctUrl = providerMap.get(providerKey);
       
-      if (baseUrl) {
-        try {
-          const { error: updateError } = await supabase
-            .from('certifications')
-            .update({ certificate_url: baseUrl })
-            .eq('id', cert.id);
-          
-          if (updateError) {
-            console.error('[API] Failed to update cert:', cert.id, updateError);
-            errors.push({ id: cert.id, name: cert.name, error: updateError.message });
-          } else {
-            updated++;
-            console.log('[API] Updated cert:', cert.id, 'with provider:', cert.provider);
+      if (correctUrl) {
+        // Check if the current URL is wrong or missing
+        const needsUpdate = !cert.certificate_url || 
+                           cert.certificate_url === '' || 
+                           cert.certificate_url === cert.provider || // URL is just the provider name
+                           !cert.certificate_url.startsWith('http'); // URL doesn't look like a URL
+        
+        if (needsUpdate) {
+          try {
+            const { error: updateError } = await supabase
+              .from('certifications')
+              .update({ certificate_url: correctUrl })
+              .eq('id', cert.id);
+            
+            if (updateError) {
+              console.error('[API] Failed to update cert:', cert.id, updateError);
+              errors.push({ id: cert.id, name: cert.name, error: updateError.message });
+            } else {
+              updated++;
+              console.log('[API] Updated cert:', cert.id, 'from', cert.certificate_url, 'to', correctUrl);
+            }
+          } catch (err) {
+            console.error('[API] Exception updating cert:', cert.id, err);
+            errors.push({ id: cert.id, name: cert.name, error: err.message });
           }
-        } catch (err) {
-          console.error('[API] Exception updating cert:', cert.id, err);
-          errors.push({ id: cert.id, name: cert.name, error: err.message });
+        } else {
+          skipped++;
+          console.log('[API] Cert already has valid URL:', cert.id);
         }
       } else {
         skipped++;

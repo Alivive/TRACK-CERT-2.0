@@ -5,8 +5,8 @@
 // This value is automatically set during build time
 export const CACHE_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toString();
 
-// Check for updates every 30 seconds
-export const UPDATE_CHECK_INTERVAL = 30000;
+// Check for updates every 5 minutes (300 seconds)
+export const UPDATE_CHECK_INTERVAL = 300000;
 
 // Keys to preserve during cache clear (authentication and critical user data)
 const PRESERVE_KEYS = [
@@ -80,14 +80,15 @@ export const checkAndClearOldCache = async () => {
   }
 };
 
-// Force reload if new version is detected
+// Check if new version is available (don't force reload)
 export const forceUpdateIfNeeded = async () => {
   const STORAGE_KEY = 'certrack_cache_version';
   const currentVersion = localStorage.getItem(STORAGE_KEY);
   
   if (currentVersion && currentVersion !== CACHE_VERSION) {
-    console.log('[UPDATE] New version detected, forcing reload...');
-    await checkAndClearOldCache();
-    window.location.reload(true);
+    console.log('[UPDATE] New version detected. User will be notified.');
+    // Don't auto-reload - let the PWAUpdatePrompt handle it
+    return true;
   }
+  return false;
 };

@@ -87,6 +87,13 @@ const AddCertification = () => {
     setLoading(true);
     setSuccess(false);
 
+    // Validate that at least one certificate option is provided
+    if (!formData.certificate_file && !formData.certificate_file_url) {
+      alert('⚠️ CERTIFICATE REQUIRED\n\nPlease provide either:\n• Upload a certificate file, OR\n• Provide a URL to an existing certificate');
+      setLoading(false);
+      return;
+    }
+
     // For interns, always resolve intern_id from profile at submit time
     const resolvedInternId = isAdmin ? formData.intern_id : (profile?.intern_id || '');
 
@@ -256,17 +263,77 @@ const AddCertification = () => {
               </h4>
               
               <div className="form-group">
-                <label className="form-label">Certificate Image/PDF *</label>
-                <input 
-                  type="file" 
-                  className="form-input" 
-                  accept=".pdf,.jpg,.jpeg,.png,.webp"
-                  required
-                  onChange={(e) => setFormData({...formData, certificate_file: e.target.files[0]})}
-                  style={{ padding: '8px' }}
-                />
-                <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '5px' }}>
-                  Upload certificate image or PDF (Max 5MB) - Required
+                <label className="form-label">Certificate Image/PDF</label>
+                <p style={{ fontSize: '12px', color: 'var(--gray2)', marginBottom: '10px' }}>
+                  Choose one option: Upload a file OR provide a URL to an existing certificate
+                </p>
+                
+                {/* File Upload Option */}
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '5px', display: 'block' }}>
+                    Option 1: Upload File
+                  </label>
+                  <input 
+                    type="file" 
+                    className="form-input" 
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.svg,image/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        // Check file size (5MB limit)
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert('File size must be less than 5MB');
+                          e.target.value = '';
+                          return;
+                        }
+                        // Check file type
+                        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff', 'image/svg+xml', 'application/pdf'];
+                        if (!validTypes.includes(file.type)) {
+                          alert('Please upload a valid image (JPG, PNG, WEBP, GIF, BMP, TIFF, SVG) or PDF file');
+                          e.target.value = '';
+                          return;
+                        }
+                        setFormData({...formData, certificate_file: file, certificate_file_url: ''});
+                      }
+                    }}
+                    style={{ padding: '8px' }}
+                    disabled={formData.certificate_file_url}
+                  />
+                  {formData.certificate_file && (
+                    <div style={{ fontSize: '11px', color: 'var(--green)', marginTop: '5px' }}>
+                      ✓ {formData.certificate_file.name} ({(formData.certificate_file.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
+                </div>
+
+                {/* URL Option */}
+                <div>
+                  <label style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '5px', display: 'block' }}>
+                    Option 2: Provide URL
+                  </label>
+                  <input 
+                    type="url" 
+                    className="form-input" 
+                    placeholder="https://example.com/certificate.pdf or image URL"
+                    value={formData.certificate_file_url || ''}
+                    onChange={(e) => {
+                      setFormData({...formData, certificate_file_url: e.target.value, certificate_file: null});
+                      // Clear file input if URL is provided
+                      const fileInput = document.querySelector('input[type="file"]');
+                      if (fileInput) fileInput.value = '';
+                    }}
+                    disabled={formData.certificate_file}
+                    style={{ padding: '10px' }}
+                  />
+                  {formData.certificate_file_url && (
+                    <div style={{ fontSize: '11px', color: 'var(--green)', marginTop: '5px' }}>
+                      ✓ URL provided
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '10px', padding: '8px', background: 'var(--black3)', borderRadius: '4px' }}>
+                  💡 Tip: You must provide either a file upload OR a URL (at least one is required)
                 </div>
               </div>
               
