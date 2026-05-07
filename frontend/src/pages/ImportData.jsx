@@ -20,13 +20,37 @@ const ImportData = () => {
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
     if (fileExtension === 'csv') {
-     
       const text = await file.text();
       const lines = text.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.trim());
+      
+      // Parse CSV with proper handling of quoted values containing commas
+      const parseCSVLine = (line) => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        // Add the last field
+        result.push(current.trim());
+        return result;
+      };
+      
+      const headers = parseCSVLine(lines[0]);
       
       return lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
+        const values = parseCSVLine(line);
         const row = {};
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
@@ -213,7 +237,16 @@ const ImportData = () => {
             certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || row['link'] || ''
           };
 
-          console.log(`[IMPORT] Processing certification ${processedCount}/${totalRows}:`, certData);
+          console.log(`[IMPORT] Processing certification ${processedCount}/${totalRows}:`, {
+            certName,
+            provider: row['Provider'],
+            category: row['Category'],
+            categoryCode,
+            hours: row['Hours'],
+            parsedHours: hours,
+            date: completionDate,
+            rawRow: row
+          });
 
           const result = await addCertification(certData);
           
