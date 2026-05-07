@@ -337,10 +337,22 @@ app.get('/api/certifications/duplicates', async (req, res, next) => {
 
 app.post('/api/certifications', upload.single('certificate_file'), async (req, res, next) => {
   try {
+    console.log('[API] Creating certification with data:', {
+      intern_id: req.body.intern_id,
+      name: req.body.name,
+      provider: req.body.provider,
+      category: req.body.category,
+      hours: req.body.hours,
+      date: req.body.date,
+      hasFile: !!req.file,
+      fileUrl: req.body.certificate_file_url
+    });
+    
     // Check for duplicates BEFORE processing file upload
     const { intern_id, name, provider } = req.body;
     
     if (!intern_id || !name || !provider) {
+      console.error('[API] Missing required fields:', { intern_id, name, provider });
       return res.status(400).json({ 
         success: false, 
         error: 'Missing required fields: intern_id, name, and provider are required' 
@@ -357,11 +369,12 @@ app.post('/api/certifications', upload.single('certificate_file'), async (req, r
     
     if (checkError) {
       console.error('Duplicate check error:', checkError);
-      throw new Error('Failed to check for duplicate certifications');
+      throw new Error('Failed to check for duplicate certifications: ' + checkError.message);
     }
     
     if (existingCerts && existingCerts.length > 0) {
       const existing = existingCerts[0];
+      console.log('[API] Duplicate certification detected:', existing);
       return res.status(409).json({ 
         success: false, 
         error: 'DUPLICATE_CERTIFICATION',
@@ -409,6 +422,8 @@ app.post('/api/certifications', upload.single('certificate_file'), async (req, r
     delete certificationData.certificate_file;
     delete certificationData.verification_url;
     
+    console.log('[API] Inserting certification data:', certificationData);
+    
     const { data, error } = await supabase
       .from('certifications')
       .insert([certificationData])
@@ -416,6 +431,8 @@ app.post('/api/certifications', upload.single('certificate_file'), async (req, r
       .single();
     
     if (error) {
+      console.error('[API] Database insertion error:', error);
+      
       // Handle unique constraint violation (duplicate certification)
       if (error.code === '23505' && error.message.includes('unique_certification_per_intern')) {
         return res.status(409).json({ 
@@ -425,11 +442,24 @@ app.post('/api/certifications', upload.single('certificate_file'), async (req, r
           constraint: 'Database constraint violation - duplicate certification detected'
         });
       }
+      
+      // Handle category constraint violation
+      if (error.code === '23514' && error.message.includes('category')) {
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_CATEGORY',
+          message: `Invalid category: "${certificationData.category}". Please check available categories.`,
+          constraint: 'Category constraint violation'
+        });
+      }
+      
       throw error;
     }
     
+    console.log('[API] Certification created successfully:', data);
     res.json({ success: true, data });
   } catch (error) {
+    console.error('[API] Certification creation failed:', error);
     next(error);
   }
 });
@@ -1307,6 +1337,25 @@ app.use((err, req, res, next) => {
     success: false,
     error: 'Internal Server Error',
     message: err.message 
+  });
+});
+
+// Error handling middleware (must be after all routes)
+app.use((error, req, res, next) => {
+  console.error('❌ Server Error:', {
+    message: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method,
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+  
+  res.status(500).json({
+    success: false,
+    error: 'Internal Server Error',
+    message: error.message,
+    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
   });
 });
 
