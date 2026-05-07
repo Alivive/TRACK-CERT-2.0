@@ -79,7 +79,13 @@ const AddCertification = () => {
       });
       setTimeout(() => setSuccess(false), 3000);
     } else {
-      alert('Error adding certification: ' + error.message);
+      // Handle duplicate error from backend
+      if (error.message && error.message.startsWith('DUPLICATE:')) {
+        const duplicateMessage = error.message.replace('DUPLICATE: ', '');
+        alert(`⚠️ DUPLICATE CERTIFICATION\n\n${duplicateMessage}\n\nThis certification cannot be added because it already exists in the system.`);
+      } else {
+        alert('Error adding certification: ' + error.message);
+      }
     }
     setLoading(false);
   };

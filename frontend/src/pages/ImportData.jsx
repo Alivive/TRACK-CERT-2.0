@@ -223,9 +223,16 @@ const ImportData = () => {
             console.log(`[IMPORT] ✅ Success: "${certName}"`);
           } else {
             const errorMsg = result.error?.message || result.error || 'Unknown error';
-            errors.push(`Row ${processedCount}: Failed to add "${certName}": ${errorMsg}`);
+            
+            // Handle duplicate errors specifically
+            if (errorMsg.includes('DUPLICATE:') || errorMsg.includes('already exists')) {
+              errors.push(`Row ${processedCount}: DUPLICATE - "${certName}" from "${certData.provider}" already exists for this intern`);
+              console.warn(`[IMPORT] ⚠️ Duplicate: "${certName}"`);
+            } else {
+              errors.push(`Row ${processedCount}: Failed to add "${certName}": ${errorMsg}`);
+              console.error(`[IMPORT] ❌ Failed: "${certName}":`, errorMsg);
+            }
             failCount++;
-            console.error(`[IMPORT] ❌ Failed: "${certName}":`, errorMsg);
           }
 
           // Small delay to prevent overwhelming the server

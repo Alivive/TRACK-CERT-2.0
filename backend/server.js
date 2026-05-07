@@ -277,6 +277,7 @@ app.delete('/api/interns/:id', async (req, res, next) => {
 
 // ========== CERTIFICATIONS API ==========
 
+// Get certifications with optional filtering
 app.get('/api/certifications', async (req, res, next) => {
   try {
     let query = supabase
@@ -297,8 +298,78 @@ app.get('/api/certifications', async (req, res, next) => {
   }
 });
 
+// Check for duplicate certifications (admin utility)
+app.get('/api/certifications/duplicates', async (req, res, next) => {
+  try {
+    const { data: allCerts, error } = await supabase
+      .from('certifications')
+      .select('intern_id, name, provider, id, date')
+      .order('date', { ascending: true });
+    
+    if (error) throw error;
+    
+    // Find duplicates
+    const duplicateMap = new Map();
+    const duplicates = [];
+    
+    allCerts.forEach(cert => {
+      const key = `${cert.intern_id}|${cert.name.toLowerCase().trim()}|${cert.provider.toLowerCase().trim()}`;
+      if (duplicateMap.has(key)) {
+        duplicates.push({
+          duplicate: cert,
+          original: duplicateMap.get(key)
+        });
+      } else {
+        duplicateMap.set(key, cert);
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      duplicates,
+      total_certifications: allCerts.length,
+      duplicate_count: duplicates.length
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post('/api/certifications', upload.single('certificate_file'), async (req, res, next) => {
   try {
+    // Check for duplicates BEFORE processing file upload
+    const { intern_id, name, provider } = req.body;
+    
+    if (!intern_id || !name || !provider) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: intern_id, name, and provider are required' 
+      });
+    }
+    
+    // Check for existing certification with same intern_id, name, and provider
+    const { data: existingCerts, error: checkError } = await supabase
+      .from('certifications')
+      .select('id, name, provider, date')
+      .eq('intern_id', intern_id)
+      .ilike('name', name.trim())
+      .ilike('provider', provider.trim());
+    
+    if (checkError) {
+      console.error('Duplicate check error:', checkError);
+      throw new Error('Failed to check for duplicate certifications');
+    }
+    
+    if (existingCerts && existingCerts.length > 0) {
+      const existing = existingCerts[0];
+      return res.status(409).json({ 
+        success: false, 
+        error: 'DUPLICATE_CERTIFICATION',
+        message: `This certification already exists: "${existing.name}" from "${existing.provider}" (added on ${existing.date})`,
+        existing: existing
+      });
+    }
+    
     let certificateFileUrl = req.body.certificate_file_url || null;
     
     // Handle file upload if present (overrides URL if both provided)
@@ -344,7 +415,19 @@ app.post('/api/certifications', upload.single('certificate_file'), async (req, r
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      // Handle unique constraint violation (duplicate certification)
+      if (error.code === '23505' && error.message.includes('unique_certification_per_intern')) {
+        return res.status(409).json({ 
+          success: false, 
+          error: 'DUPLICATE_CERTIFICATION',
+          message: `This certification already exists: "${certificationData.name}" from "${certificationData.provider}"`,
+          constraint: 'Database constraint violation - duplicate certification detected'
+        });
+      }
+      throw error;
+    }
+    
     res.json({ success: true, data });
   } catch (error) {
     next(error);
