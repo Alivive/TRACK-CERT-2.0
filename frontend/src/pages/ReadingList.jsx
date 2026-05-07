@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { booksClient } from '../utils/booksClient';
+import { supabase } from '../utils/supabaseClient';
 import { Book, BookOpen, CheckCircle, Clock, Plus, Trash2, Edit2, Save, X, User, Search } from 'lucide-react';
 
 // Highlight search term in text
@@ -97,7 +98,6 @@ const ReadingList = () => {
           setInterns(JSON.parse(cachedInterns));
         }
         
-        const { supabase } = await import('../utils/supabaseClient');
         const { data } = await supabase.from('interns').select('*').order('first_name');
         setInterns(data || []);
         localStorage.setItem('reading_interns', JSON.stringify(data || []));
