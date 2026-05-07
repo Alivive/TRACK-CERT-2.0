@@ -244,8 +244,8 @@ const ImportData = () => {
             provider: providerName.trim(),
             category: categoryCode,
             hours: hours,
-            date: completionDate,
-            certificate_file_url: row['certificate file url'] || row['Certificate File URL'] || row['certificate url'] || row['certificate file'] || row['links'] || row['link'] || ''
+            date: completionDate || null,
+            certificate_file_url: row['certificate file url'] || row['Certificate File URL'] || row['certificate url'] || row['certificate file'] || row['links'] || row['link'] || null
           };
 
           console.log(`[IMPORT] Processing certification ${processedCount}/${totalRows}:`, {
