@@ -191,17 +191,37 @@ const ImportData = () => {
             console.warn(`[IMPORT] No category match found for "${row['Category']}", using as-is`);
           }
 
-          // Parse and validate date - handle both DD/MM/YYYY and YYYY-MM-DD formats
+          // Parse and validate date - handle both DD/MM/YYYY and MM/DD/YYYY formats
           let completionDate = row['completion date'] || row['Completion Date'] || '';
           if (completionDate) {
-            // Check if date is in DD/MM/YYYY format
             if (completionDate.includes('/')) {
               const parts = completionDate.split('/');
               if (parts.length === 3) {
-                // Convert DD/MM/YYYY to YYYY-MM-DD
-                const day = parts[0].padStart(2, '0');
-                const month = parts[1].padStart(2, '0');
-                const year = parts[2];
+                let day, month, year;
+                if (parts[2].length === 4) {
+                  year = parts[2];
+                  // If first part is > 12, it MUST be DD/MM/YYYY
+                  if (parseInt(parts[0]) > 12) {
+                    day = parts[0];
+                    month = parts[1];
+                  } else {
+                    // Standard US format MM/DD/YYYY
+                    month = parts[0];
+                    day = parts[1];
+                  }
+                } else if (parts[0].length === 4) {
+                  // YYYY/MM/DD
+                  year = parts[0];
+                  month = parts[1];
+                  day = parts[2];
+                } else {
+                  // Fallback
+                  day = parts[0];
+                  month = parts[1];
+                  year = parts[2];
+                }
+                day = day.padStart(2, '0');
+                month = month.padStart(2, '0');
                 completionDate = `${year}-${month}-${day}`;
               }
             }
@@ -217,8 +237,9 @@ const ImportData = () => {
             continue;
           }
 
-          // Validate hours - ENHANCED VALIDATION
-          let hours = parseFloat(row['hours'] || row['Hours']) || 0;
+          // Validate hours - Database expects an INTEGER
+          // Round up to nearest integer (e.g., 1.5 -> 2)
+          let hours = Math.ceil(parseFloat(row['hours'] || row['Hours'])) || 0;
           if (hours <= 0) {
             errors.push(`Row ${processedCount}: Invalid hours "${row['Hours']}" for "${certName}". Hours must be greater than 0.`);
             failCount++;
