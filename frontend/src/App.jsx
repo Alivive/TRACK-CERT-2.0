@@ -14,7 +14,6 @@ import ImportData from './pages/ImportData';
 import Reports from './pages/Reports';
 import AdminPanel from './pages/AdminPanel';
 import ReadingList from './pages/ReadingList';
-import SendMessage from './pages/SendMessage';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import OfflineStatus from './components/OfflineStatus';
@@ -113,7 +112,6 @@ const AppContent = () => {
       case 'import': return <ImportData />;
       case 'reports': return <Reports />;
       case 'reading': return <ReadingList />;
-      case 'send_message': return <SendMessage />;
       case 'admin': return <AdminPanel />;
       default: return <Dashboard onPageChange={setActivePage} />;
     }
