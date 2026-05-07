@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
+import { useNotifications } from '../context/NotificationsContext';
 import { Upload, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -10,6 +11,7 @@ const ImportData = () => {
   const isAdmin = profile?.role === 'admin';
   const { interns, addCertification, refreshData } = useDatabase();
   const { categories } = useCategories();
+  const { showToast } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 });
   const [success, setSuccess] = useState(false);
@@ -20,8 +22,9 @@ const ImportData = () => {
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
     if (fileExtension === 'csv') {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
+      // Remove BOM if present
+      const cleanText = (await file.text()).replace(/^\uFEFF/, '');
+      const lines = cleanText.split('\n').filter(line => line.trim());
       
       // Parse CSV with proper handling of quoted values containing commas
       const parseCSVLine = (line) => {
@@ -52,8 +55,12 @@ const ImportData = () => {
       return lines.slice(1).map(line => {
         const values = parseCSVLine(line);
         const row = {};
+        // Add original and lowercase keys for robustness
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
+          if (header) {
+            row[header.trim().toLowerCase()] = values[index] || '';
+          }
         });
         return row;
       });
@@ -101,15 +108,18 @@ const ImportData = () => {
           let intern;
           
           if (isAdmin) {
-            const internName = row['Intern Name'] || row['Employee Name'];
+            const internName = row['intern name'] || row['employee name'] || row['Intern Name'] || row['Employee Name'];
             if (!internName) {
               errors.push(`Row ${processedCount}: Missing intern name`);
               failCount++;
               continue;
             }
             
+            // Trim space to avoid mismatch
+            const cleanInternName = internName.trim().toLowerCase();
             intern = interns.find(i => 
-              `${i.first_name} ${i.last_name}`.toLowerCase() === internName.toLowerCase()
+              `${i.first_name} ${i.last_name}`.toLowerCase() === cleanInternName ||
+              `${i.first_name} ${i.last_name}`.trim().toLowerCase() === cleanInternName
             );
             
             if (!intern) {
@@ -129,7 +139,7 @@ const ImportData = () => {
           }
 
           // Map category name to code - ENHANCED MATCHING
-          let categoryCode = row['Category'] || '';
+          let categoryCode = row['category'] || row['Category'] || '';
           
           // Try to match by name or by ID (case-insensitive and flexible)
           const matchedCategory = categories.find(cat => {
@@ -182,7 +192,7 @@ const ImportData = () => {
           }
 
           // Parse and validate date - handle both DD/MM/YYYY and YYYY-MM-DD formats
-          let completionDate = row['Completion Date'] || '';
+          let completionDate = row['completion date'] || row['Completion Date'] || '';
           if (completionDate) {
             // Check if date is in DD/MM/YYYY format
             if (completionDate.includes('/')) {
@@ -198,7 +208,7 @@ const ImportData = () => {
           }
 
           // Get certification name
-          const certName = (row['Certification Name'] || '').trim();
+          const certName = (row['certification name'] || row['Certification Name'] || '').trim();
           
           // Validate required fields
           if (!certName) {
@@ -208,14 +218,15 @@ const ImportData = () => {
           }
 
           // Validate hours - ENHANCED VALIDATION
-          let hours = parseFloat(row['Hours']) || 0;
+          let hours = parseFloat(row['hours'] || row['Hours']) || 0;
           if (hours <= 0) {
             errors.push(`Row ${processedCount}: Invalid hours "${row['Hours']}" for "${certName}". Hours must be greater than 0.`);
             failCount++;
             continue;
           }
 
-          if (!row['Provider'] || !row['Provider'].trim()) {
+          const providerName = row['provider'] || row['Provider'] || '';
+          if (!providerName.trim()) {
             errors.push(`Row ${processedCount}: Missing provider for "${certName}"`);
             failCount++;
             continue;
@@ -230,11 +241,11 @@ const ImportData = () => {
           const certData = {
             intern_id: intern.id,
             name: certName,
-            provider: (row['Provider'] || '').trim(),
+            provider: providerName.trim(),
             category: categoryCode,
             hours: hours,
             date: completionDate,
-            certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || row['link'] || ''
+            certificate_file_url: row['certificate file url'] || row['Certificate File URL'] || row['certificate url'] || row['certificate file'] || row['links'] || row['link'] || ''
           };
 
           console.log(`[IMPORT] Processing certification ${processedCount}/${totalRows}:`, {
@@ -283,6 +294,13 @@ const ImportData = () => {
       
       // Force refresh data after import
       await refreshData();
+      
+      if (successCount > 0) {
+        showToast('Import Complete', `Successfully imported ${successCount} certification(s)`, 'success');
+      }
+      if (failCount > 0) {
+        showToast('Import Finished with Errors', `${failCount} row(s) failed to import. Check the error log.`, 'error');
+      }
       
       // Show success for 5 seconds then allow new upload
       setTimeout(() => {

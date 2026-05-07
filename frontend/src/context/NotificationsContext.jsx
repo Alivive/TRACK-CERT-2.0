@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../utils/supabaseClient';
+import ToastContainer from '../components/ToastContainer';
 
 const NotificationsContext = createContext();
 
@@ -17,6 +18,22 @@ export const NotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [activeToasts, setActiveToasts] = useState([]);
+
+  const removeToast = useCallback((id) => {
+    setActiveToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const showToast = useCallback((title, message, type = 'info', duration = 5000) => {
+    const id = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+    const newToast = { id, title, message, type, duration };
+    
+    setActiveToasts(prev => [...prev, newToast]);
+    
+    setTimeout(() => {
+      removeToast(id);
+    }, duration);
+  }, [removeToast]);
 
   // Load notifications from database on mount
   useEffect(() => {
@@ -143,6 +160,9 @@ export const NotificationsProvider = ({ children }) => {
               console.log('[NOTIFICATIONS] Adding notification to state:', notification);
               setNotifications(prev => [notification, ...prev]);
               setUnreadCount(prev => prev + 1);
+              
+              // Trigger toast
+              showToast(notification.title, notification.message, notification.type);
             } catch (err) {
               console.error('[NOTIFICATIONS] Error processing real-time notification:', err);
             }
@@ -191,6 +211,8 @@ export const NotificationsProvider = ({ children }) => {
             data: newCert,
             timestamp: new Date().toISOString()
           });
+          
+          showToast('New Certification Added', `${newCert.name} has been added to your profile`, 'certification');
         }
       )
       .subscribe();
@@ -232,6 +254,8 @@ export const NotificationsProvider = ({ children }) => {
             data: newCert,
             timestamp: new Date().toISOString()
           });
+          
+          showToast('New Certification Added', `${internName} added: ${newCert.name}`, 'certification');
         }
       )
       .on(
@@ -260,6 +284,8 @@ export const NotificationsProvider = ({ children }) => {
             data: updatedCert,
             timestamp: new Date().toISOString()
           });
+          
+          showToast('Certification Updated', `${internName} updated: ${updatedCert.name}`, 'info');
         }
       )
       .subscribe();
@@ -301,6 +327,8 @@ export const NotificationsProvider = ({ children }) => {
               data: { ...assignment, book },
               timestamp: new Date().toISOString()
             });
+            
+            showToast('New Book Assigned', `"${book.title}" by ${book.author} has been assigned to you`, 'book');
           }
         }
       )
@@ -417,10 +445,12 @@ export const NotificationsProvider = ({ children }) => {
         markAsRead,
         markAllAsRead,
         clearNotification,
-        clearAllNotifications
+        clearAllNotifications,
+        showToast
       }}
     >
       {children}
+      <ToastContainer toasts={activeToasts} removeToast={removeToast} />
     </NotificationsContext.Provider>
   );
 };

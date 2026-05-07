@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
+import { useNotifications } from '../context/NotificationsContext';
 import { Send, Users, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../utils/supabaseClient';
 
@@ -8,6 +9,7 @@ const SendMessage = () => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const { interns } = useDatabase();
+  const { showToast } = useNotifications();
   
   const [messageData, setMessageData] = useState({
     recipient: 'all', // 'all' or specific intern_id
@@ -83,6 +85,8 @@ const SendMessage = () => {
 
       // Show success with actual sent count
       setSuccess(sentCount);
+      showToast('Message Sent', `Successfully sent to ${sentCount} intern(s)`, 'success');
+      
       setMessageData({
         recipient: 'all',
         title: '',
