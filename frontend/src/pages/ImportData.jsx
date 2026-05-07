@@ -11,6 +11,7 @@ const ImportData = () => {
   const { interns, addCertification, refreshData } = useDatabase();
   const { categories } = useCategories();
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
@@ -51,6 +52,7 @@ const ImportData = () => {
     setError('');
     setResults(null);
     setSuccess(false);
+    setProgress({ current: 0, total: 0, percent: 0 });
     
     try {
       const rows = await parseFile(file);
@@ -59,15 +61,25 @@ const ImportData = () => {
       let failCount = 0;
       const errors = [];
       const newCertifications = [];
+      const totalRows = rows.length;
+      setProgress({ current: 0, total: totalRows, percent: 0 });
+
+      // Progress tracking
+      let processedCount = 0;
 
       for (const row of rows) {
         try {
+          // Update progress
+          processedCount++;
+          const progressPercent = Math.round((processedCount / totalRows) * 100);
+          setProgress({ current: processedCount, total: totalRows, percent: progressPercent });
+
           let intern;
           
           if (isAdmin) {
             const internName = row['Intern Name'] || row['Employee Name'];
             if (!internName) {
-              errors.push(`Row skipped: Missing intern name`);
+              errors.push(`Row ${processedCount}: Missing intern name`);
               failCount++;
               continue;
             }
@@ -77,7 +89,7 @@ const ImportData = () => {
             );
             
             if (!intern) {
-              errors.push(`Intern not found: ${internName}`);
+              errors.push(`Row ${processedCount}: Intern not found: ${internName}`);
               failCount++;
               continue;
             }
@@ -86,25 +98,64 @@ const ImportData = () => {
             intern = interns.find(i => i.id === profile?.intern_id);
             
             if (!intern) {
-              errors.push(`Your intern profile not found. Please contact administrator.`);
+              errors.push(`Row ${processedCount}: Your intern profile not found. Please contact administrator.`);
               failCount++;
               break; // Stop processing if profile not found
             }
           }
 
-          // Map category name to code
+          // Map category name to code - ENHANCED MATCHING
           let categoryCode = row['Category'] || '';
           
-          // Try to match by name or by ID
-          const matchedCategory = categories.find(cat => 
-            cat.name.toLowerCase() === categoryCode.toLowerCase() || 
-            cat.id.toLowerCase() === categoryCode.toLowerCase()
-          );
+          // Try to match by name or by ID (case-insensitive and flexible)
+          const matchedCategory = categories.find(cat => {
+            const userCategory = categoryCode.toLowerCase().trim();
+            const catName = cat.name.toLowerCase().trim();
+            const catId = cat.id.toLowerCase().trim();
+            
+            // Exact matches
+            if (userCategory === catName || userCategory === catId) {
+              return true;
+            }
+            
+            // Partial matches for common variations
+            if (userCategory === 'softskills' && catId === 'soft') return true;
+            if (userCategory === 'soft skills' && catId === 'soft') return true;
+            if (userCategory === 'ai' && catId === 'ai') return true;
+            if (userCategory === 'artificial intelligence' && catId === 'ai') return true;
+            if (userCategory === 'frontend' && catId === 'fe') return true;
+            if (userCategory === 'front end' && catId === 'fe') return true;
+            if (userCategory === 'front-end' && catId === 'fe') return true;
+            if (userCategory === 'backend' && catId === 'be') return true;
+            if (userCategory === 'back end' && catId === 'be') return true;
+            if (userCategory === 'back-end' && catId === 'be') return true;
+            if (userCategory === 'cybersecurity' && catId === 'cyber') return true;
+            if (userCategory === 'cyber security' && catId === 'cyber') return true;
+            if (userCategory === 'cloud' && catId === 'cloud') return true;
+            if (userCategory === 'cloud computing' && catId === 'cloud') return true;
+            if (userCategory === 'data analytics' && catId === 'da') return true;
+            if (userCategory === 'data & analytics' && catId === 'da') return true;
+            if (userCategory === 'graphics design' && catId === 'gd') return true;
+            if (userCategory === 'graphic design' && catId === 'gd') return true;
+            if (userCategory === 'design' && catId === 'gd') return true;
+            if (userCategory === 'business' && catId === 'bs') return true;
+            if (userCategory === 'business and finance' && catId === 'bs') return true;
+            if (userCategory === 'software development' && catId === 'sd') return true;
+            if (userCategory === 'software dev' && catId === 'sd') return true;
+            if (userCategory === 'tech' && catId === 'sd') return true;
+            if (userCategory === 'api' && catId === 'api') return true;
+            if (userCategory === 'api functionalities' && catId === 'api') return true;
+            
+            return false;
+          });
           
           if (matchedCategory) {
-            categoryCode = matchedCategory.id;
+            categoryCode = matchedCategory.id; // Use the correct system category ID
+            console.log(`[IMPORT] Mapped "${row['Category']}" → "${matchedCategory.id}" (${matchedCategory.name})`);
+          } else {
+            // If no match found, log warning but continue with user input
+            console.warn(`[IMPORT] No category match found for "${row['Category']}", using as-is`);
           }
-          // If no match, use as-is (for custom categories)
 
           // Parse and validate date - handle both DD/MM/YYYY and YYYY-MM-DD formats
           let completionDate = row['Completion Date'] || '';
@@ -122,35 +173,67 @@ const ImportData = () => {
             }
           }
 
-          // Validate hours
-          const hours = parseFloat(row['Hours']) || 0;
+          // Get certification name
+          const certName = (row['Certification Name'] || '').trim();
+          
+          // Validate required fields
+          if (!certName) {
+            errors.push(`Row ${processedCount}: Missing certification name`);
+            failCount++;
+            continue;
+          }
+
+          // Validate hours - ENHANCED VALIDATION
+          let hours = parseFloat(row['Hours']) || 0;
           if (hours <= 0) {
-            errors.push(`Invalid hours "${row['Hours']}" for "${row['Certification Name']}". Hours must be greater than 0.`);
+            errors.push(`Row ${processedCount}: Invalid hours "${row['Hours']}" for "${certName}". Hours must be greater than 0.`);
+            failCount++;
+            continue;
+          }
+
+          if (!row['Provider'] || !row['Provider'].trim()) {
+            errors.push(`Row ${processedCount}: Missing provider for "${certName}"`);
+            failCount++;
+            continue;
+          }
+
+          if (!categoryCode) {
+            errors.push(`Row ${processedCount}: Missing category for "${certName}"`);
             failCount++;
             continue;
           }
 
           const certData = {
             intern_id: intern.id,
-            name: row['Certification Name'],
-            provider: row['Provider'],
+            name: certName,
+            provider: (row['Provider'] || '').trim(),
             category: categoryCode,
             hours: hours,
             date: completionDate,
             certificate_file_url: row['Certificate File URL'] || row['Certificate URL'] || row['Certificate File'] || row['link'] || ''
           };
 
+          console.log(`[IMPORT] Processing certification ${processedCount}/${totalRows}:`, certData);
+
           const result = await addCertification(certData);
           
           if (result.data) {
             newCertifications.push(result.data);
             successCount++;
+            console.log(`[IMPORT] ✅ Success: "${certName}"`);
           } else {
-            errors.push(`Failed to add "${row['Certification Name']}": ${result.error?.message || 'Unknown error'}`);
+            const errorMsg = result.error?.message || result.error || 'Unknown error';
+            errors.push(`Row ${processedCount}: Failed to add "${certName}": ${errorMsg}`);
             failCount++;
+            console.error(`[IMPORT] ❌ Failed: "${certName}":`, errorMsg);
           }
+
+          // Small delay to prevent overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 100));
+
         } catch (err) {
-          errors.push(`Error adding "${row['Certification Name']}": ${err.message}`);
+          console.error(`[IMPORT] Exception processing row ${processedCount}:`, err);
+          errors.push(`Row ${processedCount}: Error adding "${row['Certification Name']}": ${err.message}`);
           failCount++;
         }
       }
@@ -167,9 +250,11 @@ const ImportData = () => {
       }, 5000);
       
     } catch (err) {
+      console.error('[IMPORT] File processing error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+      setProgress({ current: 0, total: 0, percent: 0 });
       // Reset file input
       e.target.value = '';
     }
@@ -260,6 +345,45 @@ const ImportData = () => {
               ? 'Upload CSV/Excel file with certification data including certificate URLs. Include "Intern Name" column to specify which intern each certification belongs to.'
               : 'Upload CSV/Excel file with your certification data. No need to include your name - all certifications will be automatically added to your profile!'}
           </p>
+
+          {loading && progress.total > 0 && (
+            <div style={{ 
+              background: 'var(--black3)', 
+              padding: '20px', 
+              borderRadius: '8px', 
+              marginBottom: '20px',
+              border: '1px solid var(--border2)'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: '10px' 
+              }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--white)' }}>
+                  Processing Certifications...
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                  {progress.current} / {progress.total} ({progress.percent}%)
+                </span>
+              </div>
+              <div style={{ 
+                width: '100%', 
+                height: '8px', 
+                background: 'var(--black4)', 
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  width: `${progress.percent}%`, 
+                  height: '100%', 
+                  background: 'linear-gradient(90deg, var(--red-light), var(--red))',
+                  borderRadius: '4px',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            </div>
+          )}
 
           {results && (
             <div style={{ 
@@ -382,8 +506,14 @@ const ImportData = () => {
             style={{ padding: '12px 30px' }} 
             onClick={() => document.getElementById('fileInput').click()}
             disabled={loading}
+            id="import-button"
           >
-            {loading ? 'PROCESSING FILE...' : 'CHOOSE FILE'}
+            {loading 
+              ? progress.total > 0 
+                ? `PROCESSING... ${progress.percent}%` 
+                : 'READING FILE...'
+              : 'CHOOSE FILE'
+            }
           </button>
           
           <div style={{ marginTop: '30px', borderTop: '1px solid var(--border2)', paddingTop: '20px' }}>
