@@ -1,6 +1,119 @@
 import html2pdf from 'html2pdf.js';
 import { booksClient } from './booksClient';
 
+// Helper function to create SVG pie chart
+const createPieChartSVG = (data, colors, size = 200) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  if (total === 0) return '';
+  
+  let currentAngle = 0;
+  const radius = size / 2 - 10;
+  const centerX = size / 2;
+  const centerY = size / 2;
+  
+  const paths = data.map((item, index) => {
+    const percentage = item.value / total;
+    const angle = percentage * 2 * Math.PI;
+    
+    const startX = centerX + radius * Math.cos(currentAngle - Math.PI / 2);
+    const startY = centerY + radius * Math.sin(currentAngle - Math.PI / 2);
+    
+    currentAngle += angle;
+    
+    const endX = centerX + radius * Math.cos(currentAngle - Math.PI / 2);
+    const endY = centerY + radius * Math.sin(currentAngle - Math.PI / 2);
+    
+    const largeArcFlag = angle > Math.PI ? 1 : 0;
+    
+    const pathData = [
+      `M ${centerX} ${centerY}`,
+      `L ${startX} ${startY}`,
+      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+      'Z'
+    ].join(' ');
+    
+    return `<path d="${pathData}" fill="${colors[index % colors.length]}" stroke="#ffffff" stroke-width="2"/>`;
+  }).join('');
+  
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display: block;">
+      ${paths}
+    </svg>
+  `;
+};
+
+// Helper function to create SVG bar chart
+const createBarChartSVG = (data, colors, width = 300, height = 200) => {
+  if (!data.length) return '';
+  
+  const maxValue = Math.max(...data.map(item => item.value));
+  const barWidth = (width - 80) / data.length; // Increased margin for longer labels
+  const chartHeight = height - 100; // Increased bottom margin for multi-line text
+  
+  const bars = data.map((item, index) => {
+    const barHeight = (item.value / maxValue) * chartHeight;
+    const x = 50 + index * barWidth + barWidth * 0.1; // Increased left margin
+    const y = height - 80 - barHeight; // Adjusted for new margins
+    const barActualWidth = barWidth * 0.8;
+    
+    // More aggressive text wrapping for category names
+    const maxCharsPerLine = Math.max(6, Math.floor(barWidth / 7)); // Minimum 6 chars per line
+    const label = item.label;
+    let lines = [];
+    
+    // Split by spaces first
+    const words = label.split(' ');
+    let currentLine = '';
+    
+    words.forEach(word => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      if (testLine.length <= maxCharsPerLine) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // Word is too long, split it
+          if (word.length > maxCharsPerLine) {
+            lines.push(word.substring(0, maxCharsPerLine - 1) + '-');
+            currentLine = word.substring(maxCharsPerLine - 1);
+          } else {
+            currentLine = word;
+          }
+        }
+      }
+    });
+    
+    if (currentLine) lines.push(currentLine);
+    
+    // Limit to 3 lines max for better readability
+    if (lines.length > 3) {
+      lines = [lines[0], lines[1], lines[2].substring(0, maxCharsPerLine - 3) + '...'];
+    }
+    
+    const labelY = height - 65; // Base Y position for labels
+    const labelElements = lines.map((line, lineIndex) => 
+      `<text x="${x + barActualWidth/2}" y="${labelY + (lineIndex * 11)}" 
+             text-anchor="middle" font-size="8" fill="#64748b" font-weight="500">${line}</text>`
+    ).join('');
+    
+    return `
+      <rect x="${x}" y="${y}" width="${barActualWidth}" height="${barHeight}" 
+            fill="${colors[index % colors.length]}" rx="2"/>
+      ${labelElements}
+      <text x="${x + barActualWidth/2}" y="${y - 5}" 
+            text-anchor="middle" font-size="12" font-weight="bold" fill="#0f172a">${item.value}</text>
+    `;
+  }).join('');
+  
+  return `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display: block;">
+      ${bars}
+    </svg>
+  `;
+};
+
 export const generateInternReport = async (intern, certifications, categories = {}) => {
   console.log('[PDF] Generating report for:', intern);
   console.log('[PDF] Certifications:', certifications.length);
@@ -60,6 +173,38 @@ export const generateInternReport = async (intern, certifications, categories = 
     'SD': '#06b6d4'
   };
   
+  // Prepare data for pie chart
+  const pieChartData = Object.keys(CATS)
+    .map(key => ({
+      label: CATS[key].name,
+      value: certsByCategory[key].length
+    }))
+    .filter(item => item.value > 0);
+
+  const pieColors = Object.keys(CATS)
+    .filter(key => certsByCategory[key].length > 0)
+    .map(key => categoryColors[key] || '#6366f1');
+
+  // Create pie chart SVG
+  const pieChartSVG = createPieChartSVG(pieChartData, pieColors, 180);
+
+  // Prepare data for category bar chart
+  const barChartData = Object.keys(CATS)
+    .map(key => ({
+      label: CATS[key].name, // Remove substring clamping
+      value: certsByCategory[key].length
+    }))
+    .filter(item => item.value > 0)
+    .slice(0, 6); // Limit to top 6 categories for space
+
+  const barColors = Object.keys(CATS)
+    .filter(key => certsByCategory[key].length > 0)
+    .slice(0, 6)
+    .map(key => categoryColors[key] || '#6366f1');
+
+  // Create bar chart SVG
+  const barChartSVG = createBarChartSVG(barChartData, barColors, 350, 220);
+  
   const getInitials = (first, last) => {
     return ((first?.[0] || '') + (last?.[0] || '')).toUpperCase();
   };
@@ -118,6 +263,62 @@ export const generateInternReport = async (intern, certifications, categories = 
             </div>
           </div>
         </div>
+
+        <!-- Visual Analytics Section -->
+        ${pieChartData.length > 0 ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
+            <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">📊 CERTIFICATION DISTRIBUTION</h3>
+          </div>
+          <div style="background: #f8fafc; padding: 16px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none;">
+            <div style="display: flex; align-items: center; gap: 20px;">
+              <div style="flex-shrink: 0;">
+                <div style="display: flex; justify-content: center; align-items: center; margin: 16px 0;">
+                  ${pieChartSVG}
+                </div>
+              </div>
+              <div style="flex: 1;">
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px;">
+                  ${pieChartData.map((item, index) => `
+                    <div style="display: flex; align-items: center; gap: 4px; font-size: 9px; background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                      <div style="width: 12px; height: 12px; border-radius: 2px; background: ${pieColors[index]};"></div>
+                      <span style="color: #475569; font-weight: 600;">${item.label}</span>
+                      <span style="color: #0f172a; font-weight: 700;">${item.value}</span>
+                    </div>
+                  `).join('')}
+                </div>
+                <div style="margin-top: 16px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #e2e8f0;">
+                  <div style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">TOP CATEGORY</div>
+                  ${pieChartData.length > 0 ? `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="width: 12px; height: 12px; border-radius: 2px; background: ${pieColors[0]};"></div>
+                      <span style="font-size: 12px; font-weight: 700; color: #0f172a;">${pieChartData[0].label}</span>
+                      <span style="font-size: 11px; color: #64748b;">(${pieChartData[0].value} certs)</span>
+                    </div>
+                  ` : '<span style="font-size: 11px; color: #94a3b8;">No certifications yet</span>'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- Category Performance Chart -->
+        ${barChartData.length > 0 ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
+            <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">📈 CATEGORY PERFORMANCE</h3>
+          </div>
+          <div style="background: #f8fafc; padding: 16px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none;">
+            <div style="display: flex; justify-content: center; align-items: center; margin: 16px 0;">
+              ${barChartSVG}
+            </div>
+            <div style="margin-top: 12px; text-align: center;">
+              <div style="font-size: 10px; color: #64748b;">Certifications by category (showing top ${barChartData.length} categories)</div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
 
         <!-- Reading Progress -->
         ${bookAssignments.length > 0 ? `
@@ -304,6 +505,38 @@ export const generateSummaryReport = async (interns, certifications, categories 
   });
   const topProvider = Object.keys(providers).reduce((max, p) => providers[p] > (providers[max] || 0) ? p : max, 'None');
 
+  // Prepare data for overall pie chart
+  const overallPieData = Object.keys(CATS)
+    .map(key => ({
+      label: CATS[key].name,
+      value: certifications.filter(c => c.cat === key).length
+    }))
+    .filter(item => item.value > 0);
+
+  const overallPieColors = Object.keys(CATS)
+    .filter(key => certifications.filter(c => c.cat === key).length > 0)
+    .map(key => categoryColors[key] || '#6366f1');
+
+  // Create overall pie chart SVG
+  const overallPieChartSVG = createPieChartSVG(overallPieData, overallPieColors, 200);
+
+  // Prepare top performers data for bar chart
+  const topPerformersData = interns
+    .map(intern => ({
+      label: `${intern.first} ${intern.last}`, // Remove substring clamping
+      value: certifications.filter(c => c.intern_id === intern.id).length
+    }))
+    .filter(item => item.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8); // Top 8 performers
+
+  const performerColors = topPerformersData.map((_, index) => 
+    index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#6366f1'
+  );
+
+  // Create top performers bar chart SVG
+  const topPerformersChartSVG = createBarChartSVG(topPerformersData, performerColors, 420, 220);
+
   const element = document.createElement('div');
   element.innerHTML = `
     <style>
@@ -350,12 +583,75 @@ export const generateSummaryReport = async (interns, certifications, categories 
           `).join('')}
         </div>
 
+        <!-- Visual Analytics Section -->
+        ${overallPieData.length > 0 ? `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+          <!-- Overall Distribution Pie Chart -->
+          <div style="page-break-inside: avoid;">
+            <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
+              <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">📊 OVERALL DISTRIBUTION</h3>
+            </div>
+            <div style="background: #f8fafc; padding: 16px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
+              <div style="display: flex; justify-content: center; align-items: center; margin: 16px 0;">
+                ${overallPieChartSVG}
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px;">
+                ${overallPieData.map((item, index) => `
+                  <div style="display: flex; align-items: center; gap: 4px; font-size: 8px; background: white; padding: 3px 6px; border-radius: 3px; border: 1px solid #e2e8f0;">
+                    <div style="width: 10px; height: 10px; border-radius: 2px; background: ${overallPieColors[index]};"></div>
+                    <span style="color: #475569; font-weight: 600;">${item.label}</span>
+                    <span style="color: #0f172a; font-weight: 700;">${item.value}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Performers Bar Chart -->
+          ${topPerformersData.length > 0 ? `
+          <div style="page-break-inside: avoid;">
+            <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
+              <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">🏆 TOP PERFORMERS</h3>
+            </div>
+            <div style="background: #f8fafc; padding: 16px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
+              <div style="display: flex; justify-content: center; align-items: center; margin: 16px 0;">
+                ${topPerformersChartSVG}
+              </div>
+              <div style="margin-top: 12px; text-align: center;">
+                <div style="font-size: 10px; color: #64748b;">Top ${topPerformersData.length} performers by certification count</div>
+              </div>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        ` : ''}
+
         <!-- All Interns Table -->
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
           <div style="background: #0f172a; color: white; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">■ All Interns — Certification Summary</h3>
             <span style="font-size: 10px; color: #94a3b8;">${interns.length} active interns · ${totalCerts} total certifications</span>
           </div>
+          
+          <!-- Category Legend -->
+          <div style="background: #f8fafc; padding: 12px 16px; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; page-break-inside: avoid;">
+            <div style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">📊 CATEGORY REFERENCE (Left to Right Order):</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px;">
+              ${categoryKeys.map((k, index) => {
+                const color = categoryColors[k] || '#6366f1';
+                return `
+                  <div style="display: flex; align-items: center; gap: 6px; background: white; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                    <div style="width: 14px; height: 14px; background: ${color}; border-radius: 2px; flex-shrink: 0;"></div>
+                    <div style="font-size: 9px; color: #0f172a; font-weight: 600; line-height: 1.2;">${CATS[k].name}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div style="margin-top: 8px; font-size: 8px; color: #64748b; font-style: italic;">
+              💡 Tip: Each intern's colored boxes follow this exact order from left to right
+            </div>
+          </div>
+          
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
             ${interns.map((i, idx) => {
               const ic = certifications.filter(c => c.intern_id === i.id);
@@ -366,7 +662,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
               const totalHours = getTH(ic);
               
               return `
-                <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
+                <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; min-height: 60px;">
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                     <div style="width: 22px; height: 22px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;">
                       ${idx + 1}
@@ -390,13 +686,23 @@ export const generateSummaryReport = async (interns, certifications, categories 
                       </div>
                     </div>
                   </div>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-left: 34px;">
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-left: 34px; margin-bottom: 16px;">
                     ${categoryKeys.map(k => {
                       const count = catCnt[k] || 0;
                       const color = categoryColors[k] || '#6366f1';
+                      const categoryName = CATS[k]?.name || k;
+                      const abbreviation = categoryName.length > 8 ? 
+                        categoryName.split(' ').map(word => word[0]).join('').substring(0, 3).toUpperCase() :
+                        categoryName.substring(0, 3).toUpperCase();
+                      
                       return `
-                        <div style="background: ${count > 0 ? color : '#f1f5f9'}; color: ${count > 0 ? 'white' : '#94a3b8'}; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; min-width: 20px; text-align: center;">
-                          ${count}
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                          <div style="background: ${count > 0 ? color : '#f1f5f9'}; color: ${count > 0 ? 'white' : '#94a3b8'}; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; min-width: 20px; text-align: center;">
+                            ${count}
+                          </div>
+                          <div style="font-size: 6px; color: #64748b; font-weight: 600; text-align: center;">
+                            ${abbreviation}
+                          </div>
                         </div>
                       `;
                     }).join('')}
@@ -428,9 +734,10 @@ export const generateSummaryReport = async (interns, certifications, categories 
                     <span style="font-size: 11px; font-weight: 600; color: #0f172a;">${CATS[key].name}</span>
                   </div>
                   <div style="flex: 1; margin: 0 12px; max-width: 150px;">
-                    <div style="background: #f1f5f9; height: 4px; border-radius: 2px; overflow: hidden;">
-                      <div style="background: ${color}; height: 100%; width: ${Math.min(percentage, 100)}%; border-radius: 2px;"></div>
+                    <div style="background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
+                      <div style="background: ${color}; height: 100%; width: ${Math.min(percentage, 100)}%; border-radius: 3px;"></div>
                     </div>
+                    <div style="font-size: 8px; color: #64748b; margin-top: 2px; text-align: center;">${percentage.toFixed(1)}%</div>
                   </div>
                   <div style="display: flex; gap: 12px; align-items: center; width: 120px; justify-content: flex-end;">
                     <div style="background: ${color}; color: white; padding: 2px 8px; border-radius: 8px; font-size: 9px; font-weight: 700;">

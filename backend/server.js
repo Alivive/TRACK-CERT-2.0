@@ -790,6 +790,65 @@ app.put('/api/admin-settings', async (req, res, next) => {
 
 // ========== ADMIN UTILITIES API ==========
 
+// Delete user from both auth and database (admin only)
+app.delete('/api/admin/users/:email', async (req, res, next) => {
+  try {
+    const email = req.params.email;
+    console.log('[API] Admin deleting user:', email);
+    
+    // First, get the user from auth to get their ID
+    const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) throw listError;
+    
+    const authUser = authUsers.users.find(u => u.email === email);
+    
+    if (authUser) {
+      // Delete from auth
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(authUser.id);
+      if (authDeleteError) {
+        console.error('[API] Failed to delete from auth:', authDeleteError);
+        throw authDeleteError;
+      }
+      console.log('[API] Deleted from auth:', email);
+    }
+    
+    // Delete from users table
+    const { error: userDeleteError } = await supabase
+      .from('users')
+      .delete()
+      .eq('email', email);
+    
+    if (userDeleteError) {
+      console.error('[API] Failed to delete from users table:', userDeleteError);
+    } else {
+      console.log('[API] Deleted from users table:', email);
+    }
+    
+    // Delete from interns table if exists
+    const { error: internDeleteError } = await supabase
+      .from('interns')
+      .delete()
+      .eq('email', email);
+    
+    if (internDeleteError) {
+      console.error('[API] Failed to delete from interns table:', internDeleteError);
+    } else {
+      console.log('[API] Deleted from interns table:', email);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `User ${email} completely removed from system`,
+      deletedFromAuth: !!authUser,
+      deletedFromUsers: !userDeleteError,
+      deletedFromInterns: !internDeleteError
+    });
+  } catch (error) {
+    console.error('[API] Admin delete user error:', error);
+    next(error);
+  }
+});
+
 app.post('/api/admin/sync-interns', async (req, res, next) => {
   try {
     console.log('[API] Starting intern sync process...');

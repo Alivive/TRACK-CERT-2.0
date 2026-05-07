@@ -2,7 +2,20 @@ import { useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Users, Award, Clock, TrendingUp } from 'lucide-react';
+import { Users, Award, Clock, TrendingUp, Trophy, Target, BarChart3 } from 'lucide-react';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+} from 'chart.js';
+import { Pie, Bar } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 const Dashboard = ({ onPageChange }) => {
   const { profile, loading: profileLoading } = useAuth();
@@ -20,6 +33,12 @@ const Dashboard = ({ onPageChange }) => {
     certifications = [], 
     loading 
   } = useDatabase();
+
+  // Chart color palette
+  const chartColors = [
+    '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
+    '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'
+  ];
 
   // Don't render anything until profile is loaded
   if (profileLoading || !profile) {
@@ -60,6 +79,95 @@ const Dashboard = ({ onPageChange }) => {
 
   const getTH = useCallback((cl) => cl.reduce((s, c) => s + (c.hours || 0), 0), []);
   
+  // Analytics calculations
+  const analytics = useMemo(() => {
+    if (!certifications.length) return { internStats: [], categoryStats: [], topPerformers: [] };
+
+    // Per-intern statistics
+    const internStats = interns.map(intern => {
+      const internCerts = certifications.filter(c => c.intern_id === intern.id);
+      const categoryBreakdown = {};
+      
+      internCerts.forEach(cert => {
+        categoryBreakdown[cert.category] = (categoryBreakdown[cert.category] || 0) + 1;
+      });
+
+      const topCategory = Object.entries(categoryBreakdown)
+        .sort(([,a], [,b]) => b - a)[0];
+
+      return {
+        intern,
+        totalCerts: internCerts.length,
+        totalHours: getTH(internCerts),
+        categoryBreakdown,
+        topCategory: topCategory ? {
+          category: topCategory[0],
+          count: topCategory[1],
+          name: CATS[topCategory[0]]?.name || topCategory[0]
+        } : null
+      };
+    }).sort((a, b) => b.totalCerts - a.totalCerts);
+
+    // Overall category statistics
+    const categoryStats = Object.keys(CATS).map(categoryId => {
+      const categoryName = CATS[categoryId]?.name || categoryId;
+      const count = certifications.filter(c => c.category === categoryId).length;
+      const hours = getTH(certifications.filter(c => c.category === categoryId));
+      
+      return {
+        categoryId,
+        categoryName,
+        count,
+        hours,
+        percentage: (count / Math.max(certifications.length, 1)) * 100
+      };
+    }).sort((a, b) => b.count - a.count);
+
+    // Top performers
+    const topPerformers = internStats.slice(0, 5);
+
+    return { internStats, categoryStats, topPerformers };
+  }, [certifications, interns, CATS, getTH]);
+
+  // Chart data for overall category distribution
+  const overallChartData = useMemo(() => {
+    const validCategories = analytics.categoryStats.filter(cat => cat.count > 0);
+    
+    return {
+      labels: validCategories.map(cat => cat.categoryName),
+      datasets: [{
+        data: validCategories.map(cat => cat.count),
+        backgroundColor: chartColors.slice(0, validCategories.length),
+        borderColor: '#1a1a1a',
+        borderWidth: 2,
+      }]
+    };
+  }, [analytics.categoryStats]);
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#e5e5e5',
+          font: { size: 11 },
+          padding: 15,
+          usePointStyle: true,
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1a1a1a',
+        titleColor: '#e5e5e5',
+        bodyColor: '#e5e5e5',
+        borderColor: '#333',
+        borderWidth: 1,
+      }
+    }
+  };
+
   const stats = useMemo(() => {
     if (isAdmin) {
       return [
@@ -81,7 +189,7 @@ const Dashboard = ({ onPageChange }) => {
   return (
     <div id="page-dashboard" className="page active">
       <div className="section-header" style={{ marginBottom: '10px' }}>
-        <span className="section-title">OVERVIEW</span>
+        <span className="section-title">ANALYTICS DASHBOARD</span>
       </div>
 
       <div style={{ marginBottom: '30px' }}>
@@ -108,76 +216,287 @@ const Dashboard = ({ onPageChange }) => {
         ))}
       </div>
 
-      <div className="grid-2">
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">RECENT CERTIFICATIONS</span>
-            <button 
-              className="btn btn-ghost" 
-              style={{ fontSize: '10px', padding: '4px 9px' }}
-              onClick={() => onPageChange?.('interns')}
-            >
-              VIEW ALL
-            </button>
+      {isAdmin ? (
+        // Admin view with comprehensive analytics
+        <>
+          {/* Overall Analytics Section */}
+          <div className="grid-2" style={{ marginBottom: '30px' }}>
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <BarChart3 size={16} style={{ marginRight: '8px' }} />
+                  OVERALL DISTRIBUTION
+                </span>
+              </div>
+              <div className="card-body" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {analytics.categoryStats.some(cat => cat.count > 0) ? (
+                  <Pie data={overallChartData} options={chartOptions} />
+                ) : (
+                  <div style={{ color: 'var(--gray)', textAlign: 'center' }}>
+                    <Award size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
+                    <div>No certifications yet</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <Trophy size={16} style={{ marginRight: '8px' }} />
+                  TOP PERFORMERS
+                </span>
+              </div>
+              <div className="card-body">
+                {analytics.topPerformers.map((performer, index) => (
+                  <div key={performer.intern.id} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    padding: '12px 0',
+                    borderBottom: index < analytics.topPerformers.length - 1 ? '1px solid var(--border2)' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : 'var(--red-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: '#000'
+                      }}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600' }}>
+                          {performer.intern.first_name} {performer.intern.last_name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--gray)' }}>
+                          {performer.topCategory?.name || 'No category'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--red-light)' }}>
+                        {performer.totalCerts}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--gray)' }}>
+                        {performer.totalHours}h
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {analytics.topPerformers.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray)' }}>
+                    <Trophy size={32} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                    <div>No performance data yet</div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
-            <table style={{ minWidth: '500px' }}>
-              <thead>
-                <tr>
-                  {isAdmin && <th>NAME</th>}
-                  <th>CERTIFICATION</th>
-                  <th>CATEGORY</th>
-                  <th>HOURS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayCertifications.slice(0, 5).map(c => {
-                  const intern = internDict[c.intern_id];
+
+          {/* Individual Intern Charts */}
+          <div className="card" style={{ marginBottom: '30px' }}>
+            <div className="card-header">
+              <span className="card-title">
+                <Target size={16} style={{ marginRight: '8px' }} />
+                INDIVIDUAL PERFORMANCE
+              </span>
+            </div>
+            <div className="card-body">
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                gap: '24px' 
+              }}>
+                {analytics.internStats.filter(stat => stat.totalCerts > 0).map(stat => {
+                  const chartData = {
+                    labels: Object.keys(stat.categoryBreakdown).map(catId => CATS[catId]?.name || catId),
+                    datasets: [{
+                      data: Object.values(stat.categoryBreakdown),
+                      backgroundColor: chartColors.slice(0, Object.keys(stat.categoryBreakdown).length),
+                      borderColor: '#1a1a1a',
+                      borderWidth: 2,
+                    }]
+                  };
+
                   return (
-                    <tr key={c.id}>
-                      {isAdmin && (
-                        <td>
-                          <div className="intern-name-cell">
-                            <div className="avatar">{(intern?.first_name?.[0] || '?') + (intern?.last_name?.[0] || '')}</div>
-                            <div className="intern-name">{intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown'}</div>
+                    <div key={stat.intern.id} style={{
+                      background: 'var(--black3)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      border: '1px solid var(--border2)'
+                    }}>
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          marginBottom: '8px'
+                        }}>
+                          <h3 style={{ fontSize: '14px', fontWeight: '600' }}>
+                            {stat.intern.first_name} {stat.intern.last_name}
+                          </h3>
+                          <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                            {stat.totalCerts} certs • {stat.totalHours}h
                           </div>
-                        </td>
-                      )}
+                        </div>
+                        {stat.topCategory && (
+                          <div style={{ fontSize: '11px', color: 'var(--red-light)' }}>
+                            Top: {stat.topCategory.name} ({stat.topCategory.count})
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ height: '200px' }}>
+                        <Pie data={chartData} options={{
+                          ...chartOptions,
+                          plugins: {
+                            ...chartOptions.plugins,
+                            legend: {
+                              ...chartOptions.plugins.legend,
+                              labels: {
+                                ...chartOptions.plugins.legend.labels,
+                                font: { size: 9 }
+                              }
+                            }
+                          }
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {analytics.internStats.filter(stat => stat.totalCerts > 0).length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray)' }}>
+                  <Target size={32} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                  <div>No individual performance data available</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Category Breakdown Table */}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">CATEGORY BREAKDOWN</span>
+            </div>
+            <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>CATEGORY</th>
+                    <th>CERTIFICATIONS</th>
+                    <th>TOTAL HOURS</th>
+                    <th>PERCENTAGE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.categoryStats.map(cat => (
+                    <tr key={cat.categoryId}>
+                      <td>
+                        <span className={`badge ${CAT_BADGE[cat.categoryId]}`}>
+                          {cat.categoryName}
+                        </span>
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                        {cat.count}
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                        {cat.hours}h
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ 
+                            flex: 1, 
+                            height: '4px', 
+                            background: 'var(--black4)', 
+                            borderRadius: '2px' 
+                          }}>
+                            <div style={{ 
+                              height: '100%', 
+                              background: 'var(--red-light)', 
+                              width: `${cat.percentage}%`, 
+                              borderRadius: '2px' 
+                            }}></div>
+                          </div>
+                          <span style={{ fontSize: '11px', color: 'var(--gray)', minWidth: '40px' }}>
+                            {cat.percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        // Intern view - personal analytics
+        <div className="grid-2">
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">MY CERTIFICATIONS</span>
+              <button 
+                className="btn btn-ghost" 
+                style={{ fontSize: '10px', padding: '4px 9px' }}
+                onClick={() => onPageChange?.('add-certification')}
+              >
+                ADD NEW
+              </button>
+            </div>
+            <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
+              <table style={{ minWidth: '400px' }}>
+                <thead>
+                  <tr>
+                    <th>CERTIFICATION</th>
+                    <th>CATEGORY</th>
+                    <th>HOURS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayCertifications.slice(0, 5).map(c => (
+                    <tr key={c.id}>
                       <td style={{ fontSize: '12px' }}>{c.name}</td>
                       <td><span className={`badge ${CAT_BADGE[c.category]}`}>{CATS[c.category]?.name || c.category}</span></td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{c.hours}h</td>
                     </tr>
-                  );
-                })}
-                {displayCertifications.length === 0 && (
-                  <tr><td colSpan={isAdmin ? "4" : "3"} style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>No live certifications found.</td></tr>
-                )}
-              </tbody>
-            </table>
+                  ))}
+                  {displayCertifications.length === 0 && (
+                    <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray)' }}>No certifications found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <div className="card">
-          <div className="card-header"><span className="card-title">BY CATEGORY</span></div>
-          <div className="card-body">
-            {Object.keys(CATS).map(key => {
-              const count = displayCertifications.filter(c => c.category === key).length;
-              const percent = (count / Math.max(displayCertifications.length, 1)) * 100;
-              return (
-                <div key={key} style={{ marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '6px' }}>
-                    <span style={{ color: 'var(--gray2)', letterSpacing: '1px' }}>{CATS[key].name}</span>
-                    <span style={{ color: 'var(--white)', fontWeight: 600 }}>{count}</span>
+          <div className="card">
+            <div className="card-header"><span className="card-title">BY CATEGORY</span></div>
+            <div className="card-body">
+              {Object.keys(CATS).map(key => {
+                const count = displayCertifications.filter(c => c.category === key).length;
+                const percent = (count / Math.max(displayCertifications.length, 1)) * 100;
+                return (
+                  <div key={key} style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '6px' }}>
+                      <span style={{ color: 'var(--gray2)', letterSpacing: '1px' }}>{CATS[key].name}</span>
+                      <span style={{ color: 'var(--white)', fontWeight: 600 }}>{count}</span>
+                    </div>
+                    <div style={{ height: '4px', background: 'var(--black4)', borderRadius: '2px' }}>
+                      <div style={{ height: '100%', background: 'var(--red-light)', width: `${percent}%`, borderRadius: '2px' }}></div>
+                    </div>
                   </div>
-                  <div style={{ height: '4px', background: 'var(--black4)', borderRadius: '2px' }}>
-                    <div style={{ height: '100%', background: 'var(--red-light)', width: `${percent}%`, borderRadius: '2px' }}></div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

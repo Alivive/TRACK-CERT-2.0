@@ -68,8 +68,8 @@ const Reports = () => {
           <div className="card-body">
             <p style={{ color: 'var(--gray)', fontSize: '13px', marginBottom: '20px' }}>
               {isAdmin 
-                ? 'Select an intern to generate their detailed certification report.' 
-                : 'Download your official certification progress report as a high-fidelity PDF.'}
+                ? 'Select an intern to generate their detailed certification report with visual analytics and charts.' 
+                : 'Download your official certification progress report as a high-fidelity PDF with visual charts and analytics.'}
             </p>
             
             {isAdmin && (
@@ -104,7 +104,7 @@ const Reports = () => {
             <div className="card-header"><span className="card-title">PROGRAM SUMMARY REPORT</span></div>
             <div className="card-body">
               <p style={{ color: 'var(--gray)', fontSize: '13px', marginBottom: '20px' }}>
-                Generate a full program-wide overview including all metrics and category breakdowns.
+                Generate a comprehensive program-wide overview with visual analytics, pie charts, performance rankings, and detailed metrics.
               </p>
               <div className="form-group">
                 <label className="form-label">Report Title</label>
