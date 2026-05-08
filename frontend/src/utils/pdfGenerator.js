@@ -444,10 +444,30 @@ export const generateInternReport = async (intern, certifications, categories = 
 };
 
 export const generateSummaryReport = async (interns, certifications, categories = {}) => {
+  console.log('[PDF] === SUMMARY REPORT GENERATION STARTED === v2');
+  console.log('[PDF] Total interns:', interns.length);
+  console.log('[PDF] Total certifications:', certifications.length);
+  
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
   const totalCerts = certifications.length;
   const totalHours = getTH(certifications);
   const avgCerts = (totalCerts / Math.max(interns.length, 1)).toFixed(1);
+  
+  // DEBUG: Log ALL interns and their cert counts
+  interns.forEach(intern => {
+    const internCerts = certifications.filter(c => c.intern_id === intern.id);
+    console.log(`[PDF] ${intern.first_name} ${intern.last_name}: ${internCerts.length} certs`);
+    if (intern.first_name?.toLowerCase().includes('suleimani') || intern.last_name?.toLowerCase().includes('mwambeni')) {
+      console.log('[PDF DEBUG] *** FOUND SULEIMANI ***');
+      console.log('[PDF DEBUG] Suleimani ID:', intern.id);
+      console.log('[PDF DEBUG] Suleimani certs:', internCerts.length);
+      if (internCerts.length > 0) {
+        console.log('[PDF DEBUG] First cert:', internCerts[0]);
+        console.log('[PDF DEBUG] First cert intern_id:', internCerts[0].intern_id);
+        console.log('[PDF DEBUG] All categories:', internCerts.map(c => c.cat || c.category));
+      }
+    }
+  });
   
   // Fetch all book assignments
   let allBookAssignments = [];
@@ -490,13 +510,13 @@ export const generateSummaryReport = async (interns, certifications, categories 
       name: CATS[key].name,
       count: catCerts.length,
       hours: catHours,
-      avgHours: catCerts.length > 0 ? (catHours / catCerts.length) : 0
+      avgHours: catCerts.length > 0 ? (catHours / catCerts.length) : 0,
+      percentage: totalCerts > 0 ? ((catCerts.length / totalCerts) * 100).toFixed(1) : 0
     };
-  }).filter(c => c.count > 0);
+  }).filter(c => c.count > 0).sort((a, b) => b.count - a.count);
 
   const topCategory = categoryStats.reduce((max, cat) => cat.count > max.count ? cat : max, { count: 0, name: 'None' });
   const mostHours = categoryStats.reduce((max, cat) => cat.hours > max.hours ? cat : max, { hours: 0, name: 'None' });
-  const highestAvg = categoryStats.reduce((max, cat) => cat.avgHours > max.avgHours ? cat : max, { avgHours: 0, name: 'None' });
 
   // Get most common provider
   const providers = {};
@@ -505,37 +525,87 @@ export const generateSummaryReport = async (interns, certifications, categories 
   });
   const topProvider = Object.keys(providers).reduce((max, p) => providers[p] > (providers[max] || 0) ? p : max, 'None');
 
-  // Prepare data for overall pie chart
-  const overallPieData = Object.keys(CATS)
-    .map(key => ({
-      label: CATS[key].name,
-      value: certifications.filter(c => c.cat === key).length
-    }))
-    .filter(item => item.value > 0);
+  // Prepare data for overall pie chart with enhanced statistics
+  const overallPieData = categoryStats.map(stat => ({
+    label: stat.name,
+    value: stat.count,
+    hours: stat.hours,
+    percentage: stat.percentage
+  }));
 
-  const overallPieColors = Object.keys(CATS)
-    .filter(key => certifications.filter(c => c.cat === key).length > 0)
-    .map(key => categoryColors[key] || '#6366f1');
+  const overallPieColors = categoryStats.map(stat => categoryColors[stat.key] || '#6366f1');
 
-  // Create overall pie chart SVG
-  const overallPieChartSVG = createPieChartSVG(overallPieData, overallPieColors, 200);
+  // Create compact horizontal bar chart for category distribution - FIXED HEIGHT
+  const createEnhancedPieChartSVG = (data, colors) => {
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    if (total === 0) return '';
+    
+    // Sort data by value descending
+    const sortedData = [...data].sort((a, b) => b.value - a.value);
+    
+    const width = 480;
+    const leftMargin = 120;
+    const rightMargin = 60;
+    const topMargin = 35;
+    const barHeight = 22;
+    const barSpacing = 8;
+    const bottomMargin = 10;
+    
+    // FIXED HEIGHT to fit in page
+    const height = 380;
+    const chartWidth = width - leftMargin - rightMargin;
+    
+    // Find max value for scaling
+    const maxValue = Math.max(...sortedData.map(item => item.value));
+    
+    const bars = [];
+    
+    sortedData.forEach((item, index) => {
+      const percentage = (item.value / total * 100).toFixed(1);
+      const barWidth = (item.value / maxValue) * chartWidth;
+      const y = topMargin + (index * (barHeight + barSpacing));
+      const color = colors[data.indexOf(item) % colors.length];
+      
+      // Category label on left
+      bars.push(`
+        <text x="${leftMargin - 8}" y="${y + barHeight / 2 + 4}" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">
+          ${item.label}
+        </text>
+      `);
+      
+      // Bar
+      bars.push(`
+        <rect x="${leftMargin}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${color}" rx="2"/>
+      `);
+      
+      // Value and percentage inside or next to bar
+      const textX = barWidth > 45 ? leftMargin + barWidth - 6 : leftMargin + barWidth + 6;
+      const textAnchor = barWidth > 45 ? 'end' : 'start';
+      const textColor = barWidth > 45 ? '#ffffff' : '#0f172a';
+      
+      bars.push(`
+        <text x="${textX}" y="${y + barHeight / 2 + 4}" text-anchor="${textAnchor}" font-size="9" font-weight="700" fill="${textColor}">
+          ${item.value} (${percentage}%)
+        </text>
+      `);
+    });
+    
+    // Title
+    const title = `
+      <text x="${width / 2}" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">
+        Total: ${total} Certifications
+      </text>
+    `;
+    
+    return `
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        ${title}
+        ${bars.join('')}
+      </svg>
+    `;
+  };
 
-  // Prepare top performers data for bar chart
-  const topPerformersData = interns
-    .map(intern => ({
-      label: `${intern.first} ${intern.last}`, // Remove substring clamping
-      value: certifications.filter(c => c.intern_id === intern.id).length
-    }))
-    .filter(item => item.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8); // Top 8 performers
-
-  const performerColors = topPerformersData.map((_, index) => 
-    index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#6366f1'
-  );
-
-  // Create top performers bar chart SVG
-  const topPerformersChartSVG = createBarChartSVG(topPerformersData, performerColors, 420, 220);
+  const enhancedPieChartSVG = createEnhancedPieChartSVG(overallPieData, overallPieColors);
 
   const element = document.createElement('div');
   element.innerHTML = `
@@ -544,252 +614,181 @@ export const generateSummaryReport = async (interns, certifications, categories 
       * { box-sizing: border-box; }
       body { margin: 0; padding: 0; }
     </style>
-    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.5;">
+    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.4; width: 100%; height: 100vh;">
       
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 24px 32px; position: relative;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 16px 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FinSense Africa</h1>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker</p>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FinSense Africa</h1>
+            <p style="margin: 2px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker · Admin Summary</p>
           </div>
           <div style="text-align: right;">
-            <h2 style="margin: 0; font-size: 16px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">SUMMARY REPORT</h2>
-            <div style="background: #10b981; color: #ffffff; padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; margin-top: 8px; display: inline-block;">
+            <h2 style="margin: 0; font-size: 14px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">EXECUTIVE SUMMARY</h2>
+            <div style="background: #10b981; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-top: 6px; display: inline-block;">
               ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
           </div>
         </div>
       </div>
 
-      <div style="padding: 20px;">
+      <!-- Main Content - Single Landscape Layout -->
+      <div style="padding: 10px 20px; display: flex; flex-direction: column;">
         
-        <!-- Colorful Progress Bar -->
-        <div style="height: 4px; background: linear-gradient(90deg, #6366f1 0%, #10b981 25%, #f97316 50%, #ec4899 75%, #06b6d4 100%); border-radius: 2px; margin-bottom: 16px;"></div>
-
-        <!-- Summary Stats Cards -->
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px;">
+        <!-- Top Stats Bar -->
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 10px;">
           ${[
-            { val: interns.length, lbl: 'TOTAL INTERNS', color: '#a5b4fc', bg: '#eef2ff' },
-            { val: totalCerts, lbl: 'TOTAL CERTIFICATIONS', color: '#86efac', bg: '#f0fdf4' },
-            { val: totalHours + 'h', lbl: 'TOTAL HOURS', color: '#fed7aa', bg: '#fff7ed' },
-            { val: totalBooksCompleted, lbl: 'BOOKS COMPLETED', color: '#fbb6ce', bg: '#fdf2f8' },
-            { val: avgCerts, lbl: 'AVG CERTS PER INTERN', color: '#a7f3d0', bg: '#ecfdf5' }
+            { val: interns.length, lbl: 'ACTIVE INTERNS', color: '#6366f1', bg: '#eef2ff' },
+            { val: totalCerts, lbl: 'TOTAL CERTIFICATIONS', color: '#10b981', bg: '#f0fdf4' },
+            { val: totalHours + 'h', lbl: 'LEARNING HOURS', color: '#f97316', bg: '#fff7ed' },
+            { val: avgCerts, lbl: 'AVG PER INTERN', color: '#06b6d4', bg: '#ecfeff' },
+            { val: categoryStats.length, lbl: 'ACTIVE CATEGORIES', color: '#8b5cf6', bg: '#f3e8ff' }
           ].map(s => `
-            <div style="background: ${s.bg}; border-radius: 8px; padding: 12px 10px; text-align: center; border: 1px solid ${s.color};">
-              <div style="font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${s.val}</div>
-              <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; line-height: 1.2;">${s.lbl}</div>
+            <div style="background: ${s.bg}; border-radius: 6px; padding: 6px; text-align: center; border: 2px solid ${s.color};">
+              <div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">${s.val}</div>
+              <div style="font-size: 8px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; line-height: 1.1;">${s.lbl}</div>
             </div>
           `).join('')}
         </div>
 
-        <!-- Visual Analytics Section -->
-        ${overallPieData.length > 0 ? `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
-          <!-- Overall Distribution Pie Chart -->
-          <div style="page-break-inside: avoid;">
-            <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
-              <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">📊 OVERALL DISTRIBUTION</h3>
+        <!-- Main Analytics Section - Bar Chart and Interns Side by Side -->
+        <div style="display: grid; grid-template-columns: 45% 55%; gap: 10px; margin-bottom: 10px;">
+          
+          <!-- Left: Bar Chart -->
+          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 380px; overflow: hidden;">
+            <div style="background: #0f172a; color: white; padding: 6px 10px; border-radius: 8px 8px 0 0;">
+              <h3 style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">📊 CERTIFICATION DISTRIBUTION</h3>
             </div>
-            <div style="background: #f8fafc; padding: 16px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
-              <div style="display: flex; justify-content: center; align-items: center; margin: 16px 0;">
-                ${overallPieChartSVG}
-              </div>
-              <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px;">
-                ${overallPieData.map((item, index) => `
-                  <div style="display: flex; align-items: center; gap: 4px; font-size: 8px; background: white; padding: 3px 6px; border-radius: 3px; border: 1px solid #e2e8f0;">
-                    <div style="width: 10px; height: 10px; border-radius: 2px; background: ${overallPieColors[index]};"></div>
-                    <span style="color: #475569; font-weight: 600;">${item.label}</span>
-                    <span style="color: #0f172a; font-weight: 700;">${item.value}</span>
-                  </div>
-                `).join('')}
-              </div>
+            <div style="padding: 8px; flex: 1; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;">
+              ${enhancedPieChartSVG}
             </div>
           </div>
 
-          <!-- Top Performers Bar Chart -->
-          ${topPerformersData.length > 0 ? `
-          <div style="page-break-inside: avoid;">
-            <div style="background: #0f172a; color: white; padding: 8px 12px; border-radius: 6px 6px 0 0;">
-              <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;">🏆 TOP PERFORMERS</h3>
+          <!-- Right: All Interns with Scroll -->
+          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 380px; overflow: hidden;">
+            <div style="background: #0f172a; color: white; padding: 6px 10px; border-radius: 8px 8px 0 0;">
+              <h3 style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">🏆 TOP INTERNS</h3>
             </div>
-            <div style="background: #f8fafc; padding: 16px; border-radius: 0 0 6px 6px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
-              <div style="display: flex; justify-content: center; align-items: center; margin: 16px 0;">
-                ${topPerformersChartSVG}
-              </div>
-              <div style="margin-top: 12px; text-align: center;">
-                <div style="font-size: 10px; color: #64748b;">Top ${topPerformersData.length} performers by certification count</div>
-              </div>
-            </div>
-          </div>
-          ` : ''}
-        </div>
-        ` : ''}
-
-        <!-- All Interns Table -->
-        <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <div style="background: #0f172a; color: white; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">■ All Interns — Certification Summary</h3>
-            <span style="font-size: 10px; color: #94a3b8;">${interns.length} active interns · ${totalCerts} total certifications</span>
-          </div>
-          
-          <!-- Category Legend -->
-          <div style="background: #f8fafc; padding: 12px 16px; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; page-break-inside: avoid;">
-            <div style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">📊 CATEGORY REFERENCE (Left to Right Order):</div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px;">
-              ${categoryKeys.map((k, index) => {
-                const color = categoryColors[k] || '#6366f1';
-                return `
-                  <div style="display: flex; align-items: center; gap: 6px; background: white; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                    <div style="width: 14px; height: 14px; background: ${color}; border-radius: 2px; flex-shrink: 0;"></div>
-                    <div style="font-size: 9px; color: #0f172a; font-weight: 600; line-height: 1.2;">${CATS[k].name}</div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-            <div style="margin-top: 8px; font-size: 8px; color: #64748b; font-style: italic;">
-              💡 Tip: Each intern's colored boxes follow this exact order from left to right
-            </div>
-          </div>
-          
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
-            ${interns.map((i, idx) => {
-              const ic = certifications.filter(c => c.intern_id === i.id);
-              const internBooks = allBookAssignments.filter(b => b.intern_id === i.id);
-              const completedBooks = internBooks.filter(b => b.status === 'completed').length;
-              const catCnt = {};
-              ic.forEach(c => catCnt[c.cat] = (catCnt[c.cat] || 0) + 1);
-              const totalHours = getTH(ic);
-              
-              return `
-                <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; min-height: 60px;">
-                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                    <div style="width: 22px; height: 22px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;">
-                      ${idx + 1}
-                    </div>
-                    <div style="flex: 1;">
-                      <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 1px;">${i.first} ${i.last}</div>
-                      <div style="font-size: 9px; color: #64748b;">${i.email}</div>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                      <div style="text-align: center;">
-                        <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${ic.length}</div>
-                        <div style="font-size: 7px; color: #64748b; text-transform: uppercase;">TOTAL</div>
-                      </div>
-                      <div style="text-align: center;">
-                        <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${totalHours}h</div>
-                        <div style="font-size: 7px; color: #64748b; text-transform: uppercase;">HOURS</div>
-                      </div>
-                      <div style="text-align: center;">
-                        <div style="font-size: 13px; font-weight: 800; color: #10b981;">${completedBooks}</div>
-                        <div style="font-size: 7px; color: #64748b; text-transform: uppercase;">BOOKS</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-left: 34px; margin-bottom: 16px;">
-                    ${categoryKeys.map(k => {
-                      const count = catCnt[k] || 0;
-                      const color = categoryColors[k] || '#6366f1';
-                      const categoryName = CATS[k]?.name || k;
-                      const abbreviation = categoryName.length > 8 ? 
-                        categoryName.split(' ').map(word => word[0]).join('').substring(0, 3).toUpperCase() :
-                        categoryName.substring(0, 3).toUpperCase();
-                      
-                      return `
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                          <div style="background: ${count > 0 ? color : '#f1f5f9'}; color: ${count > 0 ? 'white' : '#94a3b8'}; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; min-width: 20px; text-align: center;">
-                            ${count}
-                          </div>
-                          <div style="font-size: 6px; color: #64748b; font-weight: 600; text-align: center;">
-                            ${abbreviation}
-                          </div>
+            <div style="padding: 6px; flex: 1; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; overflow-x: hidden;">
+              ${interns
+                .map(intern => {
+                  const internCerts = certifications.filter(c => c.intern_id === intern.id);
+                  const internHours = getTH(internCerts);
+                  
+                  // Count certifications by category for this intern
+                  const categoryCount = {};
+                  internCerts.forEach(cert => {
+                    const cat = cert.cat || cert.category;
+                    if (cat && CATS[cat]) {
+                      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+                    }
+                  });
+                  
+                  // Find the top category
+                  let topCategoryKey = null;
+                  let topCategoryCount = 0;
+                  Object.keys(categoryCount).forEach(key => {
+                    if (categoryCount[key] > topCategoryCount) {
+                      topCategoryKey = key;
+                      topCategoryCount = categoryCount[key];
+                    }
+                  });
+                  
+                  // Build the top category object
+                  let topCat;
+                  if (internCerts.length === 0) {
+                    topCat = null;
+                  } else if (topCategoryKey && CATS[topCategoryKey]) {
+                    topCat = {
+                      key: topCategoryKey,
+                      name: CATS[topCategoryKey].name,
+                      count: topCategoryCount,
+                      percentage: ((topCategoryCount / internCerts.length) * 100).toFixed(1)
+                    };
+                  } else {
+                    // Fallback: show "Various Categories"
+                    topCat = {
+                      key: 'SOFT',
+                      name: 'Various Categories',
+                      count: internCerts.length,
+                      percentage: '100.0'
+                    };
+                  }
+                  
+                  return {
+                    intern,
+                    certCount: internCerts.length,
+                    hours: internHours,
+                    topCategory: topCat ? topCat.name : '',
+                    topCategoryCount: topCat ? topCat.count : 0,
+                    topCategoryPercentage: topCat ? topCat.percentage : '0.0',
+                    topCategoryColor: topCat ? (categoryColors[topCat.key] || '#6366f1') : '#94a3b8',
+                    showTopLine: internCerts.length > 0
+                  };
+                })
+                .sort((a, b) => b.certCount - a.certCount)
+                .map((data, index) => {
+                  const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                  return `
+                    <div style="background: white; padding: 5px 6px; border-radius: 4px; border: 1px solid #e2e8f0; flex-shrink: 0;">
+                      <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="font-size: 10px; font-weight: 700; min-width: 20px;">${medal}</div>
+                        <div style="flex: 1; min-width: 0;">
+                          <div style="font-size: 9px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${data.intern.first_name} ${data.intern.last_name}</div>
+                          <div style="font-size: 7px; color: #64748b;">${data.certCount} certs • ${data.hours}h</div>
                         </div>
-                      `;
-                    }).join('')}
-                  </div>
-                </div>
-              `;
-            }).join('')}
+                        <div style="background: #eef2ff; color: #6366f1; padding: 2px 5px; border-radius: 4px; font-size: 8px; font-weight: 700;">
+                          ${data.certCount}
+                        </div>
+                      </div>
+                      ${data.showTopLine ? `
+                      <div style="display: flex; align-items: center; gap: 3px; padding-left: 25px; margin-top: 2px; padding-top: 2px; border-top: 1px solid #f1f5f9;">
+                        <div style="font-size: 6px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">TOP:</div>
+                        <div style="width: 5px; height: 5px; border-radius: 1px; background: ${data.topCategoryColor}; flex-shrink: 0;"></div>
+                        <div style="font-size: 7px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                          <strong style="color: #0f172a;">${data.topCategory}</strong>: ${data.topCategoryCount} (${data.topCategoryPercentage}%)
+                        </div>
+                      </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
+            </div>
           </div>
         </div>
 
-        <!-- Category Breakdown -->
-        <div style="margin-bottom: 20px;">
-          <div style="background: #0f172a; color: white; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">■ Category Breakdown</h3>
-            <span style="font-size: 10px; color: #94a3b8;">${categoryKeys.length} categories · ${totalHours} total hours</span>
+        <!-- Quick Insights - Below Main Content -->
+        <div style="background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; padding: 8px; margin-bottom: 10px;">
+          <div style="background: #0f172a; color: white; padding: 5px 8px; border-radius: 4px; margin-bottom: 6px;">
+            <h3 style="margin: 0; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">📊 QUICK INSIGHTS</h3>
           </div>
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; padding: 16px;">
-            ${Object.keys(CATS).map(key => {
-              const catCerts = certifications.filter(c => c.cat === key);
-              const catHours = getTH(catCerts);
-              const avgHours = catCerts.length > 0 ? (catHours / catCerts.length).toFixed(1) : '—';
-              const percentage = totalCerts > 0 ? (catCerts.length / totalCerts) * 100 : 0;
-              const color = categoryColors[key] || '#6366f1';
-              
-              return `
-                <div style="display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
-                  <div style="display: flex; align-items: center; gap: 8px; width: 140px; flex-shrink: 0;">
-                    <div style="width: 10px; height: 10px; border-radius: 2px; background: ${color}; flex-shrink: 0;"></div>
-                    <span style="font-size: 11px; font-weight: 600; color: #0f172a;">${CATS[key].name}</span>
-                  </div>
-                  <div style="flex: 1; margin: 0 12px; max-width: 150px;">
-                    <div style="background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
-                      <div style="background: ${color}; height: 100%; width: ${Math.min(percentage, 100)}%; border-radius: 3px;"></div>
-                    </div>
-                    <div style="font-size: 8px; color: #64748b; margin-top: 2px; text-align: center;">${percentage.toFixed(1)}%</div>
-                  </div>
-                  <div style="display: flex; gap: 12px; align-items: center; width: 120px; justify-content: flex-end;">
-                    <div style="background: ${color}; color: white; padding: 2px 8px; border-radius: 8px; font-size: 9px; font-weight: 700;">
-                      ${catCerts.length}
-                    </div>
-                    <div style="font-size: 10px; font-weight: 600; color: #0f172a; width: 25px; text-align: right;">
-                      ${catHours}h
-                    </div>
-                    <div style="font-size: 10px; color: #64748b; width: 25px; text-align: right;">
-                      ${avgHours}${catCerts.length > 0 ? 'h' : ''}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Quick Insights -->
-        <div style="margin-bottom: 16px;">
-          <div style="background: #0f172a; color: white; padding: 10px 16px; border-radius: 8px 8px 0 0;">
-            <h3 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">■ Quick Insights</h3>
-          </div>
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; padding: 16px;">
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-              <div>
-                <div style="font-size: 9px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">TOP CATEGORY</div>
-                <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 1px;">${topCategory.name}</div>
-                <div style="font-size: 9px; color: #64748b;">${topCategory.count} certifications</div>
-              </div>
-              <div>
-                <div style="font-size: 9px; color: #06b6d4; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">MOST HOURS</div>
-                <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 1px;">${mostHours.name}</div>
-                <div style="font-size: 9px; color: #64748b;">${mostHours.hours}h total</div>
-              </div>
-              <div>
-                <div style="font-size: 9px; color: #f97316; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">TOP PROVIDER</div>
-                <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 1px;">${topProvider}</div>
-                <div style="font-size: 9px; color: #64748b;">${providers[topProvider] || 0} certifications</div>
-              </div>
-              <div>
-                <div style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">HIGHEST AVG</div>
-                <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 1px;">${highestAvg.name}</div>
-                <div style="font-size: 9px; color: #64748b;">${highestAvg.avgHours.toFixed(1)}h per cert</div>
-              </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            <div style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 8px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">TOP CATEGORY</div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f172a; line-height: 1.2;">${topCategory.name}</div>
+              <div style="font-size: 8px; color: #64748b;">${topCategory.count} certs</div>
+            </div>
+            <div style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 8px; color: #06b6d4; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">MOST HOURS</div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f172a; line-height: 1.2;">${mostHours.name}</div>
+              <div style="font-size: 8px; color: #64748b;">${mostHours.hours}h total</div>
+            </div>
+            <div style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 8px; color: #f97316; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">TOP PROVIDER</div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f172a; line-height: 1.2;">${topProvider}</div>
+              <div style="font-size: 8px; color: #64748b;">${providers[topProvider] || 0} certs</div>
+            </div>
+            <div style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 8px; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">HIGHEST AVG</div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f172a; line-height: 1.2;">${categoryStats.reduce((max, cat) => cat.avgHours > max.avgHours ? cat : max, { name: 'None', avgHours: 0 }).name}</div>
+              <div style="font-size: 8px; color: #64748b;">${categoryStats.reduce((max, cat) => cat.avgHours > max.avgHours ? cat : max, { avgHours: 0 }).avgHours.toFixed(1)}h/cert</div>
             </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-          <p style="margin: 0; font-size: 10px; color: #94a3b8;">FinSense Africa · Intern Certification Tracker · Confidential</p>
+        <div style="text-align: center; padding-top: 6px; border-top: 1px solid #e2e8f0; margin-top: 6px;">
+          <p style="margin: 0; font-size: 8px; color: #94a3b8;">FinSense Africa · Intern Certification Tracker · Executive Summary · Confidential</p>
         </div>
 
       </div>
@@ -798,10 +797,10 @@ export const generateSummaryReport = async (interns, certifications, categories 
 
   const opt = {
     margin: 0,
-    filename: `Summary_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Executive_Summary_${new Date().toISOString().split('T')[0]}.pdf`,
     image: { type: 'jpeg', quality: 1.0 },
     html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
   };
 
   return html2pdf().from(element).set(opt).save();
