@@ -457,6 +457,46 @@ app.post('/api/certifications', upload.single('certificate_file'), async (req, r
     }
     
     console.log('[API] Certification created successfully:', data);
+    
+    // Create notification for all admins when intern adds certification
+    try {
+      // Get the intern's name
+      const { data: internData } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('intern_id', data.intern_id)
+        .single();
+      
+      const internName = internData?.full_name || 'An intern';
+      
+      // Get all admin users
+      const { data: admins } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'admin');
+      
+      if (admins && admins.length > 0) {
+        // Create notifications for all admins
+        const notifications = admins.map(admin => ({
+          user_id: admin.id,
+          type: 'cert_added',
+          title: 'New Certification Added',
+          message: `${internName} added "${data.name}" from ${data.provider}`,
+          read: false,
+          created_at: new Date().toISOString()
+        }));
+        
+        await supabase
+          .from('notifications')
+          .insert(notifications);
+        
+        console.log(`[API] Created ${notifications.length} notification(s) for admins`);
+      }
+    } catch (notifError) {
+      // Don't fail the request if notification fails
+      console.error('[API] Failed to create notification:', notifError);
+    }
+    
     res.json({ success: true, data });
   } catch (error) {
     console.error('[API] Certification creation failed:', error);

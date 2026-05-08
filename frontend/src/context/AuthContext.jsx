@@ -12,64 +12,78 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('[AUTH] Fetching profile for user:', userId);
       
-      // Don't show cached data immediately - wait for fresh data first
-      setLoading(true);
-      
-      // Fetch fresh data from backend first if online
-      if (navigator.onLine) {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
-          {
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        console.log('[AUTH] Backend response status:', response.status);
-        
-        const data = await response.json();
-        console.log('[AUTH] Backend response:', data);
-
-        if (response.ok && data.success && data.data) {
-          console.log('[AUTH] Profile fetched successfully:', data.data.full_name, 'Role:', data.data.role);
-          
-          // SECURITY FIX: Validate backend response matches requested userId
-          if (data.data.id === userId) {
-            setProfile(data.data);
-            // Cache the fresh profile
-            const { offlineManager } = await import('../utils/offlineManager');
-            await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
-            setLoading(false);
-            return;
-          } else {
-            console.error('[AUTH] Backend returned profile for different user!');
-            throw new Error('Profile mismatch - security violation');
-          }
-        }
-      }
-      
-      // Fallback to cached data only if online fetch fails
+      // Try to get cached profile first for faster load
       const { offlineManager } = await import('../utils/offlineManager');
       const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
       
-      // Only use cached profile if it matches the current userId
+      // If we have cached profile, use it immediately (optimistic UI)
       if (cachedProfile && cachedProfile.id === userId) {
-        console.log('[AUTH] Using cached profile as fallback:', cachedProfile.full_name);
+        console.log('[AUTH] Using cached profile:', cachedProfile.full_name);
         setProfile(cachedProfile);
+        setLoading(false);
       } else {
-        console.error('[AUTH] No valid profile found');
+        setLoading(true);
+      }
+      
+      // Try to fetch fresh data from backend if online
+      if (navigator.onLine) {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
+            {
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          console.log('[AUTH] Backend response status:', response.status);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('[AUTH] Backend response:', data);
+
+            if (data.success && data.data && data.data.id === userId) {
+              console.log('[AUTH] Profile fetched successfully:', data.data.full_name, 'Role:', data.data.role);
+              setProfile(data.data);
+              // Cache the fresh profile
+              await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (fetchError) {
+          console.warn('[AUTH] Backend fetch failed, using cached profile:', fetchError.message);
+          // If fetch fails but we have cached profile, that's OK - we already set it above
+          if (cachedProfile && cachedProfile.id === userId) {
+            console.log('[AUTH] Continuing with cached profile after fetch error');
+            setLoading(false);
+            return;
+          }
+        }
+      } else {
+        console.log('[AUTH] Offline mode - using cached profile');
+        // Already using cached profile from above
+        if (cachedProfile && cachedProfile.id === userId) {
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // If we get here and don't have a profile, something is wrong
+      if (!cachedProfile || cachedProfile.id !== userId) {
+        console.error('[AUTH] No valid profile found (online or cached)');
         setProfile(null);
       }
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
       
-      // Try cached data as last resort
+      // Last resort: try cached data
       try {
         const { offlineManager } = await import('../utils/offlineManager');
         const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
         if (cachedProfile && cachedProfile.id === userId) {
-          console.log('[AUTH] Using cached profile after error:', cachedProfile.full_name);
+          console.log('[AUTH] Using cached profile after exception:', cachedProfile.full_name);
           setProfile(cachedProfile);
         } else {
           setProfile(null);
