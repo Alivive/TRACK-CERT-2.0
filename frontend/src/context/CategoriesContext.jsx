@@ -66,6 +66,8 @@ export const CategoriesProvider = ({ children }) => {
   // Helper functions for backward compatibility
   const getCategoryObject = useCallback(() => {
     return categories.reduce((obj, cat) => {
+      // Use cat.id as the key (which is the short code like 'SOFT', 'AI', etc.)
+      // NOT the database UUID
       obj[cat.id] = {
         name: cat.name,
         icon: cat.icon,

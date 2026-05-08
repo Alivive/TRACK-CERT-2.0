@@ -453,22 +453,6 @@ export const generateSummaryReport = async (interns, certifications, categories 
   const totalHours = getTH(certifications);
   const avgCerts = (totalCerts / Math.max(interns.length, 1)).toFixed(1);
   
-  // DEBUG: Log ALL interns and their cert counts
-  interns.forEach(intern => {
-    const internCerts = certifications.filter(c => c.intern_id === intern.id);
-    console.log(`[PDF] ${intern.first_name} ${intern.last_name}: ${internCerts.length} certs`);
-    if (intern.first_name?.toLowerCase().includes('suleimani') || intern.last_name?.toLowerCase().includes('mwambeni')) {
-      console.log('[PDF DEBUG] *** FOUND SULEIMANI ***');
-      console.log('[PDF DEBUG] Suleimani ID:', intern.id);
-      console.log('[PDF DEBUG] Suleimani certs:', internCerts.length);
-      if (internCerts.length > 0) {
-        console.log('[PDF DEBUG] First cert:', internCerts[0]);
-        console.log('[PDF DEBUG] First cert intern_id:', internCerts[0].intern_id);
-        console.log('[PDF DEBUG] All categories:', internCerts.map(c => c.cat || c.category));
-      }
-    }
-  });
-  
   // Fetch all book assignments
   let allBookAssignments = [];
   try {
@@ -485,6 +469,37 @@ export const generateSummaryReport = async (interns, certifications, categories 
   // Use provided categories or fallback to empty object
   const CATS = categories;
   const categoryKeys = Object.keys(CATS);
+
+  // DEBUG: Log ALL interns and their cert counts - MOVED HERE AFTER CATS IS DEFINED
+  console.log('[PDF DEBUG] CATS object keys:', Object.keys(CATS));
+  console.log('[PDF DEBUG] CATS object:', CATS);
+  console.log('[PDF DEBUG] Sample certification categories:', certifications.slice(0, 5).map(c => ({ name: c.name, cat: c.cat, category: c.category })));
+  
+  interns.forEach(intern => {
+    const internCerts = certifications.filter(c => c.intern_id === intern.id);
+    console.log(`[PDF] ${intern.first_name} ${intern.last_name}: ${internCerts.length} certs`);
+    if (intern.first_name?.toLowerCase().includes('suleimani') || intern.last_name?.toLowerCase().includes('mwambeni')) {
+      console.log('[PDF DEBUG] *** FOUND SULEIMANI ***');
+      console.log('[PDF DEBUG] Suleimani ID:', intern.id);
+      console.log('[PDF DEBUG] Suleimani certs:', internCerts.length);
+      if (internCerts.length > 0) {
+        console.log('[PDF DEBUG] First cert:', internCerts[0]);
+        console.log('[PDF DEBUG] First cert intern_id:', internCerts[0].intern_id);
+        console.log('[PDF DEBUG] All categories:', internCerts.map(c => c.cat || c.category));
+        
+        // Test the category counting logic
+        const categoryCount = {};
+        internCerts.forEach(cert => {
+          const cat = cert.cat || cert.category;
+          console.log('[PDF DEBUG] Processing cert with cat:', cat, 'CATS has it?', !!CATS[cat]);
+          if (cat) {
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+          }
+        });
+        console.log('[PDF DEBUG] Category count result:', categoryCount);
+      }
+    }
+  });
 
   // Category colors matching the design
   const categoryColors = {
@@ -665,26 +680,26 @@ export const generateSummaryReport = async (interns, certifications, categories 
           </div>
 
           <!-- Right: All Interns with Scroll -->
-          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 380px; overflow: hidden;">
+          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 380px; overflow: visible;">
             <div style="background: #0f172a; color: white; padding: 6px 10px; border-radius: 8px 8px 0 0;">
               <h3 style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">🏆 TOP INTERNS</h3>
             </div>
-            <div style="padding: 6px; flex: 1; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; overflow-x: hidden;">
+            <div style="padding: 4px; flex: 1; display: flex; flex-direction: column; gap: 3px; overflow: visible;">
               ${interns
                 .map(intern => {
                   const internCerts = certifications.filter(c => c.intern_id === intern.id);
                   const internHours = getTH(internCerts);
                   
-                  // Count certifications by category for this intern
+                  // Count certifications by category for this intern - COMPLETELY ROBUST
                   const categoryCount = {};
                   internCerts.forEach(cert => {
                     const cat = cert.cat || cert.category;
-                    if (cat && CATS[cat]) {
+                    if (cat) {
                       categoryCount[cat] = (categoryCount[cat] || 0) + 1;
                     }
                   });
                   
-                  // Find the top category
+                  // Find the top category - GUARANTEED to find one if certs exist
                   let topCategoryKey = null;
                   let topCategoryCount = 0;
                   Object.keys(categoryCount).forEach(key => {
@@ -694,43 +709,73 @@ export const generateSummaryReport = async (interns, certifications, categories 
                     }
                   });
                   
-                  // Build the top category object
-                  let topCat;
-                  if (internCerts.length === 0) {
-                    topCat = null;
-                  } else if (topCategoryKey && CATS[topCategoryKey]) {
-                    topCat = {
-                      key: topCategoryKey,
-                      name: CATS[topCategoryKey].name,
-                      count: topCategoryCount,
-                      percentage: ((topCategoryCount / internCerts.length) * 100).toFixed(1)
-                    };
-                  } else {
-                    // Fallback: show "Various Categories"
-                    topCat = {
-                      key: 'SOFT',
-                      name: 'Various Categories',
-                      count: internCerts.length,
-                      percentage: '100.0'
-                    };
+                  // Build the data object with GUARANTEED non-empty values
+                  let topCategory = 'Various';
+                  let topCount = 0;
+                  let topPercentage = '0.0';
+                  let topColor = '#94a3b8';
+                  
+                  if (internCerts.length > 0) {
+                    if (topCategoryKey && topCategoryCount > 0) {
+                      // We found a valid top category
+                      topCategory = CATS[topCategoryKey] ? CATS[topCategoryKey].name : topCategoryKey;
+                      topCount = topCategoryCount;
+                      topPercentage = ((topCategoryCount / internCerts.length) * 100).toFixed(1);
+                      topColor = categoryColors[topCategoryKey] || '#6366f1';
+                    } else {
+                      // Fallback: use first cert's category
+                      const firstCat = internCerts[0].cat || internCerts[0].category;
+                      topCategory = CATS[firstCat] ? CATS[firstCat].name : (firstCat || 'Various');
+                      topCount = internCerts.length;
+                      topPercentage = '100.0';
+                      topColor = categoryColors[firstCat] || '#6366f1';
+                    }
                   }
                   
                   return {
                     intern,
                     certCount: internCerts.length,
                     hours: internHours,
-                    topCategory: topCat ? topCat.name : '',
-                    topCategoryCount: topCat ? topCat.count : 0,
-                    topCategoryPercentage: topCat ? topCat.percentage : '0.0',
-                    topCategoryColor: topCat ? (categoryColors[topCat.key] || '#6366f1') : '#94a3b8',
+                    topCategory: topCategory,
+                    topCategoryCount: topCount,
+                    topCategoryPercentage: topPercentage,
+                    topCategoryColor: topColor,
                     showTopLine: internCerts.length > 0
                   };
                 })
-                .sort((a, b) => b.certCount - a.certCount)
+                .sort((a, b) => {
+                  // Primary sort: by cert count (descending)
+                  if (b.certCount !== a.certCount) {
+                    return b.certCount - a.certCount;
+                  }
+                  // First tiebreaker: alphabetically by first name (A-Z)
+                  const nameCompare = a.intern.first_name.localeCompare(b.intern.first_name);
+                  if (nameCompare !== 0) {
+                    return nameCompare;
+                  }
+                  // Second tiebreaker: by total hours (descending)
+                  return b.hours - a.hours;
+                })
                 .map((data, index) => {
+                  // DEBUG: Log ALL interns' data to see what's happening
+                  console.log(`[PDF DEBUG] Intern #${index + 1}: ${data.intern.first_name} ${data.intern.last_name}`, {
+                    certCount: data.certCount,
+                    topCategory: data.topCategory,
+                    topCategoryCount: data.topCategoryCount,
+                    topCategoryPercentage: data.topCategoryPercentage,
+                    topCategoryColor: data.topCategoryColor,
+                    showTopLine: data.showTopLine
+                  });
+                  
+                  // SPECIAL: Log Suleimani's complete data object
+                  if (data.intern.first_name?.toLowerCase().includes('suleimani') || data.intern.last_name?.toLowerCase().includes('mwambeni')) {
+                    console.log('[PDF DEBUG] !!!!! SULEIMANI COMPLETE DATA OBJECT:', JSON.stringify(data, null, 2));
+                  }
+                  
                   const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                  return `
-                    <div style="background: white; padding: 5px 6px; border-radius: 4px; border: 1px solid #e2e8f0; flex-shrink: 0;">
+                  
+                  const htmlOutput = `
+                    <div style="background: white; padding: 4px 5px; border-radius: 4px; border: 1px solid #e2e8f0; flex-shrink: 0;">
                       <div style="display: flex; align-items: center; gap: 5px;">
                         <div style="font-size: 10px; font-weight: 700; min-width: 20px;">${medal}</div>
                         <div style="flex: 1; min-width: 0;">
@@ -741,17 +786,22 @@ export const generateSummaryReport = async (interns, certifications, categories 
                           ${data.certCount}
                         </div>
                       </div>
-                      ${data.showTopLine ? `
-                      <div style="display: flex; align-items: center; gap: 3px; padding-left: 25px; margin-top: 2px; padding-top: 2px; border-top: 1px solid #f1f5f9;">
-                        <div style="font-size: 6px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">TOP:</div>
-                        <div style="width: 5px; height: 5px; border-radius: 1px; background: ${data.topCategoryColor}; flex-shrink: 0;"></div>
-                        <div style="font-size: 7px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                          <strong style="color: #0f172a;">${data.topCategory}</strong>: ${data.topCategoryCount} (${data.topCategoryPercentage}%)
+                      <div style="display: flex; align-items: flex-start; gap: 3px; padding-left: 25px; margin-top: 1px; padding-top: 1px; border-top: 1px solid #f1f5f9; max-height: 20px; overflow: hidden;">
+                        <div style="font-size: 6px; color: #94a3b8; text-transform: uppercase; font-weight: 600; flex-shrink: 0;">TOP:</div>
+                        <div style="width: 5px; height: 5px; border-radius: 1px; background: ${data.topCategoryColor || '#6366f1'}; flex-shrink: 0; margin-top: 2px;"></div>
+                        <div style="font-size: 6.5px; color: #64748b; line-height: 1.3; flex: 1; min-width: 0;">
+                          <strong style="color: #0f172a;">${data.topCategory || 'Various'}</strong>: ${data.topCategoryCount || 0} (${data.topCategoryPercentage || '0.0'}%)
                         </div>
                       </div>
-                      ` : ''}
                     </div>
                   `;
+                  
+                  // DEBUG: Log Suleimani's generated HTML
+                  if (data.intern.first_name?.toLowerCase().includes('suleimani') || data.intern.last_name?.toLowerCase().includes('mwambeni')) {
+                    console.log('[PDF DEBUG] !!!!! SULEIMANI GENERATED HTML:', htmlOutput);
+                  }
+                  
+                  return htmlOutput;
                 }).join('')}
             </div>
           </div>
