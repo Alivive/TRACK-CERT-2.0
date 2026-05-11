@@ -76,10 +76,17 @@ export default defineConfig({
     })
   ],
   server: {
+    https: false, // Set to true after generating certificates
     hmr: {
       protocol: 'ws',
       host: 'localhost',
       port: 5173
+    },
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
     }
   }
 })

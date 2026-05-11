@@ -1,4 +1,41 @@
-Intern Name,Certification Name,Provider,Category,Hours,Completion Date,Certificate File URL
-John Doe,AWS Cloud Practitioner,Amazon Web Services,Cloud Computing,40,2024-01-15,https://drive.google.com/file/d/abc123/view
-Jane Smith,Python for Data Science,Coursera,Artificial Intelligence,30.5,2024-02-20,https://example.com/certificates/python-cert.pdf
-John Doe,Introduction to Cybersecurity,Cisco,Cybersecurity,25,2024-03-10,
+Intern Name,Certification Name,Provider,Category,Hours,Completion Date,Links
+Seifudin Hassan,The Intelligence Behind AI,IBM,Artificial Intelligence,1.2,04/09/2026,https://skills.yourlearning.ibm.com/certificate/share/52fefa52c5ewogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIsCiAgIm9iamVjdFR5cGUiIDogIkFDVElWSVRZIiwKICAib2JqZWN0SWQiIDogIkFMTS1DT1VSU0VfMzk1NTE2MyIKfQ93a7c3f958-10
+Seifudin Hassan,Cloud security | IBM SkillsBuild,IBM,Cloud Computing,1.1,04/02/2026,https://skills.yourlearning.ibm.com/certificate/share/8ca6a62766ewogICJvYmplY3RJZCIgOiAiVVJMLUM1RkVBOEI2NEIxNCIsCiAgImxlYXJuZXJDTlVNIiA6ICI3MjA2Mjc4UkVHIiwKICAib2JqZWN0VHlwZSIgOiAiQUNUSVZJVFkiCn070399fc61f-10
+Seifudin Hassan,Classifying Data Using IBM Granite,IBM,Artificial Intelligence,1.5,04/02/2026,https://skills.yourlearning.ibm.com/certificate/share/27619be202ewogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIsCiAgIm9iamVjdFR5cGUiIDogIkFDVElWSVRZIiwKICAib2JqZWN0SWQiIDogIkFMTS1DT1VSU0VfNDA1ODkxMCIKfQa72f515527-10
+Seifudin Hassan,Summarizing Data Using IBM Granite,IBM,Artificial Intelligence,1.5,04/02/2026,https://skills.yourlearning.ibm.com/certificate/share/db0f208838ewogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIsCiAgIm9iamVjdElkIiA6ICJBTE0tQ09VUlNFXzQwNTg5MTEiLAogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIKfQ122692832a-10
+Seifudin Hassan,Introduction to Large Language Models,IBM,Artificial Intelligence,1.5,04/02/2026,https://skills.yourlearning.ibm.com/certificate/share/9881f64c1dewogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIsCiAgIm9iamVjdElkIiA6ICJBTE0tQ09VUlNFXzQwNTg5MTUiLAogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIKfQ85103b4080-10
+Seifudin Hassan,Introduction to Artificial Intelligence,IBM,Artificial Intelligence,1.25,04/01/2026,https://skills.yourlearning.ibm.com/certificate/share/63a94c00d1ewogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIsCiAgIm9iamVjdFR5cGUiIDogIkFDVElWSVRZIiwKICAib2JqZWN0SWQiIDogIkFMTS1DT1VSU0VfNDA1ODkxOCIKfQb3a32bf180-10
+Seifudin Hassan,HTML,IBM,Front End Web Dev,3,3/31/2026,https://skills.yourlearning.ibm.com/certificate/share/9efd4d004eewogICJvYmplY3RJZCIgOiAiQUxNLUNPVVJTRV8zODI1MTE3IiwKICAibGVhcm5lckNOVU0iIDogIjcyMDYyNzhSRUciLAogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIKfQa33eb8d9d5-10
+Seifudin Hassan,Understanding Cloud Deployment Models,IBM,Cloud Computing,1.25,3/30/2026,https://skills.yourlearning.ibm.com/certificate/share/ad8a95d039ewogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIsCiAgIm9iamVjdElkIiA6ICJBTE0tQ09VUlNFXzQwNTg5NTMiLAogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIKfQ316d142070-10
+Seifudin Hassan,AI Literacy (Earn a digital credential!),IBM,Artificial Intelligence,6,3/25/2026,https://skills.yourlearning.ibm.com/certificate/share/1a711ae913ewogICJvYmplY3RJZCIgOiAiUExBTi0xQzkwMzE1Mjg4MEMiLAogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIsCiAgIm9iamVjdFR5cGUiIDogIkFDVElWSVRZIgp93fe487caa2-10
+Seifudin Hassan,Interacting with AI,IBM,Artificial Intelligence,2.25,3/25/2026,https://skills.yourlearning.ibm.com/certificate/share/f22fd2482bewogICJvYmplY3RJZCIgOiAiQUxNLUNPVVJTRV8zOTQ3MzM2IiwKICAib2JqZWN0VHlwZSIgOiAiQUNUSVZJVFkiLAogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIKfQfdd60cc535-10
+Seifudin Hassan,Exploring Artificial Intelligence,IBM,Artificial Intelligence,1.5,3/19/2026,https://skills.yourlearning.ibm.com/certificate/share/df580c9090ewogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIsCiAgIm9iamVjdElkIiA6ICJBTE0tQ09VUlNFXzM4MjUyNDciLAogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIKfQd3cc49d6ae-10
+Seifudin Hassan,Understanding Cloud Computing Services,IBM,Cloud Computing,1.5,3/16/2026,https://skills.yourlearning.ibm.com/certificate/share/24a025cfefewogICJvYmplY3RJZCIgOiAiQUxNLUNPVVJTRV80MDU4OTUyIiwKICAibGVhcm5lckNOVU0iIDogIjcyMDYyNzhSRUciLAogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIKfQ2a2586d8e7-10
+Seifudin Hassan,Introduction to Cloud Computing,IBM,Cloud Computing,1.25,03/09/2026,https://skills.yourlearning.ibm.com/certificate/share/b5fabaae0fewogICJvYmplY3RJZCIgOiAiQUxNLUNPVVJTRV80MDU4OTUxIiwKICAibGVhcm5lckNOVU0iIDogIjcyMDYyNzhSRUciLAogICJvYmplY3RUeXBlIiA6ICJBQ1RJVklUWSIKfQ32dab6c906-10
+Seifudin Hassan,Unleashing the Power of AI Agents,IBM,Artificial Intelligence,1.5,03/05/2026,https://skills.yourlearning.ibm.com/certificate/share/80c5ecce20ewogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIsCiAgIm9iamVjdFR5cGUiIDogIkFDVElWSVRZIiwKICAib2JqZWN0SWQiIDogIkFMTS1DT1VSU0VfMzgyNTQ1NiIKfQ04d9687e90-10
+Seifudin Hassan,Prompt Engineering: Shaping Better AI Responses,IBM,Artificial Intelligence,1.5,03/05/2026,https://skills.yourlearning.ibm.com/certificate/share/ea1a9a15e3ewogICJvYmplY3RJZCIgOiAiQUxNLUNPVVJTRV80MDU4NjAwIiwKICAib2JqZWN0VHlwZSIgOiAiQUNUSVZJVFkiLAogICJsZWFybmVyQ05VTSIgOiAiNzIwNjI3OFJFRyIKfQd699b64925-10
+Seifudin Hassan,AWS Security Fundamentals,AWS,Cloud Computing,2,3/29/2026,
+Seifudin Hassan,Fundamentals of Machine Learning and Artificial Intelligence,AWS,Artificial Intelligence,1,3/20/2026,
+Seifudin Hassan,Generative AI for Beginners,Simplilearn,Artificial Intelligence,4,3/28/2026,https://simpli-web.app.link/e/LNMt9F7XR1b
+Seifudin Hassan,Introduction to Git,Microsoft,Software Dev. Essentials,1,3/27/2026,https://learn.microsoft.com/api/achievements/share/en-us/SeifudinHassan-9771/37GGYWGH?sharingId=69AF819C1895D0C9
+Seifudin Hassan,Legacy Responsive Web Design V8,FreeCodeCamp,Front End Web Dev,300,3/25/2026,https://freecodecamp.org/certification/seifudin/responsive-web-design
+Seifudin Hassan,Introduction to agent skills,Anthropic,Artificial Intelligence,1.1,3/24/2026,http://verify.skilljar.com/c/63oj2bpnwgv3
+Seifudin Hassan,AI Fluency: Framework & Foundations,Anthropic,Artificial Intelligence,2.1,3/24/2026,http://verify.skilljar.com/c/uapjm2ykw274
+Seifudin Hassan,AI Agent Fundamentals,Databricks,Artificial Intelligence,1.5,3/22/2026,https://credentials.databricks.com/1b25487d-677d-4f6f-ae51-09035b3d2129
+Seifudin Hassan,Generative AI Fundamentals,Databricks,Artificial Intelligence,1,3/22/2026,https://credentials.databricks.com/bb6ada9f-d183-495c-a846-b29da0408e4b
+Seifudin Hassan,AI skills for students,Canva,Graphic Design,1.5,3/18/2026,https://canva.com/design-school/certification-award/b2260b93-006f-4216-8763-321954336285
+Seifudin Hassan,CSS And JavaScript Complete Course For Beginners,Udemy,Front End Web Dev,4,03/07/2026,https://www.udemy.com/certificate/UC-9b740a66-11ff-4960-b8a0-952883fd83a1/
+Seifudin Hassan,Web3 Development Essentials,Udemy,Front End Web Dev,0.5,03/07/2026,https://www.udemy.com/certificate/UC-a0268003-6af1-44a7-909d-6266c36639aa/
+Seifudin Hassan,JavaScript Fast Entry: Programming for Everyone,Udemy,Front End Web Dev,1.5,03/02/2026,https://www.udemy.com/certificate/UC-a571ef7e-9e28-4194-bbe9-a02018021d53/
+Seifudin Hassan,Business Communications,HP Life,Soft Skills,1,2/27/2026,https://www.life-global.org/certificate/42b8c79b-4f26-4114-9d2e-fc337cd73e21
+Seifudin Hassan,TheArt of Sales: Fundamentals of Selling,HP Life,Soft Skills,1,2/27/2026,https://www.life-global.org/certificate/90574698-f2bf-484d-a077-3616bde7ef91
+Seifudin Hassan,Effective Presentations,HP Life,Soft Skills,1,2/27/2026,https://www.life-global.org/certificate/a73c527d-98db-4979-9c70-3082befd4864
+Seifudin Hassan,Effective Business Websites,HP Life,Soft Skills,1,2/27/2026,https://www.life-global.org/certificate/77261fb2-1733-4cd2-bca6-3aceed9bfe23
+Seifudin Hassan,Introduction to Cybersecurity Awareness,HP Life,Cybersecurity,1,2/27/2026,https://www.life-global.org/certificate/94a2272e-40d1-49da-b6db-74e5afcb8aa4
+Seifudin Hassan,Success mindset,HP Life,Soft Skills,1,2/26/2026,https://www.life-global.org/certificate/3630f563-d5b7-478f-a115-c171c62f30a8
+Seifudin Hassan,Design Thinking,HP Life,Soft Skills,1,2/26/2026,https://www.life-global.org/certificate/2101baed-74ca-4331-b6a7-97cd71025787
+Seifudin Hassan,Business Email,HP Life,Soft Skills,1,2/26/2026,https://www.life-global.org/certificate/f6dfaf30-f570-4670-9388-a4adee07c9c6
+Seifudin Hassan,AI for Business Professionals,HP Life,Soft Skills,1,2/25/2026,https://www.life-global.org/certificate/0a2218c0-9604-443b-b59c-9b83a044f7a3
+Seifudin Hassan,AI for Beginners,HP Life,Artificial Intelligence,1,2/25/2026,https://www.life-global.org/certificate/13f7cdc3-e89b-4eaf-b50f-3363ad45da6b
+Seifudin Hassan,Critical Thinking in the AI Era,HP Life,Soft Skills,1,2/24/2026,https://www.life-global.org/certificate/1cf29605-b74c-41c8-aa53-b7f5a9295a59
+Seifudin Hassan,Professional Networking for Career Growth,HP Life,Soft Skills,1,2/24/2026,https://www.life-global.org/certificate/55c62b28-7ae2-4d5b-b8fa-f0d700401c2c

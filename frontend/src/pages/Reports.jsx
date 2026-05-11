@@ -11,12 +11,15 @@ const Reports = () => {
   const { interns, certifications, loading } = useDatabase();
   const { getCategoryObject } = useCategories();
   const [reportTitle, setReportTitle] = useState('Quarterly Certification Summary');
-  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? '' : (profile?.intern_id || ''));
+  // Fallback to finding intern by email if intern_id is missing
+  const userInternId = profile?.intern_id || 
+    (!isAdmin && profile?.email ? interns.find(i => i.email?.toLowerCase() === profile.email?.toLowerCase())?.id : '');
+  const [selectedInternId, setSelectedInternId] = useState(isAdmin ? '' : userInternId);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSummaryGenerating, setIsSummaryGenerating] = useState(false);
 
   const handleDownloadPDF = async () => {
-    const targetId = isAdmin ? selectedInternId : profile?.intern_id;
+    const targetId = isAdmin ? selectedInternId : userInternId;
     if (!targetId) return alert('Please select an intern.');
     
     setIsGenerating(true);

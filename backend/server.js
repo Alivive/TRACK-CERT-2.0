@@ -24,6 +24,16 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -86,6 +96,262 @@ app.get('/', (req, res) => {
 
 // ========== USERS API ==========
 
+// Diagnostic endpoint to check user status
+app.get('/api/users/diagnose/:email', async (req, res, next) => {
+  try {
+    const email = req.params.email.toLowerCase();
+    console.log('[API] Diagnosing user:', email);
+    
+    const diagnosis = {
+      email,
+      timestamp: new Date().toISOString(),
+      authUser: null,
+      dbUser: null,
+      internRecord: null,
+      issues: []
+    };
+    
+    // Check Supabase Auth
+    try {
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) throw authError;
+      
+      diagnosis.authUser = authUsers.users.find(u => u.email.toLowerCase() === email);
+      
+      if (!diagnosis.authUser) {
+        diagnosis.issues.push('User not found in Supabase Auth');
+      } else {
+        diagnosis.authUser = {
+          id: diagnosis.authUser.id,
+          email: diagnosis.authUser.email,
+          created_at: diagnosis.authUser.created_at,
+          email_confirmed: diagnosis.authUser.email_confirmed_at ? true : false,
+          metadata: diagnosis.authUser.user_metadata
+        };
+      }
+    } catch (authError) {
+      diagnosis.issues.push(`Auth check failed: ${authError.message}`);
+    }
+    
+    // Check users table
+    try {
+      const { data: dbUsers, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', email);
+      
+      if (dbError) throw dbError;
+      
+      diagnosis.dbUser = dbUsers[0] || null;
+      
+      if (!diagnosis.dbUser) {
+        diagnosis.issues.push('User profile not found in users table');
+      } else if (diagnosis.authUser && diagnosis.dbUser.id !== diagnosis.authUser.id) {
+        diagnosis.issues.push('User ID mismatch between auth and database');
+      }
+    } catch (dbError) {
+      diagnosis.issues.push(`Database check failed: ${dbError.message}`);
+    }
+    
+    // Check interns table
+    try {
+      const { data: interns, error: internError } = await supabase
+        .from('interns')
+        .select('*')
+        .ilike('email', email);
+      
+      if (internError) throw internError;
+      
+      diagnosis.internRecord = interns[0] || null;
+      
+      if (diagnosis.dbUser?.role === 'intern' && !diagnosis.internRecord) {
+        diagnosis.issues.push('User is intern but no intern record found');
+      } else if (diagnosis.dbUser?.role === 'intern' && diagnosis.dbUser.intern_id !== diagnosis.internRecord?.id) {
+        diagnosis.issues.push('Intern record not properly linked to user');
+      }
+    } catch (internError) {
+      diagnosis.issues.push(`Intern check failed: ${internError.message}`);
+    }
+    
+    diagnosis.status = diagnosis.issues.length === 0 ? 'OK' : 'ISSUES_FOUND';
+    
+    res.json({ success: true, diagnosis });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Repair endpoint to fix user issues
+app.post('/api/users/repair/:email', async (req, res, next) => {
+  try {
+    const email = req.params.email.toLowerCase();
+    console.log('[API] Repairing user:', email);
+    
+    const repairs = {
+      email,
+      timestamp: new Date().toISOString(),
+      actions: [],
+      success: true
+    };
+    
+    // Get auth user
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    if (authError) throw authError;
+    
+    const authUser = authUsers.users.find(u => u.email.toLowerCase() === email);
+    
+    if (!authUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found in authentication system' 
+      });
+    }
+    
+    // Check/create user profile
+    const { data: dbUsers, error: dbError } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', email);
+    
+    let dbUser = dbUsers?.[0];
+    
+    if (!dbUser) {
+      console.log('[API] Creating missing user profile');
+      
+      const newProfile = {
+        id: authUser.id,
+        email: authUser.email.toLowerCase(),
+        full_name: authUser.user_metadata?.full_name || authUser.email.split('@')[0],
+        role: authUser.user_metadata?.role || 'intern',
+        created_at: authUser.created_at
+      };
+      
+      const { data: createdUser, error: createError } = await supabase
+        .from('users')
+        .insert([newProfile])
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      
+      dbUser = createdUser;
+      repairs.actions.push('Created user profile in database');
+    } else if (dbUser.id !== authUser.id) {
+      console.log('[API] Fixing user ID mismatch');
+      
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ id: authUser.id })
+        .eq('email', email);
+      
+      if (updateError) throw updateError;
+      
+      dbUser.id = authUser.id;
+      repairs.actions.push('Fixed user ID mismatch');
+    }
+    
+    // Check/create intern record if needed
+    if (dbUser.role === 'intern') {
+      const { data: interns, error: internError } = await supabase
+        .from('interns')
+        .select('*')
+        .ilike('email', email);
+      
+      let internRecord = interns?.[0];
+      
+      if (!internRecord) {
+        console.log('[API] Creating missing intern record');
+        
+        const nameParts = dbUser.full_name.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        const { data: createdIntern, error: createInternError } = await supabase
+          .from('interns')
+          .insert([{
+            first_name: firstName,
+            last_name: lastName,
+            email: dbUser.email,
+            start_date: new Date().toISOString().split('T')[0]
+          }])
+          .select()
+          .single();
+        
+        if (createInternError) throw createInternError;
+        
+        internRecord = createdIntern;
+        repairs.actions.push('Created intern record');
+      }
+      
+      // Link intern to user if not linked
+      if (dbUser.intern_id !== internRecord.id) {
+        console.log('[API] Linking intern record to user');
+        
+        const { error: linkError } = await supabase
+          .from('users')
+          .update({ intern_id: internRecord.id })
+          .eq('id', dbUser.id);
+        
+        if (linkError) throw linkError;
+        
+        repairs.actions.push('Linked intern record to user profile');
+      }
+    }
+    
+    if (repairs.actions.length === 0) {
+      repairs.actions.push('No repairs needed - user is properly configured');
+    }
+    
+    // Return the complete user profile for cache update
+    const { data: finalProfile, error: finalError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', dbUser.id)
+      .single();
+    
+    if (finalError) throw finalError;
+    
+    repairs.profile = finalProfile;
+    
+    res.json({ success: true, repairs });
+  } catch (error) {
+    console.error('[API] Repair error:', error);
+    next(error);
+  }
+});
+
+// Force refresh profile endpoint - returns fresh profile data
+app.get('/api/users/refresh/:userId', async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    console.log('[API] Force refreshing profile for:', userId);
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    
+    // Add cache-busting headers
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    res.json({ 
+      success: true, 
+      data,
+      timestamp: new Date().toISOString(),
+      message: 'Profile refreshed - cache should be updated'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/users', async (req, res, next) => {
   try {
     const { data, error } = await supabase
@@ -102,13 +368,93 @@ app.get('/api/users', async (req, res, next) => {
 
 app.get('/api/users/:id', async (req, res, next) => {
   try {
+    console.log('[API] Fetching user profile for ID:', req.params.id);
+    
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', req.params.id)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('[API] User profile fetch error:', error);
+      
+      // If user not found in users table, try to create from auth user
+      if (error.code === 'PGRST116') {
+        console.log('[API] User profile not found, attempting to create from auth user');
+        
+        try {
+          // Get user from Supabase Auth
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(req.params.id);
+          
+          if (authError || !authUser) {
+            console.error('[API] Auth user not found:', authError);
+            throw error; // Return original error
+          }
+          
+          console.log('[API] Found auth user, creating profile:', authUser.user.email);
+          
+          // Create user profile from auth metadata
+          const newProfile = {
+            id: authUser.user.id,
+            email: authUser.user.email,
+            full_name: authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0],
+            role: authUser.user.user_metadata?.role || 'intern',
+            created_at: authUser.user.created_at
+          };
+          
+          const { data: createdUser, error: createError } = await supabase
+            .from('users')
+            .insert([newProfile])
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('[API] Failed to create user profile:', createError);
+            throw error; // Return original error
+          }
+          
+          console.log('[API] User profile created successfully:', createdUser.email);
+          
+          // If role is intern, create intern record
+          if (createdUser.role === 'intern') {
+            const nameParts = createdUser.full_name.trim().split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            
+            const { data: internData, error: internError } = await supabase
+              .from('interns')
+              .insert([{
+                first_name: firstName,
+                last_name: lastName,
+                email: createdUser.email,
+                start_date: new Date().toISOString().split('T')[0]
+              }])
+              .select()
+              .single();
+            
+            if (!internError && internData) {
+              await supabase
+                .from('users')
+                .update({ intern_id: internData.id })
+                .eq('id', createdUser.id);
+              
+              createdUser.intern_id = internData.id;
+              console.log('[API] Intern record created and linked:', internData.id);
+            }
+          }
+          
+          return res.json({ success: true, data: createdUser });
+        } catch (recoveryError) {
+          console.error('[API] Profile recovery failed:', recoveryError);
+          throw error; // Return original error
+        }
+      }
+      
+      throw error;
+    }
+    
+    console.log('[API] User profile fetched successfully:', data.email);
     res.json({ success: true, data });
   } catch (error) {
     next(error);

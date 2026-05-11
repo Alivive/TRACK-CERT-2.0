@@ -82,9 +82,13 @@ const ReadingList = () => {
       }
 
       // Load assignments
+      // Fallback to finding intern by email if intern_id is missing
+      const userInternId = profile?.intern_id || 
+        (!isAdmin && profile?.email ? (await booksClient.getInterns()).data?.find(i => i.email?.toLowerCase() === profile.email?.toLowerCase())?.id : null);
+      
       const assignmentsRes = isAdmin 
         ? await booksClient.getAssignments()
-        : await booksClient.getAssignments(profile?.intern_id);
+        : await booksClient.getAssignments(userInternId);
       
       if (assignmentsRes.success) {
         setAssignments(assignmentsRes.data || []);
@@ -248,8 +252,15 @@ const ReadingList = () => {
   // Filter assignments for current user
   const myAssignments = useMemo(() => {
     if (isAdmin) return assignments;
-    return assignments.filter(a => a.intern_id === profile?.intern_id);
-  }, [assignments, isAdmin, profile]);
+    // Fallback to email matching if intern_id is missing
+    const userInternId = profile?.intern_id;
+    if (userInternId) {
+      return assignments.filter(a => a.intern_id === userInternId);
+    }
+    // Find by email as fallback
+    const userIntern = books.flatMap(b => b.interns || []).find(i => i.email?.toLowerCase() === profile?.email?.toLowerCase());
+    return assignments.filter(a => a.intern_id === userIntern?.id);
+  }, [assignments, isAdmin, profile, books]);
 
   // Filter books based on search
   const filteredBooks = useMemo(() => {

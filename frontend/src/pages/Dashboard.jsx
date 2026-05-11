@@ -131,10 +131,37 @@ const Dashboard = ({ onPageChange }) => {
 
   // Chart data for overall category distribution
   const overallChartData = useMemo(() => {
-    const validCategories = analytics.categoryStats.filter(cat => cat.count > 0);
+    // Count certifications by category, including those with missing/invalid categories
+    const categoryCounts = {};
+    let uncategorizedCount = 0;
+    
+    certifications.forEach(cert => {
+      if (cert.category && CATS[cert.category]) {
+        categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
+      } else {
+        uncategorizedCount++;
+      }
+    });
+    
+    const validCategories = Object.keys(categoryCounts)
+      .map(catId => ({
+        id: catId,
+        name: CATS[catId]?.name || catId,
+        count: categoryCounts[catId]
+      }))
+      .sort((a, b) => b.count - a.count);
+    
+    // Add uncategorized if any exist
+    if (uncategorizedCount > 0) {
+      validCategories.push({
+        id: 'uncategorized',
+        name: 'Uncategorized',
+        count: uncategorizedCount
+      });
+    }
     
     return {
-      labels: validCategories.map(cat => cat.categoryName),
+      labels: validCategories.map(cat => cat.name),
       datasets: [{
         data: validCategories.map(cat => cat.count),
         backgroundColor: chartColors.slice(0, validCategories.length),
@@ -142,7 +169,7 @@ const Dashboard = ({ onPageChange }) => {
         borderWidth: 2,
       }]
     };
-  }, [analytics.categoryStats]);
+  }, [certifications, CATS]);
 
   // Chart options
   const chartOptions = {
@@ -225,7 +252,10 @@ const Dashboard = ({ onPageChange }) => {
               <div className="card-header">
                 <span className="card-title">
                   <BarChart3 size={16} style={{ marginRight: '8px' }} />
-                  OVERALL DISTRIBUTION
+                  CERTIFICATION DISTRIBUTION
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--gray)', fontWeight: 'normal' }}>
+                  Total: {certifications.length} Certifications
                 </span>
               </div>
               <div className="card-body" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

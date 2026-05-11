@@ -11,28 +11,17 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = useCallback(async (userId) => {
     try {
       console.log('[AUTH] Fetching profile for user:', userId);
+      setLoading(true);
       
-      // Try to get cached profile first for faster load
-      const { offlineManager } = await import('../utils/offlineManager');
-      const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
-      
-      // If we have cached profile, use it immediately (optimistic UI)
-      if (cachedProfile && cachedProfile.id === userId) {
-        console.log('[AUTH] Using cached profile:', cachedProfile.full_name);
-        setProfile(cachedProfile);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
-      
-      // Try to fetch fresh data from backend if online
+      // ALWAYS fetch fresh data from backend first (don't use stale cache)
       if (navigator.onLine) {
         try {
           const response = await fetch(
             `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
             {
               headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
               }
             }
           );
@@ -44,54 +33,36 @@ export const AuthProvider = ({ children }) => {
             console.log('[AUTH] Backend response:', data);
 
             if (data.success && data.data && data.data.id === userId) {
-              console.log('[AUTH] Profile fetched successfully:', data.data.full_name, 'Role:', data.data.role);
+              console.log('[AUTH] Profile fetched successfully:', data.data.full_name, 'Role:', data.data.role, 'Intern ID:', data.data.intern_id);
               setProfile(data.data);
+              
               // Cache the fresh profile
+              const { offlineManager } = await import('../utils/offlineManager');
               await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
               setLoading(false);
               return;
             }
           }
         } catch (fetchError) {
-          console.warn('[AUTH] Backend fetch failed, using cached profile:', fetchError.message);
-          // If fetch fails but we have cached profile, that's OK - we already set it above
-          if (cachedProfile && cachedProfile.id === userId) {
-            console.log('[AUTH] Continuing with cached profile after fetch error');
-            setLoading(false);
-            return;
-          }
-        }
-      } else {
-        console.log('[AUTH] Offline mode - using cached profile');
-        // Already using cached profile from above
-        if (cachedProfile && cachedProfile.id === userId) {
-          setLoading(false);
-          return;
+          console.warn('[AUTH] Backend fetch failed:', fetchError.message);
         }
       }
       
-      // If we get here and don't have a profile, something is wrong
-      if (!cachedProfile || cachedProfile.id !== userId) {
-        console.error('[AUTH] No valid profile found (online or cached)');
+      // Only use cache if online fetch failed
+      console.log('[AUTH] Trying cached profile as fallback');
+      const { offlineManager } = await import('../utils/offlineManager');
+      const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
+      
+      if (cachedProfile && cachedProfile.id === userId) {
+        console.log('[AUTH] Using cached profile:', cachedProfile.full_name);
+        setProfile(cachedProfile);
+      } else {
+        console.error('[AUTH] No valid profile found');
         setProfile(null);
       }
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
-      
-      // Last resort: try cached data
-      try {
-        const { offlineManager } = await import('../utils/offlineManager');
-        const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
-        if (cachedProfile && cachedProfile.id === userId) {
-          console.log('[AUTH] Using cached profile after exception:', cachedProfile.full_name);
-          setProfile(cachedProfile);
-        } else {
-          setProfile(null);
-        }
-      } catch (cacheError) {
-        console.error('[AUTH] Cache fallback failed:', cacheError);
-        setProfile(null);
-      }
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -157,17 +128,47 @@ export const AuthProvider = ({ children }) => {
   const signIn = useCallback(async (email, password) => {
     setLoading(true);
     try {
+      console.log('[AUTH] Attempting sign in for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(), // Normalize email
         password,
       });
 
-      if (error) return { error };
+      if (error) {
+        console.error('[AUTH] Sign in error:', error.message);
+        return { error };
+      }
 
+      console.log('[AUTH] Authentication successful, fetching profile...');
       setUser(data.user);
-      await fetchProfile(data.user.id);
+      
+      // Fetch profile with retry logic
+      let retries = 3;
+      let profileFetched = false;
+      
+      while (retries > 0 && !profileFetched) {
+        try {
+          await fetchProfile(data.user.id);
+          profileFetched = true;
+          console.log('[AUTH] Profile fetched successfully');
+        } catch (profileError) {
+          retries--;
+          console.warn(`[AUTH] Profile fetch failed, retries left: ${retries}`, profileError);
+          
+          if (retries > 0) {
+            // Wait 1 second before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            console.error('[AUTH] Profile fetch failed after all retries');
+            // Don't fail login, user can still access with limited profile
+          }
+        }
+      }
+      
       return { data };
     } catch (error) {
+      console.error('[AUTH] Sign in exception:', error);
       return { error };
     } finally {
       setLoading(false);
@@ -228,9 +229,12 @@ export const AuthProvider = ({ children }) => {
   const signUp = useCallback(async (email, password, fullName, role = 'intern') => {
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      console.log('[AUTH] Attempting sign up for:', normalizedEmail);
+      
       // Create auth user with metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -240,10 +244,15 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
-      if (authError) return { error: authError };
+      if (authError) {
+        console.error('[AUTH] Sign up error:', authError.message);
+        return { error: authError };
+      }
 
       // Only create profile if user was created (not if email confirmation required)
       if (authData.user) {
+        console.log('[AUTH] User created, creating profile...');
+        
         // Create user profile via backend API
         try {
           const profileResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
@@ -253,7 +262,7 @@ export const AuthProvider = ({ children }) => {
             },
             body: JSON.stringify({
               id: authData.user.id,
-              email,
+              email: normalizedEmail,
               full_name: fullName,
               role,
             })
@@ -262,6 +271,7 @@ export const AuthProvider = ({ children }) => {
           const profileResult = await profileResponse.json();
           
           if (profileResult.success) {
+            console.log('[AUTH] Profile created successfully');
             setProfile(profileResult.data);
           } else {
             console.error('[AUTH] Profile creation error:', profileResult.error);
@@ -280,6 +290,7 @@ export const AuthProvider = ({ children }) => {
 
       return { data: authData };
     } catch (error) {
+      console.error('[AUTH] Sign up exception:', error);
       return { error };
     } finally {
       setLoading(false);

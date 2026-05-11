@@ -38,21 +38,29 @@ const InternProfiles = () => {
   const CATS = getCategoryObject();
   
   // SECURITY FIX: For non-admin users, ensure they have an intern_id
-  // If not, show error message instead of wrong data
-  const userInternId = authProfile?.intern_id;
+  // If not, try to find it from interns table by email
+  const userInternId = authProfile?.intern_id || 
+    (!isAdmin && authProfile?.email ? interns.find(i => i.email?.toLowerCase() === authProfile.email?.toLowerCase())?.id : null);
   
-  if (!isAdmin && !userInternId) {
+  if (!isAdmin && !userInternId && !loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
         <h2 style={{ marginBottom: '10px' }}>Profile Setup Incomplete</h2>
         <p style={{ color: 'var(--gray)', marginBottom: '20px' }}>
-          Your account is not linked to an intern profile. Please contact the administrator.
+          Your account is not linked to an intern profile. Please sign out and sign in again.
         </p>
         <p style={{ fontSize: '12px', color: 'var(--gray2)', fontFamily: 'var(--font-mono)' }}>
           User ID: {authProfile?.id}<br/>
           Email: {authProfile?.email}
         </p>
+        <button 
+          className="btn btn-primary"
+          onClick={() => window.location.reload()}
+          style={{ marginTop: '20px' }}
+        >
+          Refresh Page
+        </button>
       </div>
     );
   }

@@ -10,7 +10,9 @@
     "test": "node test-connection.js",
     "setup-storage": "node setup-storage.js",
     "migrate-db": "node migrate-db.js",
-    "setup": "npm run migrate-db && npm run setup-storage"
+    "setup": "npm run migrate-db && npm run setup-storage",
+    "diagnose": "node diagnose-user.js",
+    "list-users": "node list-users.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

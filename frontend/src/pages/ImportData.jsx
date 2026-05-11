@@ -129,10 +129,12 @@ const ImportData = () => {
             }
           } else {
             // For regular users, always use their own profile - ignore "Intern Name" column
-            intern = interns.find(i => i.id === profile?.intern_id);
+            // Try by intern_id first, then by email as fallback
+            intern = interns.find(i => i.id === profile?.intern_id) || 
+                     interns.find(i => i.email?.toLowerCase() === profile?.email?.toLowerCase());
             
             if (!intern) {
-              errors.push(`Row ${processedCount}: Your intern profile not found. Please contact administrator.`);
+              errors.push(`Row ${processedCount}: Your intern profile not found. Please sign out and sign in again.`);
               failCount++;
               break; // Stop processing if profile not found
             }
