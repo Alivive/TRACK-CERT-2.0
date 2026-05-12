@@ -130,6 +130,44 @@ class OfflineStorage {
     });
   }
 
+  // Update offline certification
+  async updateOfflineCertification(id, updates) {
+    if (!this.db) await this.init();
+    
+    const transaction = this.db.transaction(['offlineCertifications'], 'readwrite');
+    const store = transaction.objectStore('offlineCertifications');
+    
+    return new Promise((resolve, reject) => {
+      const getRequest = store.get(id);
+      getRequest.onsuccess = () => {
+        const cert = getRequest.result;
+        if (cert) {
+          const updatedCert = { ...cert, ...updates, timestamp: Date.now() };
+          const putRequest = store.put(updatedCert);
+          putRequest.onsuccess = () => resolve(true);
+          putRequest.onerror = () => reject(putRequest.error);
+        } else {
+          resolve(false);
+        }
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
+  // Remove offline certification
+  async removeOfflineCertification(id) {
+    if (!this.db) await this.init();
+    
+    const transaction = this.db.transaction(['offlineCertifications'], 'readwrite');
+    const store = transaction.objectStore('offlineCertifications');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.delete(id);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Add pending action for background sync
   async addPendingAction(type, data) {
     if (!this.db) await this.init();

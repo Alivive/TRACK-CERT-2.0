@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
-import { Plus, CheckCircle } from 'lucide-react';
+import { Plus, CheckCircle, WifiOff } from 'lucide-react';
 
 const AddCertification = () => {
   const { profile } = useAuth();
@@ -11,6 +11,21 @@ const AddCertification = () => {
   const { categories } = useCategories();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Listen for online/offline changes
+  useState(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   const [formData, setFormData] = useState({
     intern_id: '',
@@ -27,6 +42,13 @@ const AddCertification = () => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
+
+    // Check if file upload is attempted while offline
+    if (!isOnline && formData.certificate_file) {
+      alert('⚠️ OFFLINE MODE\n\nFile uploads require an internet connection. You can:\n• Wait until you\'re back online, OR\n• Provide a URL instead of uploading a file');
+      setLoading(false);
+      return;
+    }
 
     // Validate that at least one certificate option is provided
     if (!formData.certificate_file && !formData.certificate_file_url) {
@@ -67,6 +89,12 @@ const AddCertification = () => {
 
     if (!error) {
       setSuccess(true);
+      
+      // Show different message for offline vs online
+      if (!isOnline) {
+        alert('✅ SAVED OFFLINE\n\nYour certification has been saved locally and will sync automatically when you\'re back online.');
+      }
+      
       setFormData({
         intern_id: '',
         name: '',
@@ -94,7 +122,39 @@ const AddCertification = () => {
 
   return (
     <div id="page-add-cert" className="page active">
-      <div className="section-header"><span className="section-title">ADD CERTIFICATION</span></div>
+      <div className="section-header">
+        <span className="section-title">ADD CERTIFICATION</span>
+        {!isOnline && (
+          <span style={{
+            fontSize: '11px',
+            padding: '4px 10px',
+            borderRadius: '12px',
+            background: 'rgba(230, 126, 34, 0.2)',
+            color: '#e67e22',
+            fontWeight: '600',
+            border: '1px solid rgba(230, 126, 34, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <WifiOff size={12} /> OFFLINE MODE
+          </span>
+        )}
+      </div>
+      
+      {!isOnline && (
+        <div style={{
+          background: 'rgba(230, 126, 34, 0.1)',
+          border: '1px solid rgba(230, 126, 34, 0.3)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '20px',
+          fontSize: '12px',
+          color: '#e67e22'
+        }}>
+          <strong>Offline Mode:</strong> You can add certifications without internet. They'll sync automatically when you're back online. Note: File uploads require internet connection.
+        </div>
+      )}
       
       <div className="card" style={{ maxWidth: '600px' }}>
         <div className="card-body">

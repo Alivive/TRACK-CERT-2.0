@@ -461,7 +461,22 @@ const InternProfiles = () => {
                           ) : (
                             <>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', fontWeight: 600 }}>{highlightText(c.name, profileSearchTerm)}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{highlightText(c.name, profileSearchTerm)}</div>
+                                  {c.offline && c.pending && (
+                                    <span style={{
+                                      fontSize: '9px',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      background: 'rgba(230, 126, 34, 0.2)',
+                                      color: '#e67e22',
+                                      fontWeight: '600',
+                                      border: '1px solid rgba(230, 126, 34, 0.3)'
+                                    }}>
+                                      OFFLINE
+                                    </span>
+                                  )}
+                                </div>
                                 <div style={{ fontSize: '11px', color: 'var(--gray)' }}>{highlightText(c.provider, profileSearchTerm)} · {c.date}</div>
                                 {/* Certificate Link - Show if user provided any URL or uploaded file */}
                                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>

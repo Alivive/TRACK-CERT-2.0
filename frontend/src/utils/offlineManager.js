@@ -203,6 +203,10 @@ class OfflineManager {
     switch (action.type) {
       case 'ADD_CERTIFICATION':
         return await this.syncAddCertification(action);
+      case 'UPDATE_CERTIFICATION':
+        return await this.syncUpdateCertification(action);
+      case 'DELETE_CERTIFICATION':
+        return await this.syncDeleteCertification(action);
       case 'UPDATE_PROFILE':
         return await this.syncUpdateProfile(action);
       case 'ADD_INTERN':
@@ -224,6 +228,16 @@ class OfflineManager {
     }
     
     return response;
+  }
+
+  // Sync update certification
+  async syncUpdateCertification(action) {
+    return await apiClient.updateCertification(action.data.id, action.data.updates);
+  }
+
+  // Sync delete certification
+  async syncDeleteCertification(action) {
+    return await apiClient.deleteCertification(action.data.id);
   }
 
   // Sync update profile

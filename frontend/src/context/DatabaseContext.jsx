@@ -225,9 +225,10 @@ export const DatabaseProvider = ({ children }) => {
         setInterns(cachedInterns);
       }
 
-      const cachedCerts = await offlineManager.getCachedData(userCacheKey('certifications'));
-      if (cachedCerts && cachedCerts.length > 0) {
-        setCertifications(cachedCerts);
+      // Load offline + cached certifications
+      const allCerts = await offlineManager.getAllCertifications(user.id);
+      if (allCerts && allCerts.length > 0) {
+        setCertifications(allCerts);
       }
 
       if (profile?.role === 'admin') {
@@ -256,8 +257,21 @@ export const DatabaseProvider = ({ children }) => {
         }
 
         if (certsResponse.success) {
-          setCertifications(certsResponse.data || []);
-          await offlineManager.cacheForOffline(userCacheKey('certifications'), certsResponse.data);
+          // Merge online certs with offline certs
+          const onlineCerts = certsResponse.data || [];
+          const offlineCerts = await offlineManager.offlineStorage.getOfflineCertifications();
+          
+          const mergedCerts = [
+            ...onlineCerts,
+            ...offlineCerts.filter(oc => !oc.synced).map(oc => ({
+              ...oc,
+              offline: true,
+              pending: true
+            }))
+          ].sort((a, b) => new Date(b.date || b.timestamp || 0) - new Date(a.date || a.timestamp || 0));
+          
+          setCertifications(mergedCerts);
+          await offlineManager.cacheForOffline(userCacheKey('certifications'), onlineCerts);
         }
 
         if (profile?.role === 'admin' && profilesResponse.success) {
@@ -355,9 +369,19 @@ export const DatabaseProvider = ({ children }) => {
         }
         return { error: response.error };
       } else {
-        // Offline: Mark for deletion and remove from local state
-        setCertifications(prev => prev.filter(c => c.id !== id));
-        // TODO: Queue for deletion when back online
+        // Offline: Mark for deletion and queue for sync
+        const cert = certifications.find(c => c.id === id);
+        
+        if (cert?.offline) {
+          // If it's an offline-only cert, just remove it
+          await offlineManager.offlineStorage.removeOfflineCertification(id);
+          setCertifications(prev => prev.filter(c => c.id !== id));
+        } else {
+          // If it's a synced cert, queue deletion for when back online
+          await offlineManager.offlineStorage.addPendingAction('DELETE_CERTIFICATION', { id });
+          setCertifications(prev => prev.filter(c => c.id !== id));
+        }
+        
         return { data: true };
       }
     } catch (error) {
@@ -380,9 +404,20 @@ export const DatabaseProvider = ({ children }) => {
         return { data: null, error: response.error };
       } else {
         // Offline: Update locally and queue for sync
+        const cert = certifications.find(c => c.id === id);
+        
+        if (cert?.offline) {
+          // Update offline certification
+          await offlineManager.offlineStorage.updateOfflineCertification(id, updates);
+        } else {
+          // Queue update for synced certification
+          await offlineManager.offlineStorage.addPendingAction('UPDATE_CERTIFICATION', { id, updates });
+        }
+        
         setCertifications(prev => prev.map(c => 
           c.id === id ? { ...c, ...updates, offline: true, pending: true } : c
         ));
+        
         return { data: { ...updates, id }, error: null };
       }
     } catch (error) {
