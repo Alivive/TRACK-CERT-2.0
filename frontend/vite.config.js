@@ -11,12 +11,38 @@ export default defineConfig({
       injectRegister: 'auto',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg}'],
-        // Clear old cache on new deployment
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        // NetworkFirst for all API calls - always try network first
+        // Navigation fallback - serve app shell when offline, NOT offline.html
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        // Cache the app shell for offline use
         runtimeCaching: [
+          {
+            // Cache the main app (HTML, JS, CSS)
+            urlPattern: /^https?:\/\/[^/]+\/(index\.html)?$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-shell',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 24 * 60 * 60 // 24 hours
+              }
+            }
+          },
+          {
+            // Cache static assets
+            urlPattern: /\.(?:js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-assets',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
+              }
+            }
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
@@ -24,7 +50,7 @@ export default defineConfig({
               cacheName: 'supabase-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 5 * 60 // 5 minutes only
+                maxAgeSeconds: 5 * 60
               },
               networkTimeoutSeconds: 10
             }
@@ -36,7 +62,23 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 5 * 60 // 5 minutes only
+                maxAgeSeconds: 5 * 60
+              },
+              networkTimeoutSeconds: 10,
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Fallback for localhost API during development
+            urlPattern: /^http:\/\/localhost:3000\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache-local',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 5 * 60
               },
               networkTimeoutSeconds: 10,
               cacheableResponse: {
