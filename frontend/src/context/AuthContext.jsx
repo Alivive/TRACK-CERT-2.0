@@ -101,58 +101,69 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Add timeout for session check (3 seconds)
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 3000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        
+        if (error) throw error;
+        
         if (session?.user) {
+          console.log('[AUTH] Active session found');
           setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else {
-          // Check if we have a cached session for offline mode
+          
+          // Cache session for offline use
           try {
             const { offlineManager } = await import('../utils/offlineManager');
-            const cachedSession = await offlineManager.getCachedData('auth_session');
-            
-            if (cachedSession && cachedSession.user) {
-              console.log('[AUTH] Using cached session for offline mode');
-              setUser(cachedSession.user);
-              await fetchProfile(cachedSession.user.id);
-            } else {
-              setLoading(false);
-            }
+            await offlineManager.cacheForOffline('auth_session', session);
           } catch (cacheError) {
-            console.error('[AUTH] Failed to load cached session:', cacheError);
-            setLoading(false);
+            console.error('[AUTH] Failed to cache session:', cacheError);
           }
+          
+          await fetchProfile(session.user.id);
+        } else {
+          // No active session - check cache for offline mode
+          console.log('[AUTH] No active session, checking cache');
+          await loadCachedSession();
         }
       } catch (error) {
-        console.error('[AUTH] Session check error:', error);
+        console.error('[AUTH] Session check error:', error.message);
         
-        // Try cached session as fallback
-        try {
-          const { offlineManager } = await import('../utils/offlineManager');
-          const cachedSession = await offlineManager.getCachedData('auth_session');
-          
-          if (cachedSession && cachedSession.user) {
-            console.log('[AUTH] Using cached session after error');
-            setUser(cachedSession.user);
-            await fetchProfile(cachedSession.user.id);
-          } else {
-            await supabase.auth.signOut();
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-          }
-        } catch (fallbackError) {
-          console.error('[AUTH] Cached session fallback failed:', fallbackError);
+        // If we're offline or there's an error, try cached session
+        console.log('[AUTH] Attempting to load cached session');
+        await loadCachedSession();
+      }
+    };
+
+    const loadCachedSession = async () => {
+      try {
+        const { offlineManager } = await import('../utils/offlineManager');
+        const cachedSession = await offlineManager.getCachedData('auth_session');
+        
+        if (cachedSession && cachedSession.user) {
+          console.log('[AUTH] Using cached session for offline mode:', cachedSession.user.email);
+          setUser(cachedSession.user);
+          await fetchProfile(cachedSession.user.id);
+        } else {
+          console.log('[AUTH] No cached session found');
           setUser(null);
           setProfile(null);
           setLoading(false);
         }
+      } catch (cacheError) {
+        console.error('[AUTH] Failed to load cached session:', cacheError);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
       }
     };
 
     checkSession();
 
-    // Listen for auth changes
+    // Listen for auth changes (only works when online)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[AUTH] Auth state changed:', event);
       
