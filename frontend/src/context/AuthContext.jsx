@@ -13,7 +13,17 @@ export const AuthProvider = ({ children }) => {
       console.log('[AUTH] Fetching profile for user:', userId);
       setLoading(true);
       
-      // ALWAYS fetch fresh data from backend first (don't use stale cache)
+      // Try to get cached profile FIRST for instant load
+      const { offlineManager } = await import('../utils/offlineManager');
+      const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
+      
+      if (cachedProfile && cachedProfile.id === userId) {
+        console.log('[AUTH] Using cached profile:', cachedProfile.full_name);
+        setProfile(cachedProfile);
+        setLoading(false);
+      }
+      
+      // Then try to fetch fresh data from backend if online
       if (navigator.onLine) {
         try {
           const response = await fetch(
@@ -37,7 +47,6 @@ export const AuthProvider = ({ children }) => {
               setProfile(data.data);
               
               // Cache the fresh profile
-              const { offlineManager } = await import('../utils/offlineManager');
               await offlineManager.cacheForOffline(`profile_${userId}`, data.data);
               setLoading(false);
               return;
@@ -45,24 +54,44 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (fetchError) {
           console.warn('[AUTH] Backend fetch failed:', fetchError.message);
+          // If we have cached profile, continue using it
+          if (cachedProfile && cachedProfile.id === userId) {
+            console.log('[AUTH] Continuing with cached profile after fetch error');
+            setLoading(false);
+            return;
+          }
+        }
+      } else {
+        // Offline mode - use cached profile
+        console.log('[AUTH] Offline mode - using cached profile');
+        if (cachedProfile && cachedProfile.id === userId) {
+          setLoading(false);
+          return;
         }
       }
       
-      // Only use cache if online fetch failed
-      console.log('[AUTH] Trying cached profile as fallback');
-      const { offlineManager } = await import('../utils/offlineManager');
-      const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
-      
-      if (cachedProfile && cachedProfile.id === userId) {
-        console.log('[AUTH] Using cached profile:', cachedProfile.full_name);
-        setProfile(cachedProfile);
-      } else {
-        console.error('[AUTH] No valid profile found');
+      // If we get here and don't have a profile, something is wrong
+      if (!cachedProfile || cachedProfile.id !== userId) {
+        console.error('[AUTH] No valid profile found (online or cached)');
         setProfile(null);
       }
     } catch (error) {
       console.error('[AUTH] Profile fetch exception:', error);
-      setProfile(null);
+      
+      // Last resort: try cached data
+      try {
+        const { offlineManager } = await import('../utils/offlineManager');
+        const cachedProfile = await offlineManager.getCachedData(`profile_${userId}`);
+        if (cachedProfile && cachedProfile.id === userId) {
+          console.log('[AUTH] Using cached profile after exception:', cachedProfile.full_name);
+          setProfile(cachedProfile);
+        } else {
+          setProfile(null);
+        }
+      } catch (cacheError) {
+        console.error('[AUTH] Cache fallback failed:', cacheError);
+        setProfile(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -77,15 +106,47 @@ export const AuthProvider = ({ children }) => {
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
-          setLoading(false);
+          // Check if we have a cached session for offline mode
+          try {
+            const { offlineManager } = await import('../utils/offlineManager');
+            const cachedSession = await offlineManager.getCachedData('auth_session');
+            
+            if (cachedSession && cachedSession.user) {
+              console.log('[AUTH] Using cached session for offline mode');
+              setUser(cachedSession.user);
+              await fetchProfile(cachedSession.user.id);
+            } else {
+              setLoading(false);
+            }
+          } catch (cacheError) {
+            console.error('[AUTH] Failed to load cached session:', cacheError);
+            setLoading(false);
+          }
         }
       } catch (error) {
         console.error('[AUTH] Session check error:', error);
-        // If session check fails, sign out to clear corrupted state
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
+        
+        // Try cached session as fallback
+        try {
+          const { offlineManager } = await import('../utils/offlineManager');
+          const cachedSession = await offlineManager.getCachedData('auth_session');
+          
+          if (cachedSession && cachedSession.user) {
+            console.log('[AUTH] Using cached session after error');
+            setUser(cachedSession.user);
+            await fetchProfile(cachedSession.user.id);
+          } else {
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          }
+        } catch (fallbackError) {
+          console.error('[AUTH] Cached session fallback failed:', fallbackError);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
       }
     };
 
@@ -95,7 +156,17 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[AUTH] Auth state changed:', event);
       
-      setLoading(true); // Always show loading during auth changes
+      setLoading(true);
+      
+      // Cache the session for offline use
+      if (session) {
+        try {
+          const { offlineManager } = await import('../utils/offlineManager');
+          await offlineManager.cacheForOffline('auth_session', session);
+        } catch (cacheError) {
+          console.error('[AUTH] Failed to cache session:', cacheError);
+        }
+      }
       
       // SECURITY FIX: Clear previous user's cache when auth state changes
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {

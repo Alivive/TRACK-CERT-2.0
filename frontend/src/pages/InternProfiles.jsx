@@ -43,12 +43,22 @@ const InternProfiles = () => {
     (!isAdmin && authProfile?.email ? interns.find(i => i.email?.toLowerCase() === authProfile.email?.toLowerCase())?.id : null);
   
   if (!isAdmin && !userInternId && !loading) {
+    // Check if we're offline - if so, show a more helpful message
+    const isOffline = !navigator.onLine;
+    
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
-        <h2 style={{ marginBottom: '10px' }}>Profile Setup Incomplete</h2>
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>
+          {isOffline ? '📡' : '⚠️'}
+        </div>
+        <h2 style={{ marginBottom: '10px' }}>
+          {isOffline ? 'Offline - Profile Not Cached' : 'Profile Setup Incomplete'}
+        </h2>
         <p style={{ color: 'var(--gray)', marginBottom: '20px' }}>
-          Your account is not linked to an intern profile. Please sign out and sign in again.
+          {isOffline 
+            ? 'Your profile data is not available offline. Please connect to the internet to load your profile, then it will be cached for offline use.'
+            : 'Your account is not linked to an intern profile. Please sign out and sign in again.'
+          }
         </p>
         <p style={{ fontSize: '12px', color: 'var(--gray2)', fontFamily: 'var(--font-mono)' }}>
           User ID: {authProfile?.id}<br/>
@@ -56,10 +66,16 @@ const InternProfiles = () => {
         </p>
         <button 
           className="btn btn-primary"
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            if (isOffline) {
+              alert('Please connect to the internet first');
+            } else {
+              window.location.reload();
+            }
+          }}
           style={{ marginTop: '20px' }}
         >
-          Refresh Page
+          {isOffline ? 'Waiting for Connection...' : 'Refresh Page'}
         </button>
       </div>
     );
