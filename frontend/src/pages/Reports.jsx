@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
@@ -15,6 +15,14 @@ const Reports = () => {
   const userInternId = profile?.intern_id || 
     (!isAdmin && profile?.email ? interns.find(i => i.email?.toLowerCase() === profile.email?.toLowerCase())?.id : '');
   const [selectedInternId, setSelectedInternId] = useState(isAdmin ? '' : userInternId);
+
+  // Sync selectedInternId for interns once the database loads their profile
+  useEffect(() => {
+    if (!isAdmin && userInternId && !selectedInternId) {
+      setSelectedInternId(userInternId);
+    }
+  }, [userInternId, isAdmin, selectedInternId]);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSummaryGenerating, setIsSummaryGenerating] = useState(false);
 
@@ -49,7 +57,7 @@ const Reports = () => {
     try {
       const mappedInterns = interns.map(i => ({ ...i, first: i.first_name, last: i.last_name }));
       const mappedCerts = certifications.map(c => ({ ...c, cat: c.category }));
-      await generateSummaryReport(mappedInterns, mappedCerts, getCategoryObject());
+      await generateSummaryReport(mappedInterns, mappedCerts, getCategoryObject(), reportTitle);
     } catch (error) {
       console.error('Summary PDF Generation failed:', error);
     } finally {

@@ -443,11 +443,12 @@ export const generateInternReport = async (intern, certifications, categories = 
   return html2pdf().from(element).set(opt).save();
 };
 
-export const generateSummaryReport = async (interns, certifications, categories = {}) => {
-  console.log('[PDF] === SUMMARY REPORT GENERATION STARTED === v2');
+export const generateSummaryReport = async (interns, certifications, categories = {}, reportTitle = 'EXECUTIVE SUMMARY') => {
+  console.log('[PDF] Generating summary report:', reportTitle);
   console.log('[PDF] Total interns:', interns.length);
   console.log('[PDF] Total certifications:', certifications.length);
   
+  const getCertsForIntern = (id) => certifications.filter(c => c.intern_id === id);
   const getTH = (cl) => cl.reduce((s, c) => s + (c.hours || 0), 0);
   const totalCerts = certifications.length;
   const totalHours = getTH(certifications);
@@ -468,38 +469,6 @@ export const generateSummaryReport = async (interns, certifications, categories 
   
   // Use provided categories or fallback to empty object
   const CATS = categories;
-  const categoryKeys = Object.keys(CATS);
-
-  // DEBUG: Log ALL interns and their cert counts - MOVED HERE AFTER CATS IS DEFINED
-  console.log('[PDF DEBUG] CATS object keys:', Object.keys(CATS));
-  console.log('[PDF DEBUG] CATS object:', CATS);
-  console.log('[PDF DEBUG] Sample certification categories:', certifications.slice(0, 5).map(c => ({ name: c.name, cat: c.cat, category: c.category })));
-  
-  interns.forEach(intern => {
-    const internCerts = certifications.filter(c => c.intern_id === intern.id);
-    console.log(`[PDF] ${intern.first_name} ${intern.last_name}: ${internCerts.length} certs`);
-    if (intern.first_name?.toLowerCase().includes('suleimani') || intern.last_name?.toLowerCase().includes('mwambeni')) {
-      console.log('[PDF DEBUG] *** FOUND SULEIMANI ***');
-      console.log('[PDF DEBUG] Suleimani ID:', intern.id);
-      console.log('[PDF DEBUG] Suleimani certs:', internCerts.length);
-      if (internCerts.length > 0) {
-        console.log('[PDF DEBUG] First cert:', internCerts[0]);
-        console.log('[PDF DEBUG] First cert intern_id:', internCerts[0].intern_id);
-        console.log('[PDF DEBUG] All categories:', internCerts.map(c => c.cat || c.category));
-        
-        // Test the category counting logic
-        const categoryCount = {};
-        internCerts.forEach(cert => {
-          const cat = cert.cat || cert.category;
-          console.log('[PDF DEBUG] Processing cert with cat:', cat, 'CATS has it?', !!CATS[cat]);
-          if (cat) {
-            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-          }
-        });
-        console.log('[PDF DEBUG] Category count result:', categoryCount);
-      }
-    }
-  });
 
   // Category colors matching the design
   const categoryColors = {
@@ -629,7 +598,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
       * { box-sizing: border-box; }
       body { margin: 0; padding: 0; }
     </style>
-    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.4; width: 100%; height: 100vh;">
+    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #ffffff; line-height: 1.4; width: 100%; min-height: 100vh;">
       
       <!-- Header -->
       <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 16px 24px;">
@@ -639,7 +608,7 @@ export const generateSummaryReport = async (interns, certifications, categories 
             <p style="margin: 2px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 500;">Intern Certification Tracker · Admin Summary</p>
           </div>
           <div style="text-align: right;">
-            <h2 style="margin: 0; font-size: 14px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">EXECUTIVE SUMMARY</h2>
+            <h2 style="margin: 0; font-size: 14px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 1px;">${reportTitle.toUpperCase()}</h2>
             <div style="background: #10b981; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-top: 6px; display: inline-block;">
               ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
@@ -670,24 +639,24 @@ export const generateSummaryReport = async (interns, certifications, categories 
         <div style="display: grid; grid-template-columns: 45% 55%; gap: 10px; margin-bottom: 10px;">
           
           <!-- Left: Bar Chart -->
-          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 380px; overflow: hidden;">
+          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; min-height: 420px; overflow: hidden;">
             <div style="background: #0f172a; color: white; padding: 6px 10px; border-radius: 8px 8px 0 0;">
               <h3 style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">📊 CERTIFICATION DISTRIBUTION</h3>
             </div>
-            <div style="padding: 8px; flex: 1; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;">
+            <div style="padding: 8px; flex: 1; display: flex; align-items: flex-start; justify-content: center;">
               ${enhancedPieChartSVG}
             </div>
           </div>
 
           <!-- Right: All Interns with Scroll -->
-          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 380px; overflow: visible;">
+          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; min-height: 420px; overflow: visible;">
             <div style="background: #0f172a; color: white; padding: 6px 10px; border-radius: 8px 8px 0 0;">
               <h3 style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">🏆 TOP INTERNS</h3>
             </div>
-            <div style="padding: 4px; flex: 1; display: flex; flex-direction: column; gap: 3px; overflow: visible;">
+            <div style="padding: 4px; flex: 1; display: flex; flex-direction: column; gap: 3px;">
               ${interns
                 .map(intern => {
-                  const internCerts = certifications.filter(c => c.intern_id === intern.id);
+                  const internCerts = getCertsForIntern(intern.id);
                   const internHours = getTH(internCerts);
                   
                   // Count certifications by category for this intern - COMPLETELY ROBUST
@@ -757,24 +726,8 @@ export const generateSummaryReport = async (interns, certifications, categories 
                   return b.hours - a.hours;
                 })
                 .map((data, index) => {
-                  // DEBUG: Log ALL interns' data to see what's happening
-                  console.log(`[PDF DEBUG] Intern #${index + 1}: ${data.intern.first_name} ${data.intern.last_name}`, {
-                    certCount: data.certCount,
-                    topCategory: data.topCategory,
-                    topCategoryCount: data.topCategoryCount,
-                    topCategoryPercentage: data.topCategoryPercentage,
-                    topCategoryColor: data.topCategoryColor,
-                    showTopLine: data.showTopLine
-                  });
-                  
-                  // SPECIAL: Log Suleimani's complete data object
-                  if (data.intern.first_name?.toLowerCase().includes('suleimani') || data.intern.last_name?.toLowerCase().includes('mwambeni')) {
-                    console.log('[PDF DEBUG] !!!!! SULEIMANI COMPLETE DATA OBJECT:', JSON.stringify(data, null, 2));
-                  }
-                  
                   const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                  
-                  const htmlOutput = `
+                  return `
                     <div style="background: white; padding: 4px 5px; border-radius: 4px; border: 1px solid #e2e8f0; flex-shrink: 0;">
                       <div style="display: flex; align-items: center; gap: 5px;">
                         <div style="font-size: 10px; font-weight: 700; min-width: 20px;">${medal}</div>
@@ -795,13 +748,6 @@ export const generateSummaryReport = async (interns, certifications, categories 
                       </div>
                     </div>
                   `;
-                  
-                  // DEBUG: Log Suleimani's generated HTML
-                  if (data.intern.first_name?.toLowerCase().includes('suleimani') || data.intern.last_name?.toLowerCase().includes('mwambeni')) {
-                    console.log('[PDF DEBUG] !!!!! SULEIMANI GENERATED HTML:', htmlOutput);
-                  }
-                  
-                  return htmlOutput;
                 }).join('')}
             </div>
           </div>
