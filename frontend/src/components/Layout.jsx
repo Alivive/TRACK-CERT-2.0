@@ -12,6 +12,7 @@ const Layout = ({ children, activePage, onPageChange }) => {
     categories: 'CATEGORIES',
     add_cert: 'ADD CERTIFICATION',
     import: 'IMPORT DATA',
+    certifications: 'CERTIFICATION MANAGEMENT',
     reports: 'REPORTS',
     admin: 'ADMIN PANEL'
   };
