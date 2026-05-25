@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCohorts } from '../context/CohortContext';
 import { useDatabase } from '../utils/useDatabase'; // Assuming this hook exists
+import { Cohort } from '../components/cohort';
 import { useCategories } from '../context/CategoriesContext';
 import { Plus } from 'lucide-react';
 

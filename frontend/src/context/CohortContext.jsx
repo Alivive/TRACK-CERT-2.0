@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_COHORT, initiateNewCohort } from '../utils/cohortManager';
+import { Cohort } from '../components/cohort';
 
 const CohortContext = createContext();
 
