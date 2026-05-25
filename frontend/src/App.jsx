@@ -159,14 +159,16 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <DatabaseProvider>
-          <CategoriesProvider>
-            <NotificationsProvider>
-              <PWAUpdatePrompt />
-              <OfflineStatus />
-              <CacheUpdateNotification />
-              <AppContent />
-            </NotificationsProvider>
-          </CategoriesProvider>
+          <CohortProvider>
+            <CategoriesProvider>
+              <NotificationsProvider>
+                <PWAUpdatePrompt />
+                <OfflineStatus />
+                <CacheUpdateNotification />
+                <AppContent />
+              </NotificationsProvider>
+            </CategoriesProvider>
+          </CohortProvider>
         </DatabaseProvider>
       </AuthProvider>
     </ThemeProvider>

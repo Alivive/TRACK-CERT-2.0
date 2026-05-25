@@ -11,7 +11,7 @@ const highlightText = (text, searchTerm) => {
   if (!searchTerm || !text) return text;
   
   const parts = text.toString().split(new RegExp(`(${searchTerm})`, 'gi'));
-  return parts.map((part, index) => 
+  return parts.map((part, index) =>
     part.toLowerCase() === searchTerm.toLowerCase() ? (
       <mark key={index} style={{ background: 'transparent', color: 'var(--white)', fontWeight: '700' }}>
         {part}
@@ -29,7 +29,7 @@ const InternProfiles = () => {
     certifications = [], 
     loading, 
     deleteCertification, 
-    updateCertification,
+    updateCertification, 
     addIntern,
     updateIntern
   } = useDatabase();
@@ -49,7 +49,7 @@ const InternProfiles = () => {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <div style={{ fontSize: '48px', marginBottom: '20px' }}>
-          {isOffline ? '📡' : '⚠️'}
+          {isOffline ? '📡' : '⚠️'} 
         </div>
         <h2 style={{ marginBottom: '10px' }}>
           {isOffline ? 'Offline - Profile Not Cached' : 'Profile Setup Incomplete'}
@@ -58,7 +58,7 @@ const InternProfiles = () => {
           {isOffline 
             ? 'Your profile data is not available offline. Please connect to the internet to load your profile, then it will be cached for offline use.'
             : 'Your account is not linked to an intern profile. Please sign out and sign in again.'
-          }
+          } 
         </p>
         <p style={{ fontSize: '12px', color: 'var(--gray2)', fontFamily: 'var(--font-mono)' }}>
           User ID: {authProfile?.id}<br/>
@@ -67,7 +67,7 @@ const InternProfiles = () => {
         <button 
           className="btn btn-primary"
           onClick={() => {
-            if (isOffline) {
+            if (isOffline) { 
               alert('Please connect to the internet first');
             } else {
               window.location.reload();
@@ -75,7 +75,7 @@ const InternProfiles = () => {
           }}
           style={{ marginTop: '20px' }}
         >
-          {isOffline ? 'Waiting for Connection...' : 'Refresh Page'}
+          {isOffline ? 'Waiting for Connection...' : 'Refresh Page'} 
         </button>
       </div>
     );
@@ -159,7 +159,7 @@ const InternProfiles = () => {
   const handleAddIntern = async (e) => {
     e.preventDefault();
     console.log('[DEBUG] Starting Intern Save...');
-    setIsSaving(true);
+    setIsSaving(true); 
     
     // Safety Timeout: 10 seconds
     const timeout = setTimeout(() => {
@@ -172,7 +172,7 @@ const InternProfiles = () => {
     try {
       const { data, error } = await addIntern(newIntern);
       clearTimeout(timeout);
-      console.log('[DEBUG] DB Response:', { data, error });
+      console.log('[DEBUG] DB Response:', { data, error }); 
       
       if (error) {
         alert('Database Error: ' + error.message);
@@ -180,7 +180,7 @@ const InternProfiles = () => {
         setShowAddModal(false);
         setNewIntern({ 
           first_name: '', 
-          last_name: '', 
+          last_name: '',  
           email: '', 
           start_date: new Date().toISOString().split('T')[0] 
         });
@@ -188,7 +188,7 @@ const InternProfiles = () => {
     } catch (err) {
       clearTimeout(timeout);
       console.error('[DEBUG] Save Crash:', err);
-      alert('System Error: ' + err.message);
+      alert('System Error: ' + err.message); 
     } finally {
       setIsSaving(false);
     }
@@ -503,7 +503,7 @@ const InternProfiles = () => {
                                       rel="noopener noreferrer"
                                       style={{ fontSize: '10px', color: 'var(--blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
                                       title="View Certificate"
-                                    >
+                                    > 
                                       <ExternalLink size={10} /> CERT
                                     </a>
                                   )}
@@ -519,7 +519,7 @@ const InternProfiles = () => {
                                     className="btn btn-ghost" 
                                     style={{ padding: '5px', color: 'var(--blue)' }}
                                     onClick={() => handleEditCert(c)}
-                                    title="Edit"
+                                    title="Edit" 
                                   >
                                     <Edit2 size={14} />
                                   </button>
@@ -527,7 +527,7 @@ const InternProfiles = () => {
                                     className="btn btn-ghost" 
                                     style={{ padding: '5px', color: 'var(--red-light)' }}
                                     onClick={() => handleDeleteCert(c.id)}
-                                    title="Delete"
+                                    title="Delete" 
                                   >
                                     <Trash2 size={14} />
                                   </button>
