@@ -4,6 +4,7 @@ import { DatabaseProvider } from './context/DatabaseContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CategoriesProvider } from './context/CategoriesContext';
 import { NotificationsProvider } from './context/NotificationsContext';
+import { CohortProvider } from './context/CohortContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -135,7 +136,9 @@ const AppContent = () => {
       case 'interns': return <InternProfiles />;
       case 'my_profile': return <InternProfiles />;
       case 'categories': return <Categories />;
-      case 'certifications': return <CertificationManagement />;
+      case 'add_cert':
+      case 'import':
+      case 'certifications': return <CertificationManagement initialTab={activePage === 'import' ? 'bulk' : 'single'} />;
       case 'reports': return <Reports />;
       case 'reading': return <ReadingList />;
       case 'admin': return <AdminPanel />;

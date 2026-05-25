@@ -19,8 +19,13 @@ export function formatCohortName(ordinal: number): string {
 export function initiateNewCohort(lastCohort?: Cohort, data?: CohortInitiationData): CohortTransition {
     const nextOrdinal = lastCohort ? lastCohort.ordinal + 1 : 1;
     
+    const generateId = () => {
+        try { return globalThis.crypto.randomUUID(); }
+        catch (e) { return `cohort-${Date.now()}-${Math.floor(Math.random() * 1000)}`; }
+    };
+
     const newActiveCohort: Cohort = {
-        id: globalThis.crypto.randomUUID(),
+        id: generateId(),
         name: formatCohortName(nextOrdinal),
         ordinal: nextOrdinal,
         startDate: data?.startDate || new Date(),

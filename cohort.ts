@@ -10,5 +10,5 @@ export type CohortInitiationData = Omit<Cohort, 'id' | 'name' | 'ordinal' | 'isA
 
 export interface CohortTransition {
     newActiveCohort: Cohort;
-    previouslyActiveCohort?: Cohort; // The previous cohort, now marked as inactive
+    previouslyActiveCohort?: Cohort;
 }
