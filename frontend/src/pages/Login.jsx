@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../utils/supabaseClient';
 import { User, Shield } from 'lucide-react';
+import ForgotPassword from './ForgotPassword';
 
 const Login = () => {
   const { signIn, signUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [role, setRole] = useState('intern');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -81,6 +83,9 @@ const Login = () => {
   };
 
   return (
+    isForgotPassword ? (
+      <ForgotPassword onBack={() => setIsForgotPassword(false)} />
+    ) : (
     <div id="authScreen" style={{
       backgroundImage: 'url(/background.jpg)',
       backgroundSize: 'cover',
@@ -254,11 +259,17 @@ const Login = () => {
           {isSignUp ? (
             <>Already have an account? <span style={{cursor: 'pointer', color: 'var(--red-light)'}} onClick={() => setIsSignUp(false)}>Sign in here</span></>
           ) : (
-            <>Don't have an account? <span style={{cursor: 'pointer', color: 'var(--red-light)'}} onClick={() => setIsSignUp(true)}>Request access</span></>
+            <>
+              <div>Don't have an account? <span style={{cursor: 'pointer', color: 'var(--red-light)'}} onClick={() => setIsSignUp(true)}>Request access</span></div>
+              <div style={{ marginTop: '12px' }}>
+                <span style={{cursor: 'pointer', color: '#5DADE2', textDecoration: 'underline'}} onClick={() => setIsForgotPassword(true)}>Forgot password?</span>
+              </div>
+            </>
           )}
         </div>
       </div>
     </div>
+    )
   );
 };
 

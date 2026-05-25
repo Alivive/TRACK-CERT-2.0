@@ -14,6 +14,7 @@ import ImportData from './pages/ImportData';
 import Reports from './pages/Reports';
 import AdminPanel from './pages/AdminPanel';
 import ReadingList from './pages/ReadingList';
+import ResetPassword from './pages/ResetPassword';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import OfflineStatus from './components/OfflineStatus';
@@ -24,6 +25,18 @@ const AppContent = () => {
   const { user, profile, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
   const [showLoader, setShowLoader] = useState(true);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
+
+  // Check for password reset token in URL
+  useEffect(() => {
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(hash.substring(1)); // Remove '#' and parse
+    
+    if (searchParams.get('type') === 'recovery' && searchParams.get('access_token')) {
+      console.log('[APP] Password reset mode detected from URL');
+      setIsResetPasswordMode(true);
+    }
+  }, []);
 
   // AUTOMATIC CACHE CLEARING: Check version and clear old cache on app load
   useEffect(() => {
@@ -94,6 +107,18 @@ const AppContent = () => {
           <div style={{ fontSize: '10px', color: '#888', letterSpacing: '4px', textTransform: 'uppercase' }}>System Initializing</div>
         </div>
       </div>
+    );
+  }
+
+  // Show reset password page if in reset mode
+  if (isResetPasswordMode) {
+    return (
+      <ResetPassword 
+        onComplete={() => {
+          setIsResetPasswordMode(false);
+          window.location.href = '/';
+        }}
+      />
     );
   }
 
