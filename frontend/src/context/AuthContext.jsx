@@ -125,9 +125,16 @@ export const AuthProvider = ({ children }) => {
           
           await fetchProfile(session.user.id);
         } else {
-          // No active session - check cache for offline mode
-          console.log('[AUTH] No active session, checking cache');
-          await loadCachedSession();
+          if (navigator.onLine) {
+            console.log('[AUTH] No active session');
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          } else {
+            // No active session - check cache only for offline mode
+            console.log('[AUTH] No active session, checking offline cache');
+            await loadCachedSession();
+          }
         }
       } catch (error) {
         console.error('[AUTH] Session check error:', error.message);
@@ -182,8 +189,12 @@ export const AuthProvider = ({ children }) => {
       // SECURITY FIX: Clear previous user's cache when auth state changes
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         console.log('[AUTH] Clearing all cached data on sign out');
-        const { offlineStorage } = await import('../utils/offlineStorage');
-        await offlineStorage.clearAllCache();
+        try {
+          const { offlineStorage } = await import('../utils/offlineStorage');
+          await offlineStorage.clearAllCache();
+        } catch (cacheError) {
+          console.error('[AUTH] Failed to clear cache on sign out:', cacheError);
+        }
         setUser(null);
         setProfile(null);
         setLoading(false);
@@ -277,11 +288,9 @@ export const AuthProvider = ({ children }) => {
       // Clear state immediately
       setUser(null);
       setProfile(null);
+      setLoading(false);
       
-      console.log('[AUTH] Sign out successful, redirecting...');
-      
-      // Force page reload to clear any cached state
-      window.location.reload();
+      console.log('[AUTH] Sign out successful');
       
     } catch (error) {
       console.error('[AUTH] Sign out error:', error);
@@ -298,7 +307,7 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.clear();
       setUser(null);
       setProfile(null);
-      window.location.reload();
+      setLoading(false);
     }
   }, []);
 
