@@ -100,7 +100,7 @@ const Dashboard = ({ onPageChange }) => {
     }).sort((a, b) => b.count - a.count);
 
     // Top performers
-    const topPerformers = internStats.slice(0, 5);
+    const topPerformers = internStats;
 
     return { internStats, categoryStats, topPerformers };
   }, [certifications, interns, CATS, getTH]);
