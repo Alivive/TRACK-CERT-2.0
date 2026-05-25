@@ -282,7 +282,7 @@ const Dashboard = ({ onPageChange }) => {
                   TOP PERFORMERS
                 </span>
               </div>
-              <div className="card-body">
+              <div className="card-body" style={{ maxHeight: '450px', overflowY: 'auto', paddingRight: '10px' }}>
                 {analytics.topPerformers.map((performer, index) => (
                   <div key={performer.intern.id} style={{ 
                     display: 'flex', 
