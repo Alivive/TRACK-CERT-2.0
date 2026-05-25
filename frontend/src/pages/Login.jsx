@@ -161,6 +161,19 @@ const Login = () => {
         <div className="auth-logo-sub" style={{ textAlign: 'center', marginBottom: '30px' }}>
           SYSTEM ACCESS
         </div>
+
+        {/* Cohort Indicator */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginBottom: '20px', 
+          padding: '8px', 
+          background: 'rgba(239, 68, 68, 0.1)', 
+          borderRadius: '6px',
+          border: '1px solid rgba(239, 68, 68, 0.2)'
+        }}>
+          <span style={{ fontSize: '10px', color: 'var(--gray)', letterSpacing: '1px' }}>ACTIVE COHORT:</span>
+          <div style={{ fontSize: '12px', color: 'var(--red-light)', fontWeight: 'bold' }}>COHORT ONE</div>
+        </div>
         
         <div className="auth-welcome" style={{ textAlign: 'center', marginBottom: '10px' }}>
           {isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN'}

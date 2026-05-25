@@ -49,13 +49,13 @@ const CertificationManagement = ({ initialTab = 'single' }) => {
           style={tabStyle('single')} 
           onClick={() => setActiveTab('single')}
         >
-          Single Certification
+          Manual Entry
         </button>
         <button 
           style={tabStyle('bulk')} 
           onClick={() => setActiveTab('bulk')}
         >
-          Bulk Import (CSV/Excel)
+          Bulk Import
         </button>
       </div>
 

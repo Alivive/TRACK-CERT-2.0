@@ -136,8 +136,9 @@ const AppContent = () => {
       case 'interns': return <InternProfiles />;
       case 'my_profile': return <InternProfiles />;
       case 'categories': return <Categories />;
-      case 'add_cert':
-      case 'import':
+      // Consolidate both into one management page
+      case 'add_cert': 
+      case 'import': 
       case 'certifications': return <CertificationManagement initialTab={activePage === 'import' ? 'bulk' : 'single'} />;
       case 'reports': return <Reports />;
       case 'reading': return <ReadingList />;
