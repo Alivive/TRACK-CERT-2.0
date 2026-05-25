@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Cohort } from '../../../cohort';
-import { initiateNewCohort, INITIAL_COHORT } from '../utils/cohortManager';
+import { Cohort, initiateNewCohort, INITIAL_COHORT } from '../utils/cohortManager';
 
 const CohortManagerComponent: React.FC = () => {
     const [cohorts, setCohorts] = useState<Cohort[]>([INITIAL_COHORT]);

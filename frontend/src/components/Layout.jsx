@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import { useCohorts } from '../context/CohortContext';
 
 const Layout = ({ children, activePage, onPageChange }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { activeCohort } = useCohorts();
 
   const titles = {
     dashboard: 'DASHBOARD',
@@ -11,10 +13,11 @@ const Layout = ({ children, activePage, onPageChange }) => {
     my_profile: 'MY PROFILE',
     categories: 'CATEGORIES',
     add_cert: 'ADD CERTIFICATION',
-    import: 'IMPORT DATA',
-    certifications: 'CERTIFICATION MANAGEMENT',
+    import: 'ADD CERTIFICATION',
+    certifications: 'ADD CERTIFICATION',
     reports: 'REPORTS',
-    admin: 'ADMIN PANEL'
+    admin: 'ADMIN PANEL',
+    cohorts: 'COHORT MANAGEMENT'
   };
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);

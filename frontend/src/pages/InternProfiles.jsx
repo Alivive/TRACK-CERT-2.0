@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../utils/useDatabase';
 import { useCategories } from '../context/CategoriesContext';
+import { useCohorts } from '../context/CohortContext';
 import { supabase } from '../utils/supabaseClient';
 import { ArrowLeft, Download, Plus, Trash2, Edit2, Save, X, ExternalLink, Search } from 'lucide-react';
 import { generateInternReport } from '../utils/pdfGenerator';
@@ -23,6 +24,7 @@ const highlightText = (text, searchTerm) => {
 const InternProfiles = () => {
   const { profile: authProfile } = useAuth();
   const isAdmin = authProfile?.role === 'admin';
+  const { activeCohort } = useCohorts();
   const { categories, getCategoryObject } = useCategories();
   const { 
     interns = [], 
@@ -170,7 +172,11 @@ const InternProfiles = () => {
     }, 10000);
 
     try {
-      const { data, error } = await addIntern(newIntern);
+      const internWithCohort = {
+        ...newIntern,
+        cohort_id: activeCohort.id
+      };
+      const { data, error } = await addIntern(internWithCohort);
       clearTimeout(timeout);
       console.log('[DEBUG] DB Response:', { data, error }); 
       

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AddCertification from './AddCertification';
 import ImportData from './ImportData';
 import { useCohorts } from '../context/CohortContext';
@@ -7,7 +7,6 @@ const CertificationManagement = ({ initialTab = 'single' }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const { activeCohort } = useCohorts();
 
-  // Sync tab if the prop changes (e.g. clicking sidebar while already on this page)
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
@@ -35,7 +34,7 @@ const CertificationManagement = ({ initialTab = 'single' }) => {
         marginBottom: '20px',
         border: '1px solid #222'
       }}>
-        <span style={{ color: '#888', fontSize: '12px' }}>MANAGING FOR:</span>
+        <span style={{ color: '#888', fontSize: '11px', letterSpacing: '1px' }}>ADDING CERTIFICATIONS FOR:</span>
         <h3 style={{ margin: '5px 0 0 0', color: 'var(--red-light)' }}>{activeCohort.name}</h3>
       </div>
 
