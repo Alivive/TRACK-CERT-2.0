@@ -13,6 +13,31 @@ const ResetPassword = ({ onComplete }) => {
   useEffect(() => {
     const handlePasswordReset = async () => {
       try {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
+        const linkError = hashParams.get('error_description') || hashParams.get('error');
+        const authCode = searchParams.get('code');
+
+        if (linkError) {
+          console.warn('[RESET_PASSWORD] Link error:', linkError);
+          setError(
+            linkError.includes('expired')
+              ? 'This reset link has expired. Please request a fresh password reset link.'
+              : linkError.replace(/\+/g, ' ')
+          );
+          return;
+        }
+
+        if (authCode) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
+
+          if (exchangeError) {
+            console.error('[RESET_PASSWORD] Code exchange error:', exchangeError);
+            setError('Failed to verify reset link. Please request a new password reset link.');
+            return;
+          }
+        }
+
         // Check if we have a valid session from the reset link
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         

@@ -12,15 +12,26 @@ import {
   LinearScale,
   BarElement,
 } from 'chart.js';
-import { Pie, Bar } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
+const chartColors = [
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+  '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'
+];
+
 const Dashboard = ({ onPageChange }) => {
-  const { profile, loading: profileLoading } = useAuth();
-  const isAdmin = profile?.role === 'admin';
-  const { categories, getCategoryObject, getCategoryBadges } = useCategories();
+  const { user, profile, loading: profileLoading } = useAuth();
+  const effectiveProfile = profile || {
+    id: user?.id,
+    full_name: user?.user_metadata?.full_name || user?.email || 'User',
+    role: user?.user_metadata?.role || 'intern',
+    intern_id: user?.user_metadata?.intern_id || user?.id,
+  };
+  const isAdmin = effectiveProfile?.role === 'admin';
+  const { getCategoryObject, getCategoryBadges } = useCategories();
   
   // Use dynamic categories
   const CATS = getCategoryObject();
@@ -29,44 +40,9 @@ const Dashboard = ({ onPageChange }) => {
   // Defensive destructuring: default to empty values if DB is still "waking up"
   const { 
     interns = [], 
-    internDict = {}, 
-    certifications = [], 
-    loading 
+    certifications = [],
+    loading
   } = useDatabase();
-
-  // Chart color palette
-  const chartColors = [
-    '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
-    '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'
-  ];
-
-  // Don't render anything until profile is loaded
-  if (profileLoading || !profile) {
-    return (
-      <div id="page-dashboard" className="page active">
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '400px',
-          flexDirection: 'column',
-          gap: '16px'
-        }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '3px solid var(--border2)', 
-            borderTop: '3px solid var(--red-light)', 
-            borderRadius: '50%', 
-            animation: 'spin 1s linear infinite' 
-          }} />
-          <div style={{ color: 'var(--gray)', fontSize: '14px' }}>
-            Loading your profile...
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Filter certifications based on role
   const displayCertifications = useMemo(() => {
@@ -74,8 +50,8 @@ const Dashboard = ({ onPageChange }) => {
       return certifications;
     }
     // For interns, show only their own certifications
-    return certifications.filter(c => c.intern_id === profile?.intern_id);
-  }, [certifications, isAdmin, profile?.intern_id]);
+    return certifications.filter(c => c.intern_id === effectiveProfile?.intern_id);
+  }, [certifications, effectiveProfile?.intern_id, isAdmin]);
 
   const getTH = useCallback((cl) => cl.reduce((s, c) => s + (c.hours || 0), 0), []);
   
@@ -211,6 +187,35 @@ const Dashboard = ({ onPageChange }) => {
     ];
   }, [isAdmin, interns.length, certifications, displayCertifications, getTH]);
 
+  // Don't render dashboard data until auth is loaded. Keep this after hooks so
+  // React sees a stable hook order while auth/profile state resolves.
+  if (profileLoading) {
+    return (
+      <div id="page-dashboard" className="page active">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '400px',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid var(--border2)',
+            borderTop: '3px solid var(--red-light)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <div style={{ color: 'var(--gray)', fontSize: '14px' }}>
+            Loading your profile...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return <div style={{ color: 'var(--white)', padding: '40px' }}>Loading Live Data...</div>;
 
   return (
@@ -221,11 +226,11 @@ const Dashboard = ({ onPageChange }) => {
 
       <div style={{ marginBottom: '30px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '5px' }}>
-          Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}!
+          Welcome back, {effectiveProfile?.full_name?.split(' ')[0] || 'User'}!
         </h1>
         <p style={{ color: 'var(--gray)', fontSize: '13px' }}>
           You are logged in as a system <span style={{ color: 'var(--red-light)', fontWeight: '600' }}>
-            {profile?.role ? profile.role.toUpperCase() : 'LOADING...'}
+            {effectiveProfile?.role ? effectiveProfile.role.toUpperCase() : 'USER'}
           </span>
         </p>
       </div>

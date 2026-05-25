@@ -21,22 +21,23 @@ import OfflineStatus from './components/OfflineStatus';
 import { checkAndClearOldCache, forceUpdateIfNeeded, UPDATE_CHECK_INTERVAL } from './utils/cacheVersion';
 import CacheUpdateNotification from './components/CacheUpdateNotification';
 
+const isPasswordResetUrl = () => {
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const searchParams = new URLSearchParams(window.location.search);
+
+  return (
+    window.location.pathname === '/reset-password' ||
+    hashParams.get('type') === 'recovery' ||
+    hashParams.has('error_code') ||
+    searchParams.has('code')
+  );
+};
+
 const AppContent = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
   const [showLoader, setShowLoader] = useState(true);
-  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
-
-  // Check for password reset token in URL
-  useEffect(() => {
-    const hash = window.location.hash;
-    const searchParams = new URLSearchParams(hash.substring(1)); // Remove '#' and parse
-    
-    if (searchParams.get('type') === 'recovery' && searchParams.get('access_token')) {
-      console.log('[APP] Password reset mode detected from URL');
-      setIsResetPasswordMode(true);
-    }
-  }, []);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(() => isPasswordResetUrl());
 
   // AUTOMATIC CACHE CLEARING: Check version and clear old cache on app load
   useEffect(() => {
@@ -68,16 +69,18 @@ const AppContent = () => {
 
   // Auto-hide loader after 3 seconds max to prevent infinite loading
   useEffect(() => {
+    if (!loading) {
+      const hideImmediately = setTimeout(() => {
+        setShowLoader(false);
+      }, 0);
+
+      return () => clearTimeout(hideImmediately);
+    }
+
     const timer = setTimeout(() => {
       setShowLoader(false);
     }, 3000);
-    
-    // Hide loader when auth resolves
-    if (!loading) {
-      setShowLoader(false);
-      clearTimeout(timer);
-    }
-    
+
     return () => clearTimeout(timer);
   }, [loading]);
 

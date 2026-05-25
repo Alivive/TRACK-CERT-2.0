@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { Mail, ArrowLeft } from 'lucide-react';
 
+const getPasswordResetRedirectUrl = () => {
+  const configuredUrl = import.meta.env.VITE_APP_URL || import.meta.env.VITE_SITE_URL;
+  const origin = configuredUrl || window.location.origin;
+  return `${origin.replace(/\/$/, '')}/reset-password`;
+};
+
 const ForgotPassword = ({ onBack }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +32,7 @@ const ForgotPassword = ({ onBack }) => {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
         {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: getPasswordResetRedirectUrl(),
         }
       );
 
